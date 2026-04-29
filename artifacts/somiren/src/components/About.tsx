@@ -1,0 +1,92 @@
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+
+export default function About() {
+  return (
+    <section id="about" className="py-24 bg-background">
+      <div className="container mx-auto px-4 md:px-8">
+        <div className="bg-card border border-white/5 p-8 md:p-16 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1/2 h-1 bg-gradient-to-r from-primary to-transparent"></div>
+          
+          <div className="grid lg:grid-cols-2 gap-16 items-center relative z-10">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+            >
+              <div className="text-primary text-xs font-bold tracking-[0.2em] uppercase mb-4">
+                À PROPOS DE SOMIREN S.A.
+              </div>
+              <h2 className="text-4xl md:text-5xl font-serif font-bold mb-8 leading-tight">
+                <span className="text-white">Une vision. Une mission.</span>
+                <br />
+                <span className="text-primary">Un impact durable.</span>
+              </h2>
+              <div className="text-muted-foreground leading-relaxed space-y-4 mb-8">
+                <p>
+                  Somiren S.A. was founded thanks to the clear vision of Mr Rock Benon, ancien directeur du réseau financier Benon Business.
+                </p>
+                <p>
+                  Based on his experience in management and strategy, he wanted to invest in the mining sector to contribute to Niger and Africa's economic development. Today Somiren S.A. is a modern mining company combining innovation, cutting-edge technology and respect for international standards for responsible and sustainable exploitation of natural resources.
+                </p>
+              </div>
+              <Button className="bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-bold gap-2">
+                EN SAVOIR PLUS <ArrowRight className="w-4 h-4" />
+              </Button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="relative"
+            >
+              <div className="relative aspect-[3/4] max-w-md mx-auto overflow-hidden border border-white/10">
+                <img
+                  src="/src/assets/about-executive.png"
+                  alt="Mr Rock Benon"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-sm p-4 border-t border-primary/30">
+                  <div className="text-white font-bold text-lg">Mr Rock Benon</div>
+                  <div className="text-primary text-sm">Fondateur & Directeur Général</div>
+                </div>
+              </div>
+
+              <div className="absolute -right-8 top-1/2 -translate-y-1/2 bg-[#0B0B0B] border border-primary/20 p-6 hidden xl:block w-72 shadow-2xl">
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                      <h4 className="text-white font-bold tracking-wider">VISION</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Devenir un leader minier africain reconnu pour son excellence et son impact positif.</p>
+                  </div>
+                  <div className="w-full h-px bg-white/10"></div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                      <h4 className="text-white font-bold tracking-wider">MISSION</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Exploiter durablement les ressources minérales en créant de la valeur pour nos partenaires et nos communautés.</p>
+                  </div>
+                  <div className="w-full h-px bg-white/10"></div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                      <h4 className="text-white font-bold tracking-wider">VALEURS</h4>
+                    </div>
+                    <p className="text-sm text-primary">Intégrité — Sécurité — Innovation — Responsabilité — Performance</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

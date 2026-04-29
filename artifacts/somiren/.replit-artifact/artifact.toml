@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Somiren S.A."
+version = "1.0.0"
+id = "artifacts/somiren"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26247
+
+[services.development]
+run = "pnpm --filter @workspace/somiren run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/somiren", "run", "build" ]
+publicDir = "artifacts/somiren/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26247"
+BASE_PATH = "/"

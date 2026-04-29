@@ -1,0 +1,97 @@
+uploads = []
+
+[[generated]]
+id = "8xACTEpQhjaasSlZrolpi"
+uri = "file://artifacts/somiren/src/assets/hero.png"
+type = "image"
+title = "hero mining excavator sunset"
+
+[[generated]]
+id = "Q3wzDgxmBtTFSjp8nh1dk"
+uri = "file://artifacts/somiren/src/assets/about-executive.png"
+type = "image"
+title = "african mining executive portrait"
+
+[[generated]]
+id = "Z2sDEQVdNPVv2YynAaBvA"
+uri = "file://artifacts/somiren/src/assets/activity-exploration.png"
+type = "image"
+title = "geologists survey desert"
+
+[[generated]]
+id = "kDyitD1yhZDPlHJ_BLeoy"
+uri = "file://artifacts/somiren/src/assets/activity-extraction.png"
+type = "image"
+title = "excavator scooping ore"
+
+[[generated]]
+id = "8d1kjJHN2wtlQorQ4Q2TP"
+uri = "file://artifacts/somiren/src/assets/activity-processing.png"
+type = "image"
+title = "industrial processing plant"
+
+[[generated]]
+id = "etvIBOMkLGFvPbXzZCF7f"
+uri = "file://artifacts/somiren/src/assets/activity-logistics.png"
+type = "image"
+title = "heavy haul trucks convoy"
+
+[[generated]]
+id = "tQYT-XobXaHrNSwjVGU7S"
+uri = "file://artifacts/somiren/src/assets/site-agadez.png"
+type = "image"
+title = "desert mining landscape gold"
+
+[[generated]]
+id = "nfsSF3QdalvkSXXP1dMuP"
+uri = "file://artifacts/somiren/src/assets/site-arlit.png"
+type = "image"
+title = "desert mining landscape uranium"
+
+[[generated]]
+id = "WUPP_kip9y0XCfr7k94uU"
+uri = "file://artifacts/somiren/src/assets/site-imouraren.png"
+type = "image"
+title = "desert mining landscape imouraren"
+
+[[generated]]
+id = "m5RJNI_pj1URzhP3QBzUe"
+uri = "file://artifacts/somiren/src/assets/site-tillaberi.png"
+type = "image"
+title = "desert mining landscape tillaberi"
+
+[[outputs]]
+id = "aw6HGrZtZQskYQM0IDU5P"
+uri = "file://artifacts/somiren/src/assets/team-rock-benon.jpg"
+type = "image"
+title = "African man wearing a white hard hat and safety vest at an industrial mining site"
+
+[[outputs]]
+id = "jiM7SqyxT0HTOSYcp_avM"
+uri = "file://artifacts/somiren/src/assets/team-nuria.jpg"
+type = "image"
+title = "Professional Latina woman in business attire in a modern office"
+
+[[outputs]]
+id = "dmKWzXngd7lb5pB87nvFR"
+uri = "file://artifacts/somiren/src/assets/team-ibrahim.jpg"
+type = "image"
+title = "Professional African man wearing a business suit and tie in a corporate office"
+
+[[outputs]]
+id = "nUp2A2Fy8QJKcBZv8WhKl"
+uri = "file://artifacts/somiren/src/assets/team-abdoulaye.jpg"
+type = "image"
+title = "African man wearing a white hard hat and high-visibility safety vest, serious expression"
+
+[[outputs]]
+id = "slQWuZAfnAlzBxep6I-Ao"
+uri = "file://artifacts/somiren/src/assets/team-aissa.jpg"
+type = "image"
+title = "Professional African woman in elegant business attire, modern office environment"
+
+[[outputs]]
+id = "J7LBjopsDnthsZRyGRAq-"
+uri = "file://artifacts/somiren/src/assets/team-moussa.jpg"
+type = "image"
+title = "African man wearing a white hard hat and safety vest industrial background"
