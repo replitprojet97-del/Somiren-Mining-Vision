@@ -1,7 +1,34 @@
 import { MapPin, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export default function Footer() {
+  const [, setLocation] = useLocation();
+
+  const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
+    e.preventDefault();
+    if (target.startsWith('/')) {
+      setLocation(target);
+    } else {
+      if (window.location.pathname !== '/') {
+        setLocation(`/${target}`);
+      } else {
+        const el = document.querySelector(target);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  const quickLinks = [
+    { label: 'Accueil', target: '/' },
+    { label: 'À propos', target: '#apropos' },
+    { label: 'Activités', target: '#activites' },
+    { label: 'Projets', target: '/projets' },
+    { label: 'Équipe', target: '#equipe' },
+    { label: 'Partenaires', target: '#partenaires' },
+    { label: 'Contact', target: '/contact' }
+  ];
+
   return (
     <footer id="footer" className="bg-[#050505] border-t border-primary/20 pt-20 pb-8">
       <div className="container mx-auto px-4 md:px-8">
@@ -9,7 +36,7 @@ export default function Footer() {
           
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-primary" style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}></div>
+              <img src="/logo.svg" alt="Somiren Logo" className="w-8 h-8" />
               <span className="text-2xl font-bold tracking-wider text-white">SOMIREN S.A.</span>
             </div>
             <div className="text-xs text-primary tracking-widest font-semibold uppercase mb-4">EXCELLENCE MINIÈRE, AVENIR DURABLE</div>
@@ -21,10 +48,14 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-bold tracking-widest mb-6">LIENS RAPIDES</h4>
             <ul className="space-y-3">
-              {['Accueil', 'À propos', 'Activités', 'Projets', 'Équipe', 'Partenaires', 'Actualités', 'Contact'].map(link => (
-                <li key={link}>
-                  <a href={`#${link.toLowerCase()}`} className="text-gray-400 hover:text-primary transition-colors text-sm">
-                    {link}
+              {quickLinks.map(link => (
+                <li key={link.label}>
+                  <a 
+                    href={link.target} 
+                    onClick={(e) => handleNav(e, link.target)}
+                    className="text-gray-400 hover:text-primary transition-colors text-sm"
+                  >
+                    {link.label}
                   </a>
                 </li>
               ))}
@@ -40,11 +71,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-3 text-gray-400 text-sm">
                 <Phone className="w-5 h-5 text-primary shrink-0" />
-                <span>+227 20 73 45 67</span>
+                <a href="tel:+22720734567" className="hover:text-primary transition-colors">+227 20 73 45 67</a>
               </li>
               <li className="flex items-center gap-3 text-gray-400 text-sm">
                 <Mail className="w-5 h-5 text-primary shrink-0" />
-                <span>contact@somiren.com</span>
+                <a href="mailto:contact@somiren.com" className="hover:text-primary transition-colors">contact@somiren.com</a>
               </li>
             </ul>
           </div>
@@ -53,12 +84,15 @@ export default function Footer() {
             <h4 className="text-white font-bold tracking-widest mb-6">SUIVEZ-NOUS</h4>
             <div className="flex gap-3 mb-8">
               {['IN', 'FB', 'X', 'YT'].map(social => (
-                <a key={social} href="#" className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-gray-400 hover:border-primary hover:text-primary hover:scale-110 transition-all text-xs font-bold">
+                <a key={social} href="#" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-gray-400 hover:border-primary hover:text-primary hover:scale-110 transition-all text-xs font-bold">
                   {social}
                 </a>
               ))}
             </div>
-            <Button className="w-full bg-primary text-black hover:bg-primary/90 rounded-none tracking-widest font-bold">
+            <Button 
+              onClick={() => setLocation('/contact')}
+              className="w-full bg-primary text-black hover:bg-primary/90 rounded-none tracking-widest font-bold"
+            >
               NOUS CONTACTER
             </Button>
           </div>

@@ -1,19 +1,25 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import imgRock from "@/assets/team-rock-benon.jpg";
+import imgNuria from "@/assets/team-nuria.jpg";
+import imgIbrahim from "@/assets/team-ibrahim.jpg";
+import imgAbdoulaye from "@/assets/team-abdoulaye.jpg";
+import imgAissa from "@/assets/team-aissa.jpg";
+import imgMoussa from "@/assets/team-moussa.jpg";
 
 export default function Team() {
   const team = [
-    { name: "Rock Benon", role: "Fondateur & Directeur Général", img: "/src/assets/team-rock-benon.jpg" },
-    { name: "Nuria M. Rodriguez", role: "Secrétaire Personnelle", img: "/src/assets/team-nuria.jpg" },
-    { name: "Ibrahim Maman", role: "Directeur des Opérations", img: "/src/assets/team-ibrahim.jpg" },
-    { name: "Abdoulaye Hassane", role: "Directeur Technique", img: "/src/assets/team-abdoulaye.jpg" },
-    { name: "Aïssa K. Saley", role: "Directrice HSE & Développement Durable", img: "/src/assets/team-aissa.jpg" },
-    { name: "Moussa Garba", role: "Responsable des Projets", img: "/src/assets/team-moussa.jpg" },
+    { name: "Rock Benon", role: "Fondateur & Directeur Général", img: imgRock },
+    { name: "Nuria M. Rodriguez", role: "Assistante Exécutive & Conseillère Stratégique", img: imgNuria },
+    { name: "Ibrahim Maman", role: "Directeur des Opérations", img: imgIbrahim },
+    { name: "Abdoulaye Hassane", role: "Directeur Technique", img: imgAbdoulaye },
+    { name: "Aïssa K. Saley", role: "Directrice HSE & Développement Durable", img: imgAissa },
+    { name: "Moussa Garba", role: "Responsable des Projets", img: imgMoussa },
   ];
 
   return (
-    <section id="team" className="py-24 bg-background">
+    <section id="equipe" className="py-24 bg-background">
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex items-end justify-between mb-12">
           <motion.h2 

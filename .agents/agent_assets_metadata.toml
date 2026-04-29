@@ -60,6 +60,24 @@ uri = "file://artifacts/somiren/src/assets/site-tillaberi.png"
 type = "image"
 title = "desert mining landscape tillaberi"
 
+[[generated]]
+id = "-4eO5MjR8QCLRLd8ba_Ag"
+uri = "file://artifacts/somiren/public/favicon-32.png"
+type = "image"
+title = "favicon"
+
+[[generated]]
+id = "K8-U4Yr9mKN78aBuajFkl"
+uri = "file://artifacts/somiren/public/apple-touch-icon.png"
+type = "image"
+title = "apple touch icon"
+
+[[generated]]
+id = "s1tNT7xrzAQZiNEZuV_GQ"
+uri = "file://artifacts/somiren/public/og-image.png"
+type = "image"
+title = "og image"
+
 [[outputs]]
 id = "aw6HGrZtZQskYQM0IDU5P"
 uri = "file://artifacts/somiren/src/assets/team-rock-benon.jpg"

@@ -1,5 +1,9 @@
 import { Search, LoaderPinwheel, Factory, Truck } from "lucide-react";
 import { motion } from "framer-motion";
+import imgExploration from "@/assets/activity-exploration.png";
+import imgExtraction from "@/assets/activity-extraction.png";
+import imgProcessing from "@/assets/activity-processing.png";
+import imgLogistics from "@/assets/activity-logistics.png";
 
 export default function Activities() {
   const activities = [
@@ -7,30 +11,30 @@ export default function Activities() {
       title: "EXPLORATION MINIÈRE",
       desc: "Études géologiques avancées et prospection pour identifier les meilleurs gisements.",
       icon: Search,
-      image: "/src/assets/activity-exploration.png"
+      image: imgExploration
     },
     {
       title: "EXTRACTION",
       desc: "Exploitation responsable des minerais avec des équipements de pointe et des normes de sécurité strictes.",
       icon: LoaderPinwheel,
-      image: "/src/assets/activity-extraction.png"
+      image: imgExtraction
     },
     {
       title: "TRAITEMENT DES RESSOURCES",
       desc: "Stations de traitement modernes pour optimiser la qualité et la valeur des minerais extraits.",
       icon: Factory,
-      image: "/src/assets/activity-processing.png"
+      image: imgProcessing
     },
     {
       title: "LOGISTIQUE & TRANSPORT",
       desc: "Chaîne logistique intégrée pour assurer l'acheminement efficace et sécurisé des ressources.",
       icon: Truck,
-      image: "/src/assets/activity-logistics.png"
+      image: imgLogistics
     }
   ];
 
   return (
-    <section id="activities" className="py-24 bg-[#050505]">
+    <section id="activites" className="py-24 bg-[#050505]">
       <div className="container mx-auto px-4 md:px-8">
         <div className="text-center mb-16">
           <motion.h2 

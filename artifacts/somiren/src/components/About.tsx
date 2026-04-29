@@ -1,10 +1,16 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import executiveImg from "@/assets/about-executive.png";
 
 export default function About() {
+  const scrollToActivities = () => {
+    const el = document.querySelector('#activites');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <section id="about" className="py-24 bg-background">
+    <section id="apropos" className="py-24 bg-background">
       <div className="container mx-auto px-4 md:px-8">
         <div className="bg-card border border-white/5 p-8 md:p-16 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1/2 h-1 bg-gradient-to-r from-primary to-transparent"></div>
@@ -26,13 +32,16 @@ export default function About() {
               </h2>
               <div className="text-muted-foreground leading-relaxed space-y-4 mb-8">
                 <p>
-                  Somiren S.A. was founded thanks to the clear vision of Mr Rock Benon, ancien directeur du réseau financier Benon Business.
+                  Fondée en 2024 par Mr Rock Benon, ancien directeur du réseau financier Benon Business, Somiren S.A. a démarré son exploitation au premier trimestre 2026. L'entreprise s'appuie sur l'expérience de son fondateur en gestion et stratégie pour investir durablement dans le secteur minier au service du Niger et de l'Afrique.
                 </p>
                 <p>
-                  Based on his experience in management and strategy, he wanted to invest in the mining sector to contribute to Niger and Africa's economic development. Today Somiren S.A. is a modern mining company combining innovation, cutting-edge technology and respect for international standards for responsible and sustainable exploitation of natural resources.
+                  Aujourd'hui, Somiren S.A. est une entreprise minière moderne alliant innovation, technologie de pointe et respect des standards internationaux pour une exploitation responsable des ressources naturelles.
                 </p>
               </div>
-              <Button className="bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-bold gap-2">
+              <Button 
+                onClick={scrollToActivities}
+                className="bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-bold gap-2"
+              >
                 EN SAVOIR PLUS <ArrowRight className="w-4 h-4" />
               </Button>
             </motion.div>
@@ -46,8 +55,8 @@ export default function About() {
             >
               <div className="relative aspect-[3/4] max-w-md mx-auto overflow-hidden border border-white/10">
                 <img
-                  src="/src/assets/about-executive.png"
-                  alt="Mr Rock Benon"
+                  src={executiveImg}
+                  alt="Mr Rock Benon — Fondateur & Directeur Général"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-sm p-4 border-t border-primary/30">

@@ -1,13 +1,13 @@
-import { Leaf, Mountain, Users, Truck, Shield } from "lucide-react";
+import { Calendar, Mountain, Users, Truck, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function StatsBar() {
   const stats = [
-    { value: "100%", label: "Engagement durable", icon: Leaf },
-    { value: "10+", label: "Sites d'exploitation", icon: Mountain },
-    { value: "500+", label: "Emplois locaux", icon: Users },
-    { value: "5M+", label: "Tonnes extraites", icon: Truck },
-    { value: "15+", label: "Années d'expertise", icon: Shield },
+    { value: "2024", label: "Année de fondation", icon: Calendar },
+    { value: "02", label: "Sites opérationnels", icon: Mountain },
+    { value: "100+", label: "Emplois locaux créés", icon: Users },
+    { value: "20K+", label: "Tonnes en phase initiale", icon: Truck },
+    { value: "100%", label: "Conformité réglementaire", icon: ShieldCheck },
   ];
 
   return (

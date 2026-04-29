@@ -5,6 +5,7 @@ import StatsBar from "@/components/StatsBar";
 import About from "@/components/About";
 import Activities from "@/components/Activities";
 import Sites from "@/components/Sites";
+import Investors from "@/components/Investors";
 import Partners from "@/components/Partners";
 import Team from "@/components/Team";
 import Footer from "@/components/Footer";
@@ -43,6 +44,7 @@ export default function Home() {
         <About />
         <Activities />
         <Sites />
+        <Investors />
         <Partners />
         <Team />
       </main>
