@@ -19,29 +19,41 @@ export default function Header() {
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
     e.preventDefault();
     setMobileMenuOpen(false);
+
+    // "Accueil" link
+    if (target === '/') {
+      if (location === '/') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setLocation('/');
+      }
+      return;
+    }
+
+    // Real route (e.g. /projets, /contact)
     if (target.startsWith('/')) {
       setLocation(target);
+      return;
+    }
+
+    // Hash anchor (#apropos, #activites, etc.)
+    if (location !== '/') {
+      sessionStorage.setItem('somiren:scrollTarget', target);
+      setLocation('/');
     } else {
-      if (location !== '/') {
-        setLocation(`/${target}`);
-      } else {
-        const el = document.querySelector(target);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
+      const el = document.querySelector(target);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   const handleInvestorClick = () => {
     setMobileMenuOpen(false);
     if (location !== '/') {
-      setLocation('/#investisseurs');
+      sessionStorage.setItem('somiren:scrollTarget', '#investisseurs');
+      setLocation('/');
     } else {
       const el = document.querySelector('#investisseurs');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 

@@ -186,7 +186,7 @@ export default function ContactPage() {
                       </div>
                       <div>
                         <h4 className="text-white font-bold mb-1">Adresse</h4>
-                        <p className="text-gray-400 text-sm">Quartier Industriel, Niamey,<br />République du Niger</p>
+                        <p className="text-gray-400 text-sm">Boulevard Mali Béro, Plateau<br />BP 11045 — Niamey<br />République du Niger</p>
                       </div>
                     </div>
 
@@ -226,7 +226,7 @@ export default function ContactPage() {
                 <div className="bg-card border border-white/10 rounded-xl overflow-hidden h-64 relative">
                   <iframe
                     title="Siège social Somiren S.A. — Niamey, Niger"
-                    src="https://maps.google.com/maps?q=Niamey%2C%20Niger&t=&z=12&ie=UTF8&iwloc=&output=embed"
+                    src="https://maps.google.com/maps?q=Boulevard+Mali+B%C3%A9ro%2C+Plateau%2C+Niamey%2C+Niger&t=&z=14&ie=UTF8&iwloc=&output=embed"
                     className="w-full h-full"
                     style={{ border: 0, filter: "grayscale(0.4) contrast(1.05)" }}
                     loading="lazy"

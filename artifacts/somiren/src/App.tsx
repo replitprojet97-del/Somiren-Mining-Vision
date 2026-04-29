@@ -14,13 +14,29 @@ function ScrollManager() {
   const [location] = useLocation();
 
   useEffect(() => {
+    const target = sessionStorage.getItem('somiren:scrollTarget');
+    if (target && location === '/') {
+      sessionStorage.removeItem('somiren:scrollTarget');
+      // Wait for the section to be mounted
+      let tries = 0;
+      const tryScroll = () => {
+        const el = document.querySelector(target);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        } else if (tries < 20) {
+          tries += 1;
+          setTimeout(tryScroll, 50);
+        }
+      };
+      setTimeout(tryScroll, 50);
+      return;
+    }
+
     const hash = window.location.hash;
     if (hash) {
       setTimeout(() => {
         const element = document.querySelector(hash);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
-        }
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } else {
       window.scrollTo(0, 0);

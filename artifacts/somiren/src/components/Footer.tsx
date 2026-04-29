@@ -7,15 +7,27 @@ export default function Footer() {
 
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
     e.preventDefault();
+
+    if (target === '/') {
+      if (window.location.pathname === '/') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setLocation('/');
+      }
+      return;
+    }
+
     if (target.startsWith('/')) {
       setLocation(target);
+      return;
+    }
+
+    if (window.location.pathname !== '/') {
+      sessionStorage.setItem('somiren:scrollTarget', target);
+      setLocation('/');
     } else {
-      if (window.location.pathname !== '/') {
-        setLocation(`/${target}`);
-      } else {
-        const el = document.querySelector(target);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }
+      const el = document.querySelector(target);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -67,7 +79,7 @@ export default function Footer() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-gray-400 text-sm">
                 <MapPin className="w-5 h-5 text-primary shrink-0" />
-                <span>Quartier Industriel, Niamey,<br/>République du Niger</span>
+                <span>Boulevard Mali Béro, Plateau<br/>BP 11045 — Niamey<br/>République du Niger</span>
               </li>
               <li className="flex items-center gap-3 text-gray-400 text-sm">
                 <Phone className="w-5 h-5 text-primary shrink-0" />
