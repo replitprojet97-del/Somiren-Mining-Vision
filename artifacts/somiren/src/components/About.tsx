@@ -14,7 +14,7 @@ export default function About() {
       <div className="container mx-auto px-4 md:px-8">
         <div className="bg-card border border-white/5 p-8 md:p-16 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1/2 h-1 bg-gradient-to-r from-primary to-transparent"></div>
-          
+
           <div className="grid lg:grid-cols-2 gap-16 items-center relative z-10">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -32,13 +32,16 @@ export default function About() {
               </h2>
               <div className="text-muted-foreground leading-relaxed space-y-4 mb-8">
                 <p>
-                  Fondée en 2024 par Mr Rock Benon, ancien directeur du réseau financier Benon Business, Somiren S.A. a démarré son exploitation au premier trimestre 2026. L'entreprise s'appuie sur l'expérience de son fondateur en gestion et stratégie pour investir durablement dans le secteur minier au service du Niger et de l'Afrique.
+                  Fondée en 2024 par Mr Rock Benon, ancien directeur du réseau financier Benon Business, Somiren S.A. a lancé ses premières opérations d'extraction au premier trimestre 2026. L'entreprise mobilise l'expertise de son fondateur en structuration financière et en gestion stratégique pour bâtir un acteur minier de référence, au service du développement économique du Niger et de l'Afrique subsaharienne.
                 </p>
                 <p>
-                  Aujourd'hui, Somiren S.A. est une entreprise minière moderne alliant innovation, technologie de pointe et respect des standards internationaux pour une exploitation responsable des ressources naturelles.
+                  En moins de deux ans d'existence, Somiren S.A. opère déjà deux sites actifs — Agadez (or) et Arlit (uranium) — et conduit des programmes d'exploration avancés sur trois sites additionnels. L'entreprise allie technologie de pointe, gouvernance transparente et engagement RSE sincère pour une exploitation des ressources naturelles qui profite autant aux communautés locales qu'aux partenaires internationaux.
+                </p>
+                <p>
+                  Membre de l'Initiative pour la Transparence des Industries Extractives (ITIE) et signataire du Pacte Mondial des Nations Unies, Somiren S.A. s'impose des standards de conformité dépassant les obligations réglementaires nigériennes.
                 </p>
               </div>
-              <Button 
+              <Button
                 onClick={scrollToActivities}
                 className="bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-bold gap-2"
               >
@@ -56,8 +59,9 @@ export default function About() {
               <div className="relative aspect-[3/4] max-w-md mx-auto overflow-hidden border border-white/10">
                 <img
                   src={executiveImg}
-                  alt="Mr Rock Benon — Fondateur & Directeur Général"
-                  className="w-full h-full object-cover"
+                  alt="Mr Rock Benon — Fondateur & Directeur Général de Somiren S.A."
+                  draggable={false}
+                  className="w-full h-full object-cover pointer-events-none select-none"
                 />
                 <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-sm p-4 border-t border-primary/30">
                   <div className="text-white font-bold text-lg">Mr Rock Benon</div>
@@ -72,7 +76,7 @@ export default function About() {
                       <CheckCircle2 className="w-5 h-5 text-primary" />
                       <h4 className="text-white font-bold tracking-wider">VISION</h4>
                     </div>
-                    <p className="text-sm text-muted-foreground">Devenir un leader minier africain reconnu pour son excellence et son impact positif.</p>
+                    <p className="text-sm text-muted-foreground">Devenir d'ici 2035 le premier groupe minier privé d'Afrique de l'Ouest, reconnu pour son excellence opérationnelle et son impact social positif.</p>
                   </div>
                   <div className="w-full h-px bg-white/10"></div>
                   <div>
@@ -80,7 +84,7 @@ export default function About() {
                       <CheckCircle2 className="w-5 h-5 text-primary" />
                       <h4 className="text-white font-bold tracking-wider">MISSION</h4>
                     </div>
-                    <p className="text-sm text-muted-foreground">Exploiter durablement les ressources minérales en créant de la valeur pour nos partenaires et nos communautés.</p>
+                    <p className="text-sm text-muted-foreground">Exploiter durablement les ressources minérales du Niger en créant de la valeur partagée pour nos actionnaires, nos employés et nos communautés hôtes.</p>
                   </div>
                   <div className="w-full h-px bg-white/10"></div>
                   <div>

@@ -7,6 +7,7 @@ import Home from "@/pages/Home";
 import ProjetsPage from "@/pages/Projets";
 import ContactPage from "@/pages/Contact";
 import { useEffect } from "react";
+import { useProtection } from "@/hooks/useProtection";
 
 const queryClient = new QueryClient();
 
@@ -57,14 +58,21 @@ function Router() {
   );
 }
 
+function AppInner() {
+  useProtection();
+  return (
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <ScrollManager />
+      <Router />
+    </WouterRouter>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <ScrollManager />
-          <Router />
-        </WouterRouter>
+        <AppInner />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
