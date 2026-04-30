@@ -22,4 +22,15 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  const selfPingUrl = process.env["RENDER_EXTERNAL_URL"];
+  if (selfPingUrl) {
+    const INTERVAL_MS = 14 * 60 * 1000;
+    setInterval(() => {
+      fetch(`${selfPingUrl}/api/healthz`)
+        .then(() => logger.info("Self-ping OK"))
+        .catch((pingErr: unknown) => logger.warn({ err: pingErr }, "Self-ping failed"));
+    }, INTERVAL_MS);
+    logger.info({ url: `${selfPingUrl}/api/healthz`, intervalMin: 14 }, "Self-ping scheduled");
+  }
 });
