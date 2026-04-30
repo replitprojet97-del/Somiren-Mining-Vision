@@ -14,13 +14,20 @@ app.use(helmet({
   contentSecurityPolicy: false, // handled by the frontend CDN/proxy
 }));
 
-// CORS — allow only the production domain + dev proxy
-const allowedOrigins = [
+// CORS — allow production domains + dev proxy + any extra origins from env
+const extraOrigins = (process.env.EXTRA_ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const allowedOrigins: (string | RegExp)[] = [
   "https://somiren.com",
   "https://www.somiren.com",
   /\.replit\.dev$/,
   /\.replit\.app$/,
+  /\.onrender\.com$/,
   /localhost/,
+  ...extraOrigins,
 ];
 app.use(cors({
   origin: (origin, cb) => {
