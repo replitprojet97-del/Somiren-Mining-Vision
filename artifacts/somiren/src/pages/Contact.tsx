@@ -40,11 +40,23 @@ export default function ContactPage() {
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    // TODO: when Resend is configured, POST to /api/contact instead of simulating success
-    await new Promise((r) => setTimeout(r, 900));
-    setIsSubmitting(false);
-    setIsSuccess(true);
-    toast.success("Message envoyé avec succès");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Erreur serveur");
+      }
+      setIsSuccess(true);
+      toast.success("Message envoyé avec succès !");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec de l'envoi, veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
