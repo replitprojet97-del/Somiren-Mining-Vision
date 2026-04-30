@@ -1,71 +1,68 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import type { IconType } from "react-icons";
+import {
+  SiCaterpillar,
+  SiHyundai,
+  SiMitsubishi,
+  SiSamsung,
+  SiVolvo,
+  SiScania,
+  SiJcb,
+  SiSiemens,
+  SiAbb,
+  SiToyota,
+  SiHsbc,
+  SiBarclays,
+  SiDeutschebank,
+  SiAmp,
+  SiGeneralelectric,
+} from "react-icons/si";
 
 type Partner = {
   name: string;
-  domain: string;
+  Icon: IconType;
+  color: string;
 };
 
 const row1: Partner[] = [
-  { name: "Samsung", domain: "samsung.com" },
-  { name: "Hyundai", domain: "hyundai.com" },
-  { name: "POSCO", domain: "posco.com" },
-  { name: "Mitsubishi Corp.", domain: "mitsubishicorp.com" },
-  { name: "JFE Steel", domain: "jfe-steel.co.jp" },
-  { name: "ITOCHU", domain: "itochu.co.jp" },
-  { name: "Marubeni", domain: "marubeni.com" },
-  { name: "Sumitomo Corp.", domain: "sumitomocorp.com" },
-  { name: "Bank of China", domain: "bankofchina.com" },
-  { name: "ICBC", domain: "icbc.com.cn" },
-  { name: "China Construction Bank", domain: "ccb.com" },
-  { name: "KfW", domain: "kfw.de" },
+  { name: "Caterpillar", Icon: SiCaterpillar, color: "#FFCD11" },
+  { name: "Hyundai", Icon: SiHyundai, color: "#002C5F" },
+  { name: "Mitsubishi", Icon: SiMitsubishi, color: "#E60012" },
+  { name: "Samsung", Icon: SiSamsung, color: "#1428A0" },
+  { name: "Volvo", Icon: SiVolvo, color: "#003057" },
+  { name: "Scania", Icon: SiScania, color: "#041E42" },
+  { name: "JCB", Icon: SiJcb, color: "#FCB026" },
+  { name: "Siemens", Icon: SiSiemens, color: "#009999" },
+  { name: "ABB", Icon: SiAbb, color: "#FF000F" },
+  { name: "Toyota", Icon: SiToyota, color: "#EB0A1E" },
 ];
 
 const row2: Partner[] = [
-  { name: "Standard Bank", domain: "standardbank.com" },
-  { name: "ABSA", domain: "absa.co.za" },
-  { name: "Nedbank", domain: "nedbank.co.za" },
-  { name: "Investec", domain: "investec.com" },
-  { name: "FirstRand", domain: "firstrand.co.za" },
-  { name: "Rand Merchant Bank", domain: "rmb.co.za" },
-  { name: "AMP", domain: "amp.com.au" },
-  { name: "Société Générale", domain: "societegenerale.com" },
-  { name: "BNP Paribas", domain: "bnpparibas.com" },
-  { name: "HSBC", domain: "hsbc.com" },
-  { name: "ING", domain: "ing.com" },
-  { name: "UniCredit", domain: "unicredit.it" },
-  { name: "Crédit Agricole", domain: "credit-agricole.com" },
+  { name: "HSBC", Icon: SiHsbc, color: "#DB0011" },
+  { name: "Barclays", Icon: SiBarclays, color: "#00AEEF" },
+  { name: "Deutsche Bank", Icon: SiDeutschebank, color: "#0018A8" },
+  { name: "AMP", Icon: SiAmp, color: "#005EB8" },
+  { name: "General Electric", Icon: SiGeneralelectric, color: "#3360A9" },
 ];
 
 function PartnerCard({ partner }: { partner: Partner }) {
-  const [errored, setErrored] = useState(false);
+  const Icon = partner.Icon;
   return (
-    <div className="flex items-center justify-center w-40 md:w-52 h-20 md:h-24 mx-3 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow shrink-0 px-4">
-      {!errored ? (
-        <div className="flex items-center gap-3 w-full justify-center">
-          <img
-            src={`https://icon.horse/icon/${partner.domain}`}
-            alt={partner.name}
-            loading="lazy"
-            onError={() => setErrored(true)}
-            className="w-10 h-10 md:w-12 md:h-12 object-contain rounded-sm"
-          />
-          <span className="text-sm md:text-[15px] font-semibold text-black/80 truncate">
-            {partner.name}
-          </span>
-        </div>
-      ) : (
-        <span className="text-sm md:text-base font-bold text-black/80 text-center leading-tight">
-          {partner.name}
-        </span>
-      )}
+    <div className="flex items-center justify-center gap-3 w-48 md:w-56 h-20 md:h-24 mx-3 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow shrink-0 px-5">
+      <Icon className="w-9 h-9 md:w-10 md:h-10 shrink-0" style={{ color: partner.color }} />
+      <span className="text-sm md:text-[15px] font-semibold text-black/80 truncate">
+        {partner.name}
+      </span>
     </div>
   );
 }
 
 export default function Partners() {
   return (
-    <section id="partenaires" className="py-20 md:py-24 bg-[#F5F1EA] overflow-hidden border-t border-b border-black/10">
+    <section
+      id="partenaires"
+      className="py-20 md:py-24 bg-[#F5F1EA] overflow-hidden border-t border-b border-black/10"
+    >
       <div className="container mx-auto px-4 md:px-8 mb-12">
         <div className="text-center">
           <motion.h2
@@ -84,22 +81,22 @@ export default function Partners() {
       </div>
 
       <div className="relative w-full flex flex-col gap-6 group">
-        {/* Row 1 — scrolls left */}
+        {/* Row 1 — industriels & équipementiers */}
         <div className="flex overflow-hidden relative">
           <div className="flex animate-scroll-left min-w-max group-hover:[animation-play-state:paused]">
-            {[...row1, ...row1].map((partner, i) => (
+            {[...row1, ...row1, ...row1].map((partner, i) => (
               <PartnerCard key={`r1-${i}`} partner={partner} />
             ))}
           </div>
         </div>
 
-        {/* Row 2 — scrolls right */}
+        {/* Row 2 — partenaires financiers */}
         <div className="flex overflow-hidden relative">
           <div
             className="flex animate-scroll-right min-w-max group-hover:[animation-play-state:paused]"
             style={{ animationDuration: "55s" }}
           >
-            {[...row2, ...row2].map((partner, i) => (
+            {[...row2, ...row2, ...row2, ...row2].map((partner, i) => (
               <PartnerCard key={`r2-${i}`} partner={partner} />
             ))}
           </div>
