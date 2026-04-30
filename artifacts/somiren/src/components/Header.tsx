@@ -1,14 +1,80 @@
-import { useEffect, useState } from "react";
-import { TrendingUp, Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { TrendingUp, Menu, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, Link } from "wouter";
 import { useLang } from "@/contexts/LanguageContext";
+import type { Lang } from "@/i18n/translations";
+
+const LANGS: { code: Lang; label: string }[] = [
+  { code: "fr", label: "FR" },
+  { code: "en", label: "EN" },
+];
+
+function LangDropdown({ compact = false }: { compact?: boolean }) {
+  const { lang, setLang } = useLang();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const current = LANGS.find((l) => l.code === lang)!;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-1.5 font-bold tracking-widest border transition-colors ${
+          open
+            ? "border-primary text-primary"
+            : "border-white/20 text-white/80 hover:border-primary hover:text-primary"
+        } ${compact ? "text-base px-4 py-2" : "text-sm px-3 py-1.5"}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Select language"
+      >
+        {current.label}
+        <ChevronDown
+          className={`transition-transform duration-200 ${open ? "rotate-180" : ""} ${compact ? "w-4 h-4" : "w-3 h-3"}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute right-0 mt-1 w-full bg-black/95 border border-primary/30 backdrop-blur-md shadow-xl z-50 overflow-hidden"
+        >
+          {LANGS.map((l) => (
+            <button
+              key={l.code}
+              role="option"
+              aria-selected={lang === l.code}
+              onClick={() => { setLang(l.code); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-sm font-bold tracking-widest transition-colors ${
+                lang === l.code
+                  ? "text-primary bg-primary/10"
+                  : "text-white/70 hover:text-primary hover:bg-white/5"
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
-  const { lang, t, setLang } = useLang();
+  const { t } = useLang();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -78,7 +144,11 @@ export default function Header() {
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
 
-        <nav className={`fixed inset-0 bg-black/95 flex flex-col items-center justify-center gap-8 transition-transform duration-300 lg:static lg:bg-transparent lg:flex-row lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}`}>
+        <nav
+          className={`fixed inset-0 bg-black/95 flex flex-col items-center justify-center gap-8 transition-transform duration-300 lg:static lg:bg-transparent lg:flex-row lg:translate-x-0 ${
+            mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -91,32 +161,22 @@ export default function Header() {
             </a>
           ))}
 
-          {/* Language toggle — mobile overlay only */}
-          <button
-            onClick={() => setLang(lang === "fr" ? "en" : "fr")}
-            className="lg:hidden flex items-center gap-1 text-sm font-bold tracking-widest border border-white/20 px-3 py-1 text-white/80 hover:border-primary hover:text-primary transition-colors"
-            aria-label="Switch language"
-          >
-            {lang === "fr" ? "EN" : "FR"}
-          </button>
-
-          <Button
-            onClick={handleInvestorClick}
-            className="lg:hidden mt-4 flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
-          >
-            <TrendingUp className="w-4 h-4" />
-            {t.header.investors}
-          </Button>
+          {/* Mobile: lang dropdown + investor button */}
+          <div className="lg:hidden flex flex-col items-center gap-4 mt-2">
+            <LangDropdown compact />
+            <Button
+              onClick={handleInvestorClick}
+              className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
+            >
+              <TrendingUp className="w-4 h-4" />
+              {t.header.investors}
+            </Button>
+          </div>
         </nav>
 
+        {/* Desktop: lang dropdown + investor button */}
         <div className="hidden lg:flex items-center gap-3">
-          <button
-            onClick={() => setLang(lang === "fr" ? "en" : "fr")}
-            className="flex items-center gap-1 text-sm font-bold tracking-widest border border-white/20 px-3 py-1.5 text-white/80 hover:border-primary hover:text-primary transition-colors"
-            aria-label="Switch language"
-          >
-            {lang === "fr" ? "EN" : "FR"}
-          </button>
+          <LangDropdown />
           <Button
             onClick={handleInvestorClick}
             className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
