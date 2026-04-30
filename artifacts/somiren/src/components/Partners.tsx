@@ -4,7 +4,7 @@ import { useLang } from "@/contexts/LanguageContext";
 import {
   SiCaterpillar, SiHyundai, SiMitsubishi, SiSamsung, SiVolvo,
   SiScania, SiJcb, SiSiemens, SiAbb, SiToyota,
-  SiHsbc, SiBarclays, SiDeutschebank, SiAmp, SiGeneralelectric,
+  SiHsbc, SiBarclays, SiDeutschebank, SiGoldmansachs, SiGeneralelectric,
 } from "react-icons/si";
 
 type Partner = { name: string; Icon: IconType; color: string };
@@ -26,8 +26,8 @@ const row2: Partner[] = [
   { name: "HSBC",           Icon: SiHsbc,          color: "#DB0011" },
   { name: "Barclays",       Icon: SiBarclays,      color: "#00AEEF" },
   { name: "Deutsche Bank",  Icon: SiDeutschebank,  color: "#0018A8" },
-  { name: "AMP",            Icon: SiAmp,           color: "#005EB8" },
-  { name: "General Electric", Icon: SiGeneralelectric, color: "#3360A9" },
+  { name: "Goldman Sachs",  Icon: SiGoldmansachs,  color: "#003366" },
+  { name: "GE Aerospace",   Icon: SiGeneralelectric, color: "#3360A9" },
 ];
 
 function PartnerCard({ partner }: { partner: Partner }) {
