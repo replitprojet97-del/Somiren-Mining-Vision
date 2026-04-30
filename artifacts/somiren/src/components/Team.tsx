@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/contexts/LanguageContext";
 import imgRock from "@/assets/team-rock-benon.jpg";
-import imgNuria from "@/assets/team-nuria.jpg";
+import imgNuria from "@/assets/team-nuria-nobg.png";
 import imgIbrahim from "@/assets/team-ibrahim.png";
 import imgWeiChen from "@/assets/team-wei-chen.png";
 import imgAissa from "@/assets/team-aissa.png";
@@ -104,6 +104,9 @@ export default function Team() {
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.08 }}
                 className="snap-center w-[88vw] sm:w-80 md:w-72 relative aspect-[3/4] border border-white/10 group overflow-hidden rounded-sm"
+                style={idx === 1 ? {
+                  background: "radial-gradient(ellipse at 65% 30%, #6e5530 0%, #3a2a14 38%, #140e07 72%, #080604 100%)"
+                } : undefined}
               >
                 <img
                   src={photos[idx]}
