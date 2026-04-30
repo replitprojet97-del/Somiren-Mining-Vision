@@ -39,3 +39,4 @@ externalPort = 80
 
 [userenv.shared]
 CONTACT_EMAIL = "contact@somiren.com"
+RESEND_FROM_EMAIL = "noreply@somiren.com"
