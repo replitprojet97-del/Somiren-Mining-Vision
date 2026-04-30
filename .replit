@@ -34,3 +34,8 @@ externalPort = 3001
 [[ports]]
 localPort = 26247
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+CONTACT_EMAIL = "contact@somiren.com"
