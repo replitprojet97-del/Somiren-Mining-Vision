@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -37,6 +38,13 @@ export default function Home() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-background text-foreground flex flex-col"
     >
+      <Helmet>
+        <title>Somiren S.A. — Excellence minière au cœur du Niger</title>
+        <meta name="description" content="Somiren S.A., entreprise minière responsable au Niger. Exploitation d'or, uranium, nickel et phosphates. Innovation, performance, engagement durable." />
+        <link rel="canonical" href="https://somiren.com/" />
+        <meta property="og:url" content="https://somiren.com/" />
+        <meta property="og:title" content="Somiren S.A. — Excellence minière au cœur du Niger" />
+      </Helmet>
       <Header />
       <main className="flex-1">
         <Hero />

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -61,6 +62,22 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Helmet>
+        <title>Contactez Somiren S.A. — Partenariat, Investissement, Informations</title>
+        <meta name="description" content="Contactez Somiren S.A. pour toute demande de partenariat, d'investissement ou d'information. Siège social à Niamey, Niger. Réponse sous 48h ouvrées." />
+        <link rel="canonical" href="https://somiren.com/contact" />
+        <meta property="og:url" content="https://somiren.com/contact" />
+        <meta property="og:title" content="Contactez Somiren S.A. — Partenariat & Investissement" />
+        <meta property="og:description" content="Contactez notre équipe pour toute demande de partenariat, d'investissement ou d'information. Siège à Niamey, Niger." />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://somiren.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Contact", "item": "https://somiren.com/contact" }
+          ]
+        })}</script>
+      </Helmet>
       <Header />
       <main className="flex-1 pt-24">
         <section className="relative py-24 bg-[#0a0a0a] border-b border-primary/20">

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -67,6 +68,22 @@ export default function ProjetsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Helmet>
+        <title>Nos Projets Miniers — Somiren S.A. | Or, Uranium, Nickel au Niger</title>
+        <meta name="description" content="Découvrez les 5 sites miniers stratégiques de Somiren S.A. au Niger : Agadez (or), Arlit (uranium), Imouraren, Tillabéri (nickel), Tahoua (phosphates). Innovation et durabilité." />
+        <link rel="canonical" href="https://somiren.com/projets" />
+        <meta property="og:url" content="https://somiren.com/projets" />
+        <meta property="og:title" content="Nos Projets Miniers — Somiren S.A. | Or, Uranium, Nickel au Niger" />
+        <meta property="og:description" content="5 sites miniers stratégiques au Niger : Agadez (or), Arlit (uranium), Imouraren, Tillabéri (nickel), Tahoua (phosphates)." />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://somiren.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Projets", "item": "https://somiren.com/projets" }
+          ]
+        })}</script>
+      </Helmet>
       <Header />
       <main className="flex-1 pt-24">
         {/* Page Hero */}
