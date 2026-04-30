@@ -44,8 +44,9 @@ export default function Footer() {
   return (
     <footer id="footer" className="bg-[#050505] border-t border-primary/20 pt-20 pb-8">
       <div className="container mx-auto px-4 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
+
+          {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-6">
               <img src="/logo.svg" alt="Somiren Logo" className="w-8 h-8" />
@@ -57,13 +58,14 @@ export default function Footer() {
             </p>
           </div>
 
+          {/* Quick links */}
           <div>
             <h4 className="text-white font-bold tracking-widest mb-6">LIENS RAPIDES</h4>
             <ul className="space-y-3">
               {quickLinks.map(link => (
                 <li key={link.label}>
-                  <a 
-                    href={link.target} 
+                  <a
+                    href={link.target}
                     onClick={(e) => handleNav(e, link.target)}
                     className="text-gray-400 hover:text-primary transition-colors text-sm"
                   >
@@ -74,9 +76,10 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Contact */}
           <div>
             <h4 className="text-white font-bold tracking-widest mb-6">CONTACTEZ-NOUS</h4>
-            <ul className="space-y-4">
+            <ul className="space-y-4 mb-6">
               <li className="flex items-start gap-3 text-gray-400 text-sm">
                 <MapPin className="w-5 h-5 text-primary shrink-0" />
                 <span>Boulevard Mali Béro, Plateau<br/>BP 11045 — Niamey<br/>République du Niger</span>
@@ -90,18 +93,7 @@ export default function Footer() {
                 <a href="mailto:contact@somiren.com" className="hover:text-primary transition-colors">contact@somiren.com</a>
               </li>
             </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold tracking-widest mb-6">SUIVEZ-NOUS</h4>
-            <div className="flex gap-3 mb-8">
-              {['IN', 'FB', 'X', 'YT'].map(social => (
-                <a key={social} href="#" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-gray-400 hover:border-primary hover:text-primary hover:scale-110 transition-all text-xs font-bold">
-                  {social}
-                </a>
-              ))}
-            </div>
-            <Button 
+            <Button
               onClick={() => setLocation('/contact')}
               className="w-full bg-primary text-black hover:bg-primary/90 rounded-none tracking-widest font-bold"
             >
