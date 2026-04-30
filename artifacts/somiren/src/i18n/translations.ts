@@ -1,0 +1,446 @@
+export type Lang = "fr" | "en";
+
+const translations = {
+  fr: {
+    nav: {
+      home: "Accueil",
+      about: "À propos",
+      activities: "Activités",
+      projects: "Projets",
+      team: "Équipe",
+      partners: "Partenaires",
+      contact: "Contact",
+    },
+    header: {
+      tagline: "EXCELLENCE MINIÈRE, AVENIR DURABLE",
+      investors: "Espace Investisseurs",
+    },
+    hero: {
+      eyebrow: "Société Minière du Niger",
+      line1: "EXCELLENCE MINIÈRE",
+      line2: "AU CŒUR DU NIGER",
+      subtitle: "Innovation. Performance. Engagement durable.",
+      cta1: "DÉCOUVRIR SOMIREN",
+      cta2: "NOUS CONTACTER",
+    },
+    stats: [
+      { value: "2024", label: "Année de fondation" },
+      { value: "02",   label: "Sites opérationnels" },
+      { value: "100+", label: "Emplois locaux créés" },
+      { value: "20K+", label: "Tonnes en phase initiale" },
+      { value: "100%", label: "Conformité réglementaire" },
+    ],
+    about: {
+      eyebrow: "À PROPOS DE SOMIREN S.A.",
+      title1: "Une vision. Une mission.",
+      title2: "Un impact durable.",
+      p1: "Fondée en 2024 par Mr Rock Benon, ancien directeur du réseau financier Benon Business, Somiren S.A. a lancé ses premières opérations d'extraction au premier trimestre 2026. L'entreprise mobilise l'expertise de son fondateur en structuration financière et en gestion stratégique pour bâtir un acteur minier de référence, au service du développement économique du Niger et de l'Afrique subsaharienne.",
+      p2: "En moins de deux ans d'existence, Somiren S.A. opère déjà deux sites actifs — Agadez (or) et Arlit (uranium) — et conduit des programmes d'exploration avancés sur trois sites additionnels. L'entreprise allie technologie de pointe, gouvernance transparente et engagement RSE sincère pour une exploitation des ressources naturelles qui profite autant aux communautés locales qu'aux partenaires internationaux.",
+      p3: "Membre de l'Initiative pour la Transparence des Industries Extractives (ITIE) et signataire du Pacte Mondial des Nations Unies, Somiren S.A. s'impose des standards de conformité dépassant les obligations réglementaires nigériennes.",
+      cta: "EN SAVOIR PLUS",
+      visionTitle: "VISION",
+      visionText: "Devenir d'ici 2035 le premier groupe minier privé d'Afrique de l'Ouest, reconnu pour son excellence opérationnelle et son impact social positif.",
+      missionTitle: "MISSION",
+      missionText: "Exploiter durablement les ressources minérales du Niger en créant de la valeur partagée pour nos actionnaires, nos employés et nos communautés hôtes.",
+      valuesTitle: "VALEURS",
+      valuesText: "Intégrité — Sécurité — Innovation — Responsabilité — Performance",
+      role: "Fondateur & Directeur Général",
+    },
+    activities: {
+      sectionTitle: "NOS ACTIVITÉS",
+      sectionSubtitle: "De l'exploration au transport, Somiren S.A. maîtrise l'intégralité de la chaîne de valeur minière avec des standards techniques et environnementaux de rang international.",
+      items: [
+        {
+          title: "EXPLORATION MINIÈRE",
+          short: "Identification des gisements à haute valeur",
+          desc: "Nos géologues conduisent des campagnes de prospection sismique, des forages d'exploration et des analyses géochimiques sur l'ensemble du sous-sol nigérien. Chaque étude suit les référentiels JORC et NI 43-101 pour garantir une estimation des ressources fiable et auditée.",
+        },
+        {
+          title: "EXTRACTION",
+          short: "Exploitation responsable et sécurisée",
+          desc: "Nous opérons des sites à ciel ouvert avec des équipements Caterpillar et Volvo de dernière génération. Nos protocoles HSE surpassent les exigences de l'AIEA et de l'ITIE. Objectif zéro accident : chaque employé bénéficie d'une formation terrain complète avant toute prise de poste.",
+        },
+        {
+          title: "TRAITEMENT DES RESSOURCES",
+          short: "Valorisation maximale des minerais bruts",
+          desc: "Nos installations de traitement sur site minimisent les coûts de transport et maximisent la valeur ajoutée. Nous produisons de l'or à plus de 99,5 % de pureté et de l'uranium concentré (yellowcake) conforme aux normes de l'Agence Internationale de l'Énergie Atomique.",
+        },
+        {
+          title: "LOGISTIQUE & TRANSPORT",
+          short: "Chaîne d'approvisionnement intégrée",
+          desc: "Somiren S.A. dispose d'une flotte sécurisée et d'accords avec des opérateurs certifiés pour acheminer les ressources jusqu'aux ports d'Afrique de l'Ouest. Chaque convoi est tracé en temps réel avec des protocoles de sécurité renforcés et une couverture assurantielle internationale.",
+        },
+      ],
+    },
+    sites: {
+      sectionTitle: "NOS PROJETS MINIERS",
+      viewAll: "VOIR TOUS NOS PROJETS",
+      statuses: { active: "ACTIF", development: "DÉVELOPPEMENT", exploration: "EXPLORATION" },
+      tags: [
+        "Site d'extraction d'or",
+        "Site d'uranium",
+        "Site d'exploitation",
+        "Site de nickel",
+        "Site de phosphates",
+      ],
+    },
+    investors: {
+      eyebrow: "ESPACE INVESTISSEURS",
+      title1: "Investir dans l'avenir minier",
+      title2: "du Niger",
+      subtitle: "Le Niger détient les troisièmes plus grandes réserves d'uranium au monde, des gisements aurifères parmi les plus riches du Sahel et des ressources en nickel et phosphates encore largement sous-exploitées. Somiren S.A. vous ouvre l'accès à ces opportunités avec la rigueur d'une entreprise cotable.",
+      points: [
+        {
+          title: "Gouvernance transparente",
+          desc: "Conseil d'administration indépendant, rapports trimestriels audités, conformité ITIE. Chaque franc investi est tracé et justifié.",
+        },
+        {
+          title: "Croissance maîtrisée",
+          desc: "Plan de développement sur 10 ans avec jalons annuels définis. Deux sites actifs en 2026, cinq sites opérationnels visés d'ici 2030.",
+        },
+        {
+          title: "Impact ESG mesurable",
+          desc: "1 200 emplois locaux créés, programme de reforestation des zones exploitées, partenariats avec les collectivités rurales riveraines.",
+        },
+      ],
+      dossierText: "Notre dossier d'investissement inclut : états financiers auditables, plan de mine certifié, étude d'impact environnemental, analyse de risques et projections de rendement sur 5 et 10 ans. Dossier transmis sous accord de confidentialité.",
+      cta: "Demander le dossier d'investissement",
+      stats: [
+        { val: "20 000 t", label: "Production initiale (or + uranium)", sub: "Phase 1 — 2026" },
+        { val: "02 Sites", label: "Actifs en exploitation", sub: "Agadez & Arlit" },
+        { val: "100 %", label: "Conformité internationale", sub: "ITIE, AIEA, ISO 14001" },
+        { val: "2030", label: "Horizon d'expansion", sub: "5 sites opérationnels" },
+      ],
+    },
+    team: {
+      sectionTitle: "NOTRE ÉQUIPE DIRIGEANTE",
+      prev: "Précédent",
+      next: "Suivant",
+      goTo: (n: number) => `Aller à la fiche ${n}`,
+      members: [
+        { role: "Fondateur & Directeur Général" },
+        { role: "Assistante Exécutive & Conseillère Stratégique" },
+        { role: "Directeur des Opérations" },
+        { role: "Directeur Technique" },
+        { role: "Directrice HSE & Développement Durable" },
+        { role: "Responsable des Projets" },
+      ],
+    },
+    partners: {
+      sectionTitle: "NOS PARTENAIRES",
+      subtitle: "Un réseau international de leaders industriels et financiers qui accompagnent notre développement.",
+    },
+    footer: {
+      tagline: "EXCELLENCE MINIÈRE, AVENIR DURABLE",
+      desc: "Somiren S.A. s'engage pour une exploitation minière responsable, créatrice de valeur et d'opportunités pour le Niger et l'Afrique.",
+      quickLinksTitle: "LIENS RAPIDES",
+      contactTitle: "CONTACTEZ-NOUS",
+      ctaContact: "NOUS CONTACTER",
+      copyright: "© 2025 Somiren S.A. Tous droits réservés.",
+      legal: "Mentions légales",
+      privacy: "Politique de confidentialité",
+      address: "Boulevard Mali Béro, Plateau\nBP 11045 — Niamey\nRépublique du Niger",
+    },
+    projets: {
+      breadcrumb: "Accueil / Projets",
+      heroTitle: "Nos projets miniers",
+      heroSubtitle: "5 sites stratégiques répartis à travers le Niger, portés par l'innovation et le développement durable.",
+      typeLabel: "Type",
+      yearLabel: "Année",
+      ctaTitle: "Besoin de plus d'informations ?",
+      ctaButton: "Contactez-nous",
+      sites: [
+        {
+          name: "AGADEZ", type: "Or", tag: "Exploitation aurifère", year: "2026",
+          desc: "Opérationnel depuis le premier trimestre 2026, le site d'Agadez exploite des gisements aurifères à haute teneur dans la zone de l'Aïr. Capacité de production initiale : 8 000 tonnes d'or traitées par an. L'équipe locale, formée par nos géologues, représente 90 % de la main-d'œuvre sur site. Certification ISO 14001 en cours d'obtention.",
+        },
+        {
+          name: "ARLIT", type: "Uranium", tag: "Exploitation d'uranium", year: "2026",
+          desc: "Arlit est l'un des districts uranifères les plus riches du monde. Somiren S.A. y opère sous licence d'exploitation délivrée par l'Autorité de radioprotection du Niger et en totale conformité avec les directives de l'AIEA. Production de yellowcake certifiée, exportation via partenaires logistiques agréés. Suivi radiologique continu du personnel.",
+        },
+        {
+          name: "IMOURAREN", type: "Uranium", tag: "Site en développement", year: "2027",
+          desc: "Imouraren abrite l'un des plus grands gisements d'uranium non exploités d'Afrique (estimés à plus de 200 000 tonnes de ressources). Somiren S.A. est en phase active de construction des routes d'accès, des bassins de rétention et des ateliers de traitement. Mise en production commerciale ciblée pour le deuxième semestre 2027.",
+        },
+        {
+          name: "TILLABÉRI", type: "Nickel", tag: "Exploration minière", year: "2028 (cible)",
+          desc: "La région de Tillabéri révèle d'importants indices nickélifères dans la ceinture volcanique du Liptako. Nos équipes ont réalisé 42 forages d'exploration depuis 2024. Les analyses géochimiques indiquent des teneurs en nickel sulfuré compatibles avec une exploitation économique. Un rapport de ressources NI 43-101 est attendu pour fin 2026.",
+        },
+        {
+          name: "TAHOUA", type: "Phosphates", tag: "Étude de faisabilité", year: "2029 (cible)",
+          desc: "Le bassin sédimentaire de Tahoua recèle d'importants gisements de phosphates bruts (teneurs estimées à 25–32 % P₂O₅). L'étude de faisabilité, conduite avec un cabinet d'ingénierie minier indépendant, évalue le potentiel agro-industriel de ce minerai dans un contexte de demande mondiale en fertilisants en forte croissance.",
+        },
+      ],
+    },
+    contact: {
+      metaTitle: "Contactez Somiren S.A. — Partenariat, Investissement, Informations",
+      metaDesc: "Contactez Somiren S.A. pour toute demande de partenariat, d'investissement ou d'information. Siège social à Niamey, Niger. Réponse sous 48h ouvrées.",
+      heroTitle: "Contactez Somiren S.A.",
+      heroSubtitle: "Notre équipe est à votre écoute pour toute demande de partenariat, d'investissement ou d'information.",
+      form: {
+        nameLabel: "Nom complet *",
+        namePlaceholder: "Jean Dupont",
+        nameError: "Le nom doit contenir au moins 2 caractères",
+        emailLabel: "Email *",
+        emailError: "Veuillez entrer un email valide",
+        phoneLabel: "Téléphone",
+        subjectLabel: "Sujet *",
+        subjectError: "Veuillez sélectionner un sujet",
+        subjectPlaceholder: "Sélectionnez un sujet",
+        messageLabel: "Message *",
+        messagePlaceholder: "Votre message ici...",
+        messageError: "Le message doit contenir au moins 20 caractères",
+        submit: "Envoyer le message",
+        submitting: "Envoi en cours...",
+        subjects: ["Demande d'information", "Partenariat", "Investisseurs", "Presse", "Carrières", "Autre"],
+      },
+      success: {
+        title: "Merci !",
+        message: "Votre message a bien été enregistré. Notre équipe vous répondra sous 48 heures ouvrées.",
+        again: "Envoyer un autre message",
+      },
+      info: {
+        title: "Coordonnées",
+        addressLabel: "Adresse",
+        addressVal: "Boulevard Mali Béro, Plateau\nBP 11045 — Niamey\nRépublique du Niger",
+        emailLabel: "Email",
+        phoneLabel: "Téléphone",
+        hoursLabel: "Horaires",
+        hoursVal: "Lundi — Vendredi :\n8h00 — 18h00 (GMT+1)",
+        mapLabel: "Siège Social — Niamey",
+      },
+      toastSuccess: "Message envoyé avec succès !",
+      toastError: "Échec de l'envoi, veuillez réessayer.",
+      serverError: "Erreur serveur",
+    },
+  },
+
+  en: {
+    nav: {
+      home: "Home",
+      about: "About",
+      activities: "Activities",
+      projects: "Projects",
+      team: "Team",
+      partners: "Partners",
+      contact: "Contact",
+    },
+    header: {
+      tagline: "MINING EXCELLENCE, SUSTAINABLE FUTURE",
+      investors: "Investor Relations",
+    },
+    hero: {
+      eyebrow: "Mining Company of Niger",
+      line1: "MINING EXCELLENCE",
+      line2: "AT THE HEART OF NIGER",
+      subtitle: "Innovation. Performance. Sustainable Commitment.",
+      cta1: "DISCOVER SOMIREN",
+      cta2: "CONTACT US",
+    },
+    stats: [
+      { value: "2024", label: "Year founded" },
+      { value: "02",   label: "Operational sites" },
+      { value: "100+", label: "Local jobs created" },
+      { value: "20K+", label: "Tonnes initial phase" },
+      { value: "100%", label: "Regulatory compliance" },
+    ],
+    about: {
+      eyebrow: "ABOUT SOMIREN S.A.",
+      title1: "One vision. One mission.",
+      title2: "A lasting impact.",
+      p1: "Founded in 2024 by Mr Rock Benon, former director of the Benon Business financial network, Somiren S.A. launched its first extraction operations in Q1 2026. The company leverages its founder's expertise in financial structuring and strategic management to build a benchmark mining player, serving the economic development of Niger and sub-Saharan Africa.",
+      p2: "In less than two years, Somiren S.A. already operates two active sites — Agadez (gold) and Arlit (uranium) — and conducts advanced exploration programmes on three additional sites. The company combines cutting-edge technology, transparent governance and genuine CSR commitment for natural resource extraction that benefits both local communities and international partners.",
+      p3: "A member of the Extractive Industries Transparency Initiative (EITI) and signatory of the UN Global Compact, Somiren S.A. sets compliance standards that go beyond Niger's regulatory requirements.",
+      cta: "LEARN MORE",
+      visionTitle: "VISION",
+      visionText: "To become by 2035 the leading private mining group in West Africa, recognised for its operational excellence and positive social impact.",
+      missionTitle: "MISSION",
+      missionText: "To sustainably extract Niger's mineral resources, creating shared value for our shareholders, employees and host communities.",
+      valuesTitle: "VALUES",
+      valuesText: "Integrity — Safety — Innovation — Responsibility — Performance",
+      role: "Founder & Chief Executive Officer",
+    },
+    activities: {
+      sectionTitle: "OUR ACTIVITIES",
+      sectionSubtitle: "From exploration to transport, Somiren S.A. masters the entire mining value chain with world-class technical and environmental standards.",
+      items: [
+        {
+          title: "MINERAL EXPLORATION",
+          short: "Identifying high-value deposits",
+          desc: "Our geologists conduct seismic surveys, exploration drilling and geochemical analyses across Niger's subsoil. Every study follows JORC and NI 43-101 standards to ensure reliable, audited resource estimates.",
+        },
+        {
+          title: "EXTRACTION",
+          short: "Responsible and safe operations",
+          desc: "We operate open-pit sites with the latest Caterpillar and Volvo equipment. Our HSE protocols exceed IAEA and EITI requirements. Zero-accident goal: every employee receives full field training before starting work.",
+        },
+        {
+          title: "RESOURCE PROCESSING",
+          short: "Maximising raw mineral value",
+          desc: "Our on-site processing facilities minimise transport costs and maximise added value. We produce gold at over 99.5% purity and uranium concentrate (yellowcake) compliant with International Atomic Energy Agency standards.",
+        },
+        {
+          title: "LOGISTICS & TRANSPORT",
+          short: "Integrated supply chain",
+          desc: "Somiren S.A. operates a secure fleet and holds agreements with certified operators to route resources to West African export ports. Every convoy is tracked in real time with enhanced security protocols and international insurance coverage.",
+        },
+      ],
+    },
+    sites: {
+      sectionTitle: "OUR MINING PROJECTS",
+      viewAll: "VIEW ALL PROJECTS",
+      statuses: { active: "ACTIVE", development: "DEVELOPMENT", exploration: "EXPLORATION" },
+      tags: [
+        "Gold extraction site",
+        "Uranium site",
+        "Exploitation site",
+        "Nickel site",
+        "Phosphate site",
+      ],
+    },
+    investors: {
+      eyebrow: "INVESTOR RELATIONS",
+      title1: "Investing in the mining future",
+      title2: "of Niger",
+      subtitle: "Niger holds the world's third-largest uranium reserves, some of the Sahel's richest gold deposits, and nickel and phosphate resources that remain largely unexploited. Somiren S.A. opens access to these opportunities with the rigour of a listing-ready company.",
+      points: [
+        {
+          title: "Transparent governance",
+          desc: "Independent board, quarterly audited reports, EITI compliance. Every invested franc is tracked and justified.",
+        },
+        {
+          title: "Controlled growth",
+          desc: "10-year development plan with defined annual milestones. Two active sites in 2026, five operational sites targeted by 2030.",
+        },
+        {
+          title: "Measurable ESG impact",
+          desc: "1,200 local jobs created, reforestation programme for exploited areas, partnerships with neighbouring rural communities.",
+        },
+      ],
+      dossierText: "Our investment dossier includes: auditable financial statements, certified mine plan, environmental impact assessment, risk analysis and return projections over 5 and 10 years. Dossier transmitted under non-disclosure agreement.",
+      cta: "Request the investment dossier",
+      stats: [
+        { val: "20,000 t", label: "Initial production (gold + uranium)", sub: "Phase 1 — 2026" },
+        { val: "02 Sites", label: "Active assets", sub: "Agadez & Arlit" },
+        { val: "100%", label: "International compliance", sub: "EITI, IAEA, ISO 14001" },
+        { val: "2030", label: "Expansion horizon", sub: "5 operational sites" },
+      ],
+    },
+    team: {
+      sectionTitle: "OUR LEADERSHIP TEAM",
+      prev: "Previous",
+      next: "Next",
+      goTo: (n: number) => `Go to card ${n}`,
+      members: [
+        { role: "Founder & Chief Executive Officer" },
+        { role: "Executive Assistant & Strategic Advisor" },
+        { role: "Chief Operating Officer" },
+        { role: "Chief Technical Officer" },
+        { role: "HSE & Sustainability Director" },
+        { role: "Projects Manager" },
+      ],
+    },
+    partners: {
+      sectionTitle: "OUR PARTNERS",
+      subtitle: "An international network of industrial and financial leaders supporting our development.",
+    },
+    footer: {
+      tagline: "MINING EXCELLENCE, SUSTAINABLE FUTURE",
+      desc: "Somiren S.A. is committed to responsible mining that creates value and opportunities for Niger and Africa.",
+      quickLinksTitle: "QUICK LINKS",
+      contactTitle: "CONTACT US",
+      ctaContact: "GET IN TOUCH",
+      copyright: "© 2025 Somiren S.A. All rights reserved.",
+      legal: "Legal notice",
+      privacy: "Privacy policy",
+      address: "Boulevard Mali Béro, Plateau\nBP 11045 — Niamey\nRepublic of Niger",
+    },
+    projets: {
+      breadcrumb: "Home / Projects",
+      heroTitle: "Our mining projects",
+      heroSubtitle: "5 strategic sites spread across Niger, driven by innovation and sustainable development.",
+      typeLabel: "Type",
+      yearLabel: "Year",
+      ctaTitle: "Need more information?",
+      ctaButton: "Contact us",
+      sites: [
+        {
+          name: "AGADEZ", type: "Gold", tag: "Gold extraction", year: "2026",
+          desc: "Operational since Q1 2026, the Agadez site exploits high-grade gold deposits in the Aïr zone. Initial production capacity: 8,000 tonnes of gold processed per year. The local team, trained by our geologists, represents 90% of on-site staff. ISO 14001 certification in progress.",
+        },
+        {
+          name: "ARLIT", type: "Uranium", tag: "Uranium extraction", year: "2026",
+          desc: "Arlit is one of the world's richest uranium districts. Somiren S.A. operates under an extraction licence issued by Niger's Radiation Protection Authority in full compliance with IAEA guidelines. Certified yellowcake production, exported via approved logistics partners. Continuous radiological monitoring of all personnel.",
+        },
+        {
+          name: "IMOURAREN", type: "Uranium", tag: "Site under development", year: "2027",
+          desc: "Imouraren hosts one of Africa's largest unexploited uranium deposits (estimated at over 200,000 tonnes of resources). Somiren S.A. is in the active phase of constructing access roads, retention basins and processing workshops. Commercial production targeted for H2 2027.",
+        },
+        {
+          name: "TILLABÉRI", type: "Nickel", tag: "Mineral exploration", year: "2028 (target)",
+          desc: "The Tillabéri region reveals significant nickel indicators in the Liptako volcanic belt. Our teams have conducted 42 exploration boreholes since 2024. Geochemical analyses indicate sulphide nickel grades compatible with economic extraction. A NI 43-101 resource report is expected by end-2026.",
+        },
+        {
+          name: "TAHOUA", type: "Phosphates", tag: "Feasibility study", year: "2029 (target)",
+          desc: "The sedimentary basin of Tahoua holds significant raw phosphate deposits (estimated grades 25–32% P₂O₅). The feasibility study, conducted with an independent mining engineering firm, assesses the agro-industrial potential of this mineral against a backdrop of strong global fertiliser demand growth.",
+        },
+      ],
+    },
+    contact: {
+      metaTitle: "Contact Somiren S.A. — Partnership, Investment, Information",
+      metaDesc: "Contact Somiren S.A. for any partnership, investment or information request. Head office in Niamey, Niger. Response within 48 working hours.",
+      heroTitle: "Contact Somiren S.A.",
+      heroSubtitle: "Our team is available for any partnership, investment or information request.",
+      form: {
+        nameLabel: "Full name *",
+        namePlaceholder: "John Smith",
+        nameError: "Name must be at least 2 characters",
+        emailLabel: "Email *",
+        emailError: "Please enter a valid email",
+        phoneLabel: "Phone",
+        subjectLabel: "Subject *",
+        subjectError: "Please select a subject",
+        subjectPlaceholder: "Select a subject",
+        messageLabel: "Message *",
+        messagePlaceholder: "Your message here...",
+        messageError: "Message must be at least 20 characters",
+        submit: "Send message",
+        submitting: "Sending...",
+        subjects: ["Information request", "Partnership", "Investors", "Press", "Careers", "Other"],
+      },
+      success: {
+        title: "Thank you!",
+        message: "Your message has been received. Our team will reply within 48 working hours.",
+        again: "Send another message",
+      },
+      info: {
+        title: "Contact details",
+        addressLabel: "Address",
+        addressVal: "Boulevard Mali Béro, Plateau\nBP 11045 — Niamey\nRepublic of Niger",
+        emailLabel: "Email",
+        phoneLabel: "Phone",
+        hoursLabel: "Opening hours",
+        hoursVal: "Monday — Friday:\n8:00 AM — 6:00 PM (GMT+1)",
+        mapLabel: "Head Office — Niamey",
+      },
+      toastSuccess: "Message sent successfully!",
+      toastError: "Failed to send. Please try again.",
+      serverError: "Server error",
+    },
+  },
+} as const;
+
+type Widen<T> = {
+  [K in keyof T]: T[K] extends string
+    ? string
+    : T[K] extends ((n: number) => string)
+    ? (n: number) => string
+    : T[K] extends ReadonlyArray<infer U>
+    ? Array<Widen<U>>
+    : T[K] extends object
+    ? Widen<T[K]>
+    : T[K];
+};
+
+export type Translations = Widen<typeof translations.fr>;
+export default translations;
