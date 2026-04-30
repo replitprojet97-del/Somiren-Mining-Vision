@@ -1,7 +1,7 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import executiveImg from "@/assets/about-executive.png";
+import executiveImg from "@/assets/team-rock-benon.jpg";
 
 export default function About() {
   const scrollToActivities = () => {
