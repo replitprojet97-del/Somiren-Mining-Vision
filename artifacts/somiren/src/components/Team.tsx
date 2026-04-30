@@ -3,17 +3,17 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import imgRock from "@/assets/team-rock-benon.jpg";
 import imgNuria from "@/assets/team-nuria.jpg";
-import imgIbrahim from "@/assets/team-ibrahim.jpg";
-import imgAbdoulaye from "@/assets/team-abdoulaye.jpg";
-import imgAissa from "@/assets/team-aissa.jpg";
-import imgMoussa from "@/assets/team-moussa.jpg";
+import imgIbrahim from "@/assets/team-ibrahim.png";
+import imgWeiChen from "@/assets/team-wei-chen.png";
+import imgAissa from "@/assets/team-aissa.png";
+import imgMoussa from "@/assets/team-moussa.png";
 
 export default function Team() {
   const team = [
     { name: "Rock Benon", role: "Fondateur & Directeur Général", img: imgRock },
     { name: "Nuria M. Rodriguez", role: "Assistante Exécutive & Conseillère Stratégique", img: imgNuria },
     { name: "Ibrahim Maman", role: "Directeur des Opérations", img: imgIbrahim },
-    { name: "Abdoulaye Hassane", role: "Directeur Technique", img: imgAbdoulaye },
+    { name: "Wei Chen", role: "Directeur Technique", img: imgWeiChen },
     { name: "Aïssa K. Saley", role: "Directrice HSE & Développement Durable", img: imgAissa },
     { name: "Moussa Garba", role: "Responsable des Projets", img: imgMoussa },
   ];

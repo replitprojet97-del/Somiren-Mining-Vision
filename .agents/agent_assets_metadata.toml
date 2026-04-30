@@ -78,6 +78,30 @@ uri = "file://artifacts/somiren/public/og-image.png"
 type = "image"
 title = "og image"
 
+[[generated]]
+id = "a5xpT1wAzlfGnPmvbQ6JN"
+uri = "file://artifacts/somiren/src/assets/team-ibrahim.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "NqHjxgGjiUrDy5wwmDcrB"
+uri = "file://artifacts/somiren/src/assets/team-wei-chen.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "TrmiGBW99LRdZuIQlP48W"
+uri = "file://artifacts/somiren/src/assets/team-aissa.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "5Ym3uwNCD3XO9EUFGA1rl"
+uri = "file://artifacts/somiren/src/assets/team-moussa.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "aw6HGrZtZQskYQM0IDU5P"
 uri = "file://artifacts/somiren/src/assets/team-rock-benon.jpg"
