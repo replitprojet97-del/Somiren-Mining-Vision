@@ -9,7 +9,7 @@ const translations = {
       projects: "Projets",
       team: "Équipe",
       partners: "Partenaires",
-      tracking: "Suivi colis",
+      tracking: "SOMIREN Logistics",
       contact: "Contact",
     },
     header: {
@@ -267,7 +267,7 @@ const translations = {
       projects: "Projects",
       team: "Team",
       partners: "Partners",
-      tracking: "Track Shipment",
+      tracking: "SOMIREN Logistics",
       contact: "Contact",
     },
     header: {
