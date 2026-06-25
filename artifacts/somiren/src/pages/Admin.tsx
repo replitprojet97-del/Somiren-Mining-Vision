@@ -205,6 +205,60 @@ function EventForm({
   );
 }
 
+function EventEditForm({
+  event,
+  onSave,
+  onCancel,
+  loading,
+}: {
+  event: any;
+  onSave: (data: any) => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  const toLocalDatetime = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const [form, setForm] = useState({
+    status: event.status as ShipmentStatus,
+    location: event.location,
+    description: event.description,
+    timestamp: toLocalDatetime(event.timestamp),
+  });
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  return (
+    <div className="p-3 space-y-3 border-t border-primary/20 bg-primary/5">
+      <p className="text-xs text-primary uppercase tracking-widest font-semibold">Modifier l'événement</p>
+      <div className="grid grid-cols-1 gap-3">
+        <Field label="Statut *">
+          <select className={selectCls} value={form.status} onChange={(e) => set("status", e.target.value)}>
+            {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </Field>
+        <Field label="Date & Heure * (vous pouvez antidater)">
+          <input type="datetime-local" className={inputCls} style={{ colorScheme: "dark" }} value={form.timestamp} onChange={(e) => set("timestamp", e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Localisation *">
+        <input className={inputCls} value={form.location} onChange={(e) => set("location", e.target.value)} />
+      </Field>
+      <Field label="Description *">
+        <input className={inputCls} value={form.description} onChange={(e) => set("description", e.target.value)} />
+      </Field>
+      <div className="flex gap-3">
+        <button onClick={() => onSave(form)} disabled={loading} className="flex items-center gap-2 bg-primary text-black px-4 py-2 text-sm font-bold hover:bg-primary/90 disabled:opacity-40">
+          <Save className="w-4 h-4" /> Enregistrer
+        </button>
+        <button onClick={onCancel} className="text-white/40 hover:text-white text-sm px-3">Annuler</button>
+      </div>
+    </div>
+  );
+}
+
 function ShipmentRow({
   shipment,
   api,
@@ -270,6 +324,18 @@ function ShipmentRow({
     await loadEvents();
     showToast("Événement supprimé");
   };
+
+  const handleUpdateEvent = async (eventId: number, data: any) => {
+    setLoading(true);
+    await api.put(`/admin/events/${eventId}`, data);
+    setLoading(false);
+    setEditingEventId(null);
+    onUpdated();
+    await loadEvents();
+    showToast("Événement modifié");
+  };
+
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
 
   const TypeIcon = shipment.type === "mineral" ? Boxes : Package;
 
@@ -346,20 +412,36 @@ function ShipmentRow({
           ) : (
             <div className="space-y-2 mt-3">
               {[...events].reverse().map((ev) => (
-                <div key={ev.id} className="flex items-start justify-between gap-3 p-3 bg-black/20 border border-white/5">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 border font-medium ${STATUS_COLORS[ev.status as ShipmentStatus]}`}>
-                        {STATUS_LABELS[ev.status as ShipmentStatus]}
-                      </span>
-                      <span className="text-xs text-white/30">{new Date(ev.timestamp).toLocaleString("fr-FR")}</span>
+                <div key={ev.id} className="bg-black/20 border border-white/5">
+                  {editingEventId === ev.id ? (
+                    <EventEditForm
+                      event={ev}
+                      onSave={(data) => handleUpdateEvent(ev.id, data)}
+                      onCancel={() => setEditingEventId(null)}
+                      loading={loading}
+                    />
+                  ) : (
+                    <div className="flex items-start justify-between gap-3 p-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 border font-medium ${STATUS_COLORS[ev.status as ShipmentStatus]}`}>
+                            {STATUS_LABELS[ev.status as ShipmentStatus]}
+                          </span>
+                          <span className="text-xs text-white/30">{new Date(ev.timestamp).toLocaleString("fr-FR")}</span>
+                        </div>
+                        <p className="text-sm text-white/80 mt-1">{ev.description}</p>
+                        <p className="text-xs text-white/30">{ev.location}</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => setEditingEventId(ev.id)} className="p-1 text-white/20 hover:text-primary transition-colors">
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => handleDeleteEvent(ev.id)} className="p-1 text-white/20 hover:text-red-400 transition-colors">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-sm text-white/80 mt-1">{ev.description}</p>
-                    <p className="text-xs text-white/30">{ev.location}</p>
-                  </div>
-                  <button onClick={() => handleDeleteEvent(ev.id)} className="p-1 text-white/20 hover:text-red-400 flex-shrink-0">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  )}
                 </div>
               ))}
             </div>

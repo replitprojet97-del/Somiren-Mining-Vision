@@ -220,6 +220,30 @@ router.post("/admin/events", requireAdmin as any, async (req: Request, res: Resp
   res.status(201).json({ event });
 });
 
+// ── Admin: update event ───────────────────────────────────────────────────────
+
+router.put("/admin/events/:id", requireAdmin as any, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: "ID invalide." }); return; }
+
+  const { status, location, description, timestamp, isCompleted } = req.body;
+  const updateData: any = {};
+  if (status)      updateData.status = status;
+  if (location)    updateData.location = location;
+  if (description) updateData.description = description;
+  if (typeof isCompleted === "boolean") updateData.isCompleted = isCompleted;
+  if (timestamp)   updateData.timestamp = new Date(timestamp);
+
+  const [updated] = await db
+    .update(trackingEventsTable)
+    .set(updateData)
+    .where(eq(trackingEventsTable.id, id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Événement introuvable." }); return; }
+  res.json({ event: updated });
+});
+
 // ── Admin: delete event ───────────────────────────────────────────────────────
 
 router.delete("/admin/events/:id", requireAdmin as any, async (req: Request, res: Response) => {
