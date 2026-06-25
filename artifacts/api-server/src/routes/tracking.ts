@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { shipmentsTable, trackingEventsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -171,6 +171,23 @@ router.put("/admin/shipments/:id", requireAdmin as any, async (req: Request, res
     .returning();
 
   if (!shipment) { res.status(404).json({ error: "Envoi introuvable." }); return; }
+
+  // If status changed, sync the most recent tracking event to match
+  if (parsed.data.status) {
+    const [latestEvent] = await db
+      .select()
+      .from(trackingEventsTable)
+      .where(eq(trackingEventsTable.shipmentId, id))
+      .orderBy(desc(trackingEventsTable.timestamp))
+      .limit(1);
+
+    if (latestEvent) {
+      await db
+        .update(trackingEventsTable)
+        .set({ status: parsed.data.status })
+        .where(eq(trackingEventsTable.id, latestEvent.id));
+    }
+  }
 
   res.json({ shipment });
 });
