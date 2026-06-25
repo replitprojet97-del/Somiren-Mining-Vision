@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Lock, LogOut, Plus, Trash2, Edit3, Save, X, Package, Boxes, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
+import { getApiBase } from "@/lib/api";
 
 type ShipmentStatus = "pending" | "collected" | "in_transit" | "customs" | "out_for_delivery" | "delivered" | "exception";
 type ShipmentType = "parcel" | "mineral";
@@ -42,11 +43,6 @@ interface Shipment {
   referenceNumber?: string;
   notes?: string;
   createdAt: string;
-}
-
-function getApiBase() {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  return base ? base.split("/").slice(0, -1).join("/") + "/api" : "/api";
 }
 
 function useAdminApi(token: string) {
@@ -505,9 +501,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
     setLoading(true);
     setError(null);
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const apiBase = base ? base.split("/").slice(0, -1).join("/") + "/api" : "/api";
-      const res = await fetch(`${apiBase}/admin/login`, {
+      const res = await fetch(`${getApiBase()}/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),

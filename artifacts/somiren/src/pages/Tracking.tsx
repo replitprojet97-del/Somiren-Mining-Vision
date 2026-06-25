@@ -3,8 +3,7 @@ import { Search, Package, Truck, CheckCircle, Clock, AlertTriangle, MapPin, Weig
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\//, "/") + "/../api";
+import { getApiBase } from "@/lib/api";
 
 type ShipmentStatus = "pending" | "collected" | "in_transit" | "customs" | "out_for_delivery" | "delivered" | "exception";
 type ShipmentType = "parcel" | "mineral";
@@ -291,9 +290,7 @@ export default function TrackingPage() {
     setResult(null);
 
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const apiBase = base ? base.split("/").slice(0, -1).join("/") : "";
-      const res = await fetch(`${apiBase}/api/tracking/${encodeURIComponent(trimmed)}`);
+      const res = await fetch(`${getApiBase()}/tracking/${encodeURIComponent(trimmed)}`);
       if (res.status === 404) {
         setError("Aucun envoi trouvé pour ce code de suivi. Vérifiez l'orthographe ou contactez SOMIREN Logistics.");
       } else if (!res.ok) {

@@ -38,8 +38,8 @@ app.use(cors({
     );
     cb(allowed ? null : new Error("Not allowed by CORS"), allowed);
   },
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 // Body size limit (prevent large-payload DoS)
