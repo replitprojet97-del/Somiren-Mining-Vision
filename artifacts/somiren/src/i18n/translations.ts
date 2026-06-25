@@ -9,6 +9,7 @@ const translations = {
       projects: "Projets",
       team: "Équipe",
       partners: "Partenaires",
+      tracking: "Suivi colis",
       contact: "Contact",
     },
     header: {
@@ -223,6 +224,7 @@ const translations = {
       projects: "Projects",
       team: "Team",
       partners: "Partners",
+      tracking: "Track Shipment",
       contact: "Contact",
     },
     header: {

@@ -116,6 +116,7 @@ export default function Header() {
     { name: t.nav.projects,   href: "/projets" },
     { name: t.nav.team,       href: "#equipe" },
     { name: t.nav.partners,   href: "#partenaires" },
+    { name: t.nav.tracking ?? "Suivi colis", href: "/tracking" },
     { name: t.nav.contact,    href: "/contact" },
   ];
 

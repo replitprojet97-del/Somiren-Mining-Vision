@@ -6,6 +6,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import ProjetsPage from "@/pages/Projets";
 import ContactPage from "@/pages/Contact";
+import TrackingPage from "@/pages/Tracking";
+import AdminPage from "@/pages/Admin";
 import { useEffect } from "react";
 import { useProtection } from "@/hooks/useProtection";
 
@@ -53,6 +55,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/projets" component={ProjetsPage} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/tracking" component={TrackingPage} />
+      <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );
