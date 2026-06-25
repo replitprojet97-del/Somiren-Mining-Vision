@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getApiBase } from "@/lib/api";
+import { useLang } from "@/contexts/LanguageContext";
 
 type ShipmentStatus = "pending" | "collected" | "in_transit" | "customs" | "out_for_delivery" | "delivered" | "exception";
 type ShipmentType = "parcel" | "mineral";
@@ -37,42 +38,51 @@ interface Shipment {
   createdAt: string;
 }
 
-const STATUS_CONFIG: Record<ShipmentStatus, { label: string; color: string; bg: string; icon: any }> = {
-  pending:           { label: "En attente",          color: "text-gray-400",   bg: "bg-gray-400",   icon: Clock },
-  collected:         { label: "Collecté",             color: "text-blue-400",   bg: "bg-blue-400",   icon: Package },
-  in_transit:        { label: "En transit",           color: "text-yellow-400", bg: "bg-yellow-400", icon: Truck },
-  customs:           { label: "En douane",            color: "text-orange-400", bg: "bg-orange-400", icon: FileText },
-  out_for_delivery:  { label: "En cours de livraison",color: "text-primary",    bg: "bg-primary",    icon: Truck },
-  delivered:         { label: "Livré",                color: "text-green-400",  bg: "bg-green-400",  icon: CheckCircle },
-  exception:         { label: "Exception",            color: "text-red-400",    bg: "bg-red-400",    icon: AlertTriangle },
+const STATUS_ICONS: Record<ShipmentStatus, any> = {
+  pending:          Clock,
+  collected:        Package,
+  in_transit:       Truck,
+  customs:          FileText,
+  out_for_delivery: Truck,
+  delivered:        CheckCircle,
+  exception:        AlertTriangle,
 };
 
-const TYPE_CONFIG: Record<ShipmentType, { label: string; icon: any }> = {
-  parcel:  { label: "Colis collaborateur", icon: Package },
-  mineral: { label: "Expédition minière",  icon: Boxes },
+const STATUS_COLORS: Record<ShipmentStatus, { color: string; bg: string }> = {
+  pending:          { color: "text-gray-400",   bg: "bg-gray-400" },
+  collected:        { color: "text-blue-400",   bg: "bg-blue-400" },
+  in_transit:       { color: "text-yellow-400", bg: "bg-yellow-400" },
+  customs:          { color: "text-orange-400", bg: "bg-orange-400" },
+  out_for_delivery: { color: "text-primary",    bg: "bg-primary" },
+  delivered:        { color: "text-green-400",  bg: "bg-green-400" },
+  exception:        { color: "text-red-400",    bg: "bg-red-400" },
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("fr-FR", {
+function formatDate(iso: string, lang: string) {
+  return new Date(iso).toLocaleString(lang === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
 }
 
-function formatDateShort(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", {
+function formatDateShort(iso: string, lang: string) {
+  return new Date(iso).toLocaleDateString(lang === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit", month: "short", year: "numeric",
   });
 }
 
 const STEPS: ShipmentStatus[] = ["pending", "collected", "in_transit", "customs", "out_for_delivery", "delivered"];
 
-function ProgressBar({ current }: { current: ShipmentStatus }) {
+function ProgressBar({ current, statuses, exceptionMsg }: {
+  current: ShipmentStatus;
+  statuses: Record<string, string>;
+  exceptionMsg: string;
+}) {
   if (current === "exception") {
     return (
       <div className="flex items-center gap-2 text-red-400 text-sm font-semibold mb-6">
         <AlertTriangle className="w-4 h-4" />
-        Une exception a été signalée sur cet envoi. Contactez SOMIREN Logistics.
+        {exceptionMsg}
       </div>
     );
   }
@@ -81,19 +91,16 @@ function ProgressBar({ current }: { current: ShipmentStatus }) {
     <div className="mb-8">
       <div className="flex items-center justify-between mb-2">
         {STEPS.map((step, i) => {
-          const cfg = STATUS_CONFIG[step];
-          const Icon = cfg.icon;
+          const Icon = STATUS_ICONS[step];
+          const colors = STATUS_COLORS[step];
           const done = i <= currentIdx;
           return (
             <div key={step} className="flex flex-col items-center flex-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
-                done ? `${cfg.bg} border-transparent` : "border-white/20 bg-transparent"
+                done ? `${colors.bg} border-transparent` : "border-white/20 bg-transparent"
               }`}>
                 <Icon className={`w-4 h-4 ${done ? "text-black" : "text-white/30"}`} />
               </div>
-              {i < STEPS.length - 1 && (
-                <div className={`hidden md:block absolute`} />
-              )}
             </div>
           );
         })}
@@ -107,7 +114,7 @@ function ProgressBar({ current }: { current: ShipmentStatus }) {
       <div className="flex justify-between mt-2">
         {STEPS.map((step) => (
           <span key={step} className="text-[9px] text-white/40 text-center flex-1 leading-tight hidden md:block">
-            {STATUS_CONFIG[step].label}
+            {statuses[step]}
           </span>
         ))}
       </div>
@@ -116,10 +123,13 @@ function ProgressBar({ current }: { current: ShipmentStatus }) {
 }
 
 function TrackingResult({ shipment, events }: { shipment: Shipment; events: TrackingEvent[] }) {
-  const cfg = STATUS_CONFIG[shipment.status];
-  const StatusIcon = cfg.icon;
-  const typeCfg = TYPE_CONFIG[shipment.type];
-  const TypeIcon = typeCfg.icon;
+  const { t, lang } = useLang();
+  const tr = t.tracking;
+  const colors = STATUS_COLORS[shipment.status];
+  const StatusIcon = STATUS_ICONS[shipment.status];
+  const TypeIcon = shipment.type === "mineral" ? Boxes : Package;
+  const typeLabel = shipment.type === "mineral" ? tr.typeMineral : tr.typeParcel;
+  const statusLabel = tr.statuses[shipment.status];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -129,36 +139,36 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
           <div>
             <div className="flex items-center gap-2 mb-1">
               <TypeIcon className="w-4 h-4 text-primary" />
-              <span className="text-xs text-primary uppercase tracking-widest font-semibold">{typeCfg.label}</span>
+              <span className="text-xs text-primary uppercase tracking-widest font-semibold">{typeLabel}</span>
             </div>
             <h2 className="text-2xl font-bold tracking-widest text-white">{shipment.trackingCode}</h2>
             {shipment.referenceNumber && (
-              <p className="text-sm text-white/40 mt-1">Réf. interne : {shipment.referenceNumber}</p>
+              <p className="text-sm text-white/40 mt-1">{tr.refInternal} {shipment.referenceNumber}</p>
             )}
-            <p className="text-xs text-white/30 mt-1">Enregistré le {formatDateShort(shipment.createdAt)}</p>
+            <p className="text-xs text-white/30 mt-1">{tr.registeredOn} {formatDateShort(shipment.createdAt, lang)}</p>
           </div>
-          <div className={`flex items-center gap-2 px-4 py-2 border ${cfg.color} border-current bg-current/10 self-start`}>
-            <StatusIcon className={`w-4 h-4 ${cfg.color}`} />
-            <span className={`text-sm font-bold tracking-wide ${cfg.color}`}>{cfg.label}</span>
+          <div className={`flex items-center gap-2 px-4 py-2 border ${colors.color} border-current bg-current/10 self-start`}>
+            <StatusIcon className={`w-4 h-4 ${colors.color}`} />
+            <span className={`text-sm font-bold tracking-wide ${colors.color}`}>{statusLabel}</span>
           </div>
         </div>
 
-        <ProgressBar current={shipment.status} />
+        <ProgressBar current={shipment.status} statuses={tr.statuses} exceptionMsg={tr.exceptionMsg} />
 
         {/* Route */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-black/30 p-4 border border-white/5">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Expéditeur</p>
+            <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{tr.sender}</p>
             <p className="font-semibold text-white truncate">{shipment.senderName}</p>
             <p className="text-sm text-white/60 truncate">{shipment.senderCity}, {shipment.senderCountry}</p>
           </div>
           <div className="flex sm:flex-col items-center gap-2 sm:gap-1 sm:px-4 self-center">
-            <div className="flex-1 sm:flex-none sm:w-16 h-px bg-primary/60 sm:h-px w-px h-4 sm:w-16 sm:h-px bg-primary/60" />
+            <div className="flex-1 sm:flex-none sm:w-16 h-px bg-primary/60" />
             <ChevronRight className="w-4 h-4 text-primary rotate-90 sm:rotate-0 flex-shrink-0" />
             <div className="flex-1 sm:flex-none sm:w-16 h-px bg-primary/60" />
           </div>
           <div className="flex-1 min-w-0 sm:text-right">
-            <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Destinataire</p>
+            <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{tr.recipient}</p>
             <p className="font-semibold text-white truncate">{shipment.recipientName}</p>
             <p className="text-sm text-white/60 truncate">{shipment.recipientCity}, {shipment.recipientCountry}</p>
           </div>
@@ -168,12 +178,12 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
       {/* Details grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="border border-white/10 bg-white/5 p-5">
-          <h3 className="text-xs uppercase tracking-widest text-primary mb-4 font-semibold">Détails de l'envoi</h3>
+          <h3 className="text-xs uppercase tracking-widest text-primary mb-4 font-semibold">{tr.detailsTitle}</h3>
           <dl className="space-y-3">
             <div className="flex items-start gap-3">
               <FileText className="w-4 h-4 text-white/40 mt-0.5 flex-shrink-0" />
               <div>
-                <dt className="text-xs text-white/40">Description</dt>
+                <dt className="text-xs text-white/40">{tr.descLabel}</dt>
                 <dd className="text-sm text-white">{shipment.description}</dd>
               </div>
             </div>
@@ -181,7 +191,7 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
               <div className="flex items-start gap-3">
                 <Weight className="w-4 h-4 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-white/40">Poids</dt>
+                  <dt className="text-xs text-white/40">{tr.weightLabel}</dt>
                   <dd className="text-sm text-white">{shipment.weight}</dd>
                 </div>
               </div>
@@ -190,7 +200,7 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
               <div className="flex items-start gap-3">
                 <Package className="w-4 h-4 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-white/40">Dimensions</dt>
+                  <dt className="text-xs text-white/40">{tr.dimensionsLabel}</dt>
                   <dd className="text-sm text-white">{shipment.dimensions}</dd>
                 </div>
               </div>
@@ -199,7 +209,7 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
               <div className="flex items-start gap-3">
                 <Calendar className="w-4 h-4 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
-                  <dt className="text-xs text-white/40">Livraison estimée</dt>
+                  <dt className="text-xs text-white/40">{tr.deliveryLabel}</dt>
                   <dd className="text-sm text-white font-semibold">{shipment.estimatedDelivery}</dd>
                 </div>
               </div>
@@ -208,23 +218,23 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
         </div>
 
         <div className="border border-white/10 bg-white/5 p-5">
-          <h3 className="text-xs uppercase tracking-widest text-primary mb-4 font-semibold">Contact & assistance</h3>
+          <h3 className="text-xs uppercase tracking-widest text-primary mb-4 font-semibold">{tr.supportTitle}</h3>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Package className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">SOMIREN Logistics</p>
-                <p className="text-xs text-white/50">Partenaire logistique exclusif de SOMIREN S.A.</p>
+                <p className="text-sm font-semibold text-white">{tr.supportName}</p>
+                <p className="text-xs text-white/50">{tr.supportSub}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 text-sm text-white/60">
               <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-              <span>logistics@somiren.com</span>
+              <span>{tr.supportEmail}</span>
             </div>
             <div className="mt-4 p-3 bg-primary/5 border border-primary/20 text-xs text-white/50 leading-relaxed">
-              Ce numéro de suivi est un identifiant interne <strong className="text-primary">SOMIREN Logistics</strong>. Il ne peut être vérifié que sur cette plateforme ou auprès de notre service logistique.
+              {tr.supportNote}
             </div>
           </div>
         </div>
@@ -232,17 +242,17 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
 
       {/* Timeline */}
       <div className="border border-white/10 bg-white/5 p-6">
-        <h3 className="text-xs uppercase tracking-widest text-primary mb-6 font-semibold">Historique des mouvements</h3>
+        <h3 className="text-xs uppercase tracking-widest text-primary mb-6 font-semibold">{tr.historyTitle}</h3>
         <div className="space-y-0">
           {[...events].reverse().map((event, i) => {
-            const evCfg = STATUS_CONFIG[event.status];
-            const EvIcon = evCfg.icon;
+            const evColors = STATUS_COLORS[event.status];
+            const EvIcon = STATUS_ICONS[event.status];
             const isLast = i === events.length - 1;
             return (
               <div key={event.id} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    i === 0 ? `${evCfg.bg}` : "bg-white/10"
+                    i === 0 ? evColors.bg : "bg-white/10"
                   }`}>
                     <EvIcon className={`w-4 h-4 ${i === 0 ? "text-black" : "text-white/50"}`} />
                   </div>
@@ -254,15 +264,15 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
                       {event.description}
                     </p>
                     <time className="text-xs text-white/30 whitespace-nowrap">
-                      {formatDate(event.timestamp)}
+                      {formatDate(event.timestamp, lang)}
                     </time>
                   </div>
                   <div className="flex items-center gap-1 mt-1">
                     <MapPin className="w-3 h-3 text-primary/60" />
                     <span className="text-xs text-white/40">{event.location}</span>
                   </div>
-                  <span className={`inline-block mt-1 text-xs px-2 py-0.5 ${evCfg.color} bg-current/10 font-medium`}>
-                    {evCfg.label}
+                  <span className={`inline-block mt-1 text-xs px-2 py-0.5 ${evColors.color} bg-current/10 font-medium`}>
+                    {tr.statuses[event.status]}
                   </span>
                 </div>
               </div>
@@ -275,6 +285,9 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
 }
 
 export default function TrackingPage() {
+  const { t } = useLang();
+  const tr = t.tracking;
+
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -292,15 +305,15 @@ export default function TrackingPage() {
     try {
       const res = await fetch(`${getApiBase()}/tracking/${encodeURIComponent(trimmed)}`);
       if (res.status === 404) {
-        setError("Aucun envoi trouvé pour ce code de suivi. Vérifiez l'orthographe ou contactez SOMIREN Logistics.");
+        setError(tr.errorNotFound);
       } else if (!res.ok) {
-        setError("Erreur lors de la recherche. Veuillez réessayer.");
+        setError(tr.errorGeneral);
       } else {
         const data = await res.json();
         setResult(data);
       }
     } catch {
-      setError("Connexion impossible. Veuillez vérifier votre connexion et réessayer.");
+      setError(tr.errorNetwork);
     } finally {
       setLoading(false);
     }
@@ -311,27 +324,25 @@ export default function TrackingPage() {
       <Header />
       <div className="pt-28 pb-20 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Brand bar */}
+          {/* Breadcrumb */}
           <div className="flex items-center gap-3 mb-8">
             <Link href="/" className="flex items-center gap-1 text-white/40 hover:text-primary transition-colors text-sm">
               <ArrowLeft className="w-4 h-4" />
-              Retour
+              {tr.breadcrumbBack}
             </Link>
             <span className="text-white/20">/</span>
-            <span className="text-sm text-white/60">Suivi de colis</span>
+            <span className="text-sm text-white/60">{tr.breadcrumbCurrent}</span>
           </div>
 
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-1 h-8 bg-primary" />
               <div>
-                <p className="text-xs text-primary uppercase tracking-widest font-semibold">SOMIREN Logistics</p>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-wider text-white">SUIVI D'ENVOI</h1>
+                <p className="text-xs text-primary uppercase tracking-widest font-semibold">{tr.eyebrow}</p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-wider text-white">{tr.title}</h1>
               </div>
             </div>
-            <p className="text-white/50 text-sm ml-4">
-              Suivez vos colis collaborateurs et expéditions minières en temps réel.
-            </p>
+            <p className="text-white/50 text-sm ml-4">{tr.subtitle}</p>
           </div>
 
           {/* Search form */}
@@ -344,7 +355,7 @@ export default function TrackingPage() {
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="Ex : SMR-2026-847291"
+                placeholder={tr.placeholder}
                 className="flex-1 min-w-0 bg-transparent py-4 text-white placeholder-white/20 outline-none text-base font-mono"
                 disabled={loading}
               />
@@ -353,12 +364,10 @@ export default function TrackingPage() {
                 disabled={loading || !code.trim()}
                 className="bg-primary text-black px-4 sm:px-8 py-4 font-bold uppercase tracking-widest text-sm hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               >
-                {loading ? "..." : "SUIVRE"}
+                {loading ? tr.searching : tr.searchBtn}
               </button>
             </div>
-            <p className="text-xs text-white/30 mt-2 ml-1">
-              Entrez votre numéro de suivi SOMIREN Logistics (format : SMR-AAAA-XXXXXX)
-            </p>
+            <p className="text-xs text-white/30 mt-2 ml-1">{tr.hint}</p>
           </form>
 
           {error && (
@@ -375,15 +384,15 @@ export default function TrackingPage() {
               <div className="border border-white/10 p-5 flex gap-4 items-start">
                 <Package className="w-8 h-8 text-primary flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-white mb-1">Colis collaborateurs</h3>
-                  <p className="text-xs text-white/50">Matériel de travail, équipements, documents envoyés à vos collaborateurs à l'international.</p>
+                  <h3 className="font-semibold text-white mb-1">{tr.cardParcel.title}</h3>
+                  <p className="text-xs text-white/50">{tr.cardParcel.desc}</p>
                 </div>
               </div>
               <div className="border border-white/10 p-5 flex gap-4 items-start">
                 <Boxes className="w-8 h-8 text-primary flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-white mb-1">Expéditions minières</h3>
-                  <p className="text-xs text-white/50">Suivi des expéditions de minerais, concentrés et équipements industriels SOMIREN.</p>
+                  <h3 className="font-semibold text-white mb-1">{tr.cardMineral.title}</h3>
+                  <p className="text-xs text-white/50">{tr.cardMineral.desc}</p>
                 </div>
               </div>
             </div>
