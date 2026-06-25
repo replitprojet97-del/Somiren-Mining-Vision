@@ -71,6 +71,19 @@ function formatDateShort(iso: string, lang: string) {
   });
 }
 
+function formatEstimatedDelivery(val: string, lang: string) {
+  if (!val) return val;
+  // ISO date format YYYY-MM-DD from the date picker
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split("-");
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return date.toLocaleDateString(lang === "en" ? "en-GB" : "fr-FR", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+  }
+  return val;
+}
+
 const STEPS: ShipmentStatus[] = ["pending", "collected", "in_transit", "customs", "out_for_delivery", "delivered"];
 
 function ProgressBar({ current, statuses, exceptionMsg }: {
@@ -210,7 +223,7 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
                 <Calendar className="w-4 h-4 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
                   <dt className="text-xs text-white/40">{tr.deliveryLabel}</dt>
-                  <dd className="text-sm text-white font-semibold">{shipment.estimatedDelivery}</dd>
+                  <dd className="text-sm text-white font-semibold">{formatEstimatedDelivery(shipment.estimatedDelivery!, lang)}</dd>
                 </div>
               </div>
             )}

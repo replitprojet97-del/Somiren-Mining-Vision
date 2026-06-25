@@ -142,7 +142,7 @@ function ShipmentForm({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Field label="Poids"><input className={inputCls} value={form.weight} onChange={(e) => set("weight", e.target.value)} placeholder="Ex: 12 kg" /></Field>
         <Field label="Dimensions"><input className={inputCls} value={form.dimensions} onChange={(e) => set("dimensions", e.target.value)} placeholder="Ex: 40×30×20 cm" /></Field>
-        <Field label="Livraison estimée"><input className={inputCls} value={form.estimatedDelivery} onChange={(e) => set("estimatedDelivery", e.target.value)} placeholder="Ex: 02 juillet 2026" /></Field>
+        <Field label="Livraison estimée"><input type="date" className={inputCls} style={{ colorScheme: "dark" }} value={form.estimatedDelivery} onChange={(e) => set("estimatedDelivery", e.target.value)} /></Field>
         <Field label="Réf. interne"><input className={inputCls} value={form.referenceNumber} onChange={(e) => set("referenceNumber", e.target.value)} placeholder="Ex: BON-2026-001" /></Field>
       </div>
 
@@ -183,14 +183,14 @@ function EventForm({
   return (
     <div className="border border-white/10 bg-white/5 p-4 mt-3 space-y-3">
       <p className="text-xs text-primary uppercase tracking-widest font-semibold">Ajouter un événement</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <Field label="Statut *">
           <select className={selectCls} value={form.status} onChange={(e) => set("status", e.target.value)}>
             {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </Field>
-        <Field label="Date/Heure *">
-          <input type="datetime-local" className={inputCls} value={form.timestamp} onChange={(e) => set("timestamp", e.target.value)} />
+        <Field label="Date & Heure * (vous pouvez antidater)">
+          <input type="datetime-local" className={inputCls} style={{ colorScheme: "dark" }} value={form.timestamp} onChange={(e) => set("timestamp", e.target.value)} />
         </Field>
       </div>
       <Field label="Localisation *"><input className={inputCls} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Ex: Hub de tri — Paris, France" /></Field>
