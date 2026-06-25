@@ -59,9 +59,8 @@ const STATUS_COLORS: Record<ShipmentStatus, { color: string; bg: string }> = {
 };
 
 function formatDate(iso: string, lang: string) {
-  return new Date(iso).toLocaleString(lang === "en" ? "en-GB" : "fr-FR", {
-    day: "2-digit", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+  return new Date(iso).toLocaleDateString(lang === "en" ? "en-GB" : "fr-FR", {
+    day: "numeric", month: "long", year: "numeric",
   });
 }
 
