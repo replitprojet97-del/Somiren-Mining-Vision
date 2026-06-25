@@ -146,21 +146,21 @@ function TrackingResult({ shipment, events }: { shipment: Shipment; events: Trac
         <ProgressBar current={shipment.status} />
 
         {/* Route */}
-        <div className="flex items-center gap-3 bg-black/30 p-4 border border-white/5">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-black/30 p-4 border border-white/5">
+          <div className="flex-1 min-w-0">
             <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Expéditeur</p>
-            <p className="font-semibold text-white">{shipment.senderName}</p>
-            <p className="text-sm text-white/60">{shipment.senderCity}, {shipment.senderCountry}</p>
+            <p className="font-semibold text-white truncate">{shipment.senderName}</p>
+            <p className="text-sm text-white/60 truncate">{shipment.senderCity}, {shipment.senderCountry}</p>
           </div>
-          <div className="flex flex-col items-center gap-1 px-4">
-            <div className="w-16 h-px bg-primary/60" />
-            <ChevronRight className="w-4 h-4 text-primary" />
-            <div className="w-16 h-px bg-primary/60" />
+          <div className="flex sm:flex-col items-center gap-2 sm:gap-1 sm:px-4 self-center">
+            <div className="flex-1 sm:flex-none sm:w-16 h-px bg-primary/60 sm:h-px w-px h-4 sm:w-16 sm:h-px bg-primary/60" />
+            <ChevronRight className="w-4 h-4 text-primary rotate-90 sm:rotate-0 flex-shrink-0" />
+            <div className="flex-1 sm:flex-none sm:w-16 h-px bg-primary/60" />
           </div>
-          <div className="flex-1 text-right">
+          <div className="flex-1 min-w-0 sm:text-right">
             <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Destinataire</p>
-            <p className="font-semibold text-white">{shipment.recipientName}</p>
-            <p className="text-sm text-white/60">{shipment.recipientCity}, {shipment.recipientCountry}</p>
+            <p className="font-semibold text-white truncate">{shipment.recipientName}</p>
+            <p className="text-sm text-white/60 truncate">{shipment.recipientCity}, {shipment.recipientCountry}</p>
           </div>
         </div>
       </div>
@@ -307,7 +307,7 @@ export default function TrackingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
       <Header />
       <div className="pt-28 pb-20 px-4">
         <div className="max-w-4xl mx-auto">
@@ -337,7 +337,7 @@ export default function TrackingPage() {
           {/* Search form */}
           <form onSubmit={handleSearch} className="mb-10">
             <div className="flex gap-0 border border-white/20 focus-within:border-primary/60 transition-colors">
-              <div className="flex items-center pl-4 pr-3">
+              <div className="flex items-center pl-3 pr-2 flex-shrink-0">
                 <Search className="w-5 h-5 text-white/40" />
               </div>
               <input
@@ -345,13 +345,13 @@ export default function TrackingPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="Ex : SMR-2026-847291"
-                className="flex-1 bg-transparent py-4 text-white placeholder-white/20 outline-none text-lg tracking-widest font-mono"
+                className="flex-1 min-w-0 bg-transparent py-4 text-white placeholder-white/20 outline-none text-base font-mono"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={loading || !code.trim()}
-                className="bg-primary text-black px-8 py-4 font-bold uppercase tracking-widest text-sm hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="bg-primary text-black px-4 sm:px-8 py-4 font-bold uppercase tracking-widest text-sm hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               >
                 {loading ? "..." : "SUIVRE"}
               </button>
