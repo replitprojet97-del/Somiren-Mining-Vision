@@ -1,0 +1,484 @@
+[00:41, 06/09/2026] Val: Pour ce projet, nous allons juste créé un espace utilisateur pour collaborateur/collaboratrice. En sommes, pour les membres indispensable de la plateforme. 
+Le premier compte sera celui de: Nuria Molero Rodriguez; Assistante Exécutive & Conseillère Stratégique. 
+L'espace utilisateur de Nuria sera constitué de manière à refleter son role, le travail qu'elle doit faire soit traiter certains dossier qui lui seront confié par le directeur. Dans le meme espace, un lien menant directement a une visioconference securisé sera mis en place ( mais inaccessible= refusé car autorisation non donné ou requise) ainsi que d'autres chose lié a son travail. Dis moi ce qui pourrait etre implementer dans cet espace utilisateur. NB: L'espace sera accessible uniquement par identifiant et clé d'acces. Il n'y aura aucun possibilité d'inscription.
+[00:47, 06/09/2026] Val: OBJECTIF DU PROJET
+
+Créer uniquement la partie espace collaborateur/collaboratrice interne de la plateforme.
+
+Cet espace est destiné exclusivement aux membres indispensables au fonctionnement de la plateforme et ne doit pas être confondu avec un espace destiné aux utilisateurs publics, clients ou demandeurs.
+
+Pour la première version, créer un compte collaborateur dédié à :
+
+Nuria Molero Rodriguez
+Fonction : Assistante Exécutive & Conseillère Stratégique
+
+Son interface, ses fonctionnalités et son tableau de bord doivent être adaptés à ses responsabilités professionnelles.
+
+---
+
+1. AUTHENTIFICATION — ACCÈS STRICTEMENT PRIVÉ
+
+Il ne doit exister aucune fonctionnalité d'inscription.
+
+Le compte de Nuria est créé exclusivement par l'administrateur/directeur.
+
+L'accès doit se faire uniquement avec :
+
+- Identifiant
+- Clé d'accès / mot de passe sécurisé
+- Bouton de connexion
+- Déconnexion
+
+Règles importantes
+
+- Aucun bouton « Créer un compte »
+- Aucun bouton « S'inscrire »
+- Aucun système d'inscription publique
+- Aucun moyen pour un visiteur de créer lui-même un compte collaborateur
+- Les identifiants ne doivent jamais être affichés dans l'interface
+- Les informations sensibles doivent être protégées
+- Prévoir une gestion de session sécurisée
+- Prévoir une expiration de session après une période d'inactivité
+- Prévoir une protection contre les tentatives de connexion répétées
+- Prévoir, si possible, une authentification à deux facteurs dans une évolution ultérieure
+
+L'espace doit être considéré comme une zone interne et confidentielle.
+
+---
+
+2. TABLEAU DE BORD DE NURIA
+
+Après connexion, Nuria arrive sur un tableau de bord personnalisé.
+
+En haut de l'écran :
+
+Nuria Molero Rodriguez
+Assistante Exécutive & Conseillère Stratégique
+
+Le tableau de bord doit être simple, professionnel, moderne et particulièrement lisible.
+
+Afficher notamment :
+
+Vue synthétique
+
+- Dossiers qui lui sont confiés
+- Dossiers urgents
+- Dossiers en cours
+- Dossiers terminés
+- Tâches à effectuer
+- Tâches en retard
+- Nouvelles instructions du Directeur
+- Notifications importantes
+- Prochains rendez-vous ou réunions
+- Messages internes non lus
+
+L'objectif est qu'en ouvrant son espace, Nuria puisse immédiatement comprendre :
+
+« Qu'est-ce que je dois faire aujourd'hui ? »
+
+---
+
+3. MODULE « MES DOSSIERS »
+
+Créer une section permettant au Directeur de transmettre des dossiers à Nuria.
+
+Chaque dossier doit pouvoir contenir :
+
+- Numéro/référence du dossier
+- Titre
+- Description
+- Niveau de priorité
+- Date de création
+- Date limite
+- Statut
+- Documents associés
+- Instructions du Directeur
+- Commentaires
+- Historique des actions
+
+Statuts possibles
+
+- Nouveau
+- À traiter
+- En cours
+- En attente d'information
+- En attente de validation
+- Prioritaire
+- Terminé
+- Archivé
+
+Nuria doit pouvoir consulter les dossiers qui lui sont attribués et travailler dessus.
+
+---
+
+4. FICHE DÉTAILLÉE D'UN DOSSIER
+
+Lorsqu'elle ouvre un dossier, afficher une page dédiée avec une organisation claire :
+
+Informations générales
+
+- Référence
+- Objet
+- Responsable
+- Priorité
+- Échéance
+- Statut
+
+Instructions du Directeur
+
+Créer une zone clairement identifiable contenant les consignes données par le Directeur.
+
+Travail à effectuer
+
+Permettre à Nuria de :
+
+- Ajouter des notes
+- Ajouter des commentaires
+- Joindre des documents
+- Mettre à jour l'avancement
+- Signaler un problème
+- Demander une clarification
+- Marquer une tâche comme terminée
+
+Historique
+
+Conserver un historique chronologique des principales actions effectuées sur le dossier.
+
+---
+
+5. MODULE « TÂCHES »
+
+Créer un espace permettant de visualiser les tâches confiées à Nuria.
+
+Chaque tâche peut comporter :
+
+- Titre
+- Description
+- Dossier associé
+- Priorité
+- Date limite
+- Statut
+- Commentaire
+- Date de dernière modification
+
+Prévoir une vue permettant de distinguer rapidement :
+
+Aujourd'hui / Cette semaine / À venir / En retard / Terminées
+
+---
+
+6. COMMUNICATION AVEC LE DIRECTEUR
+
+Créer un espace de communication interne entre Nuria et le Directeur.
+
+Il doit permettre :
+
+- Messages internes
+- Instructions
+- Demandes de clarification
+- Réponses
+- Notifications de nouveaux messages
+
+Le système doit clairement distinguer :
+
+Message du Directeur
+et
+Réponse de Nuria
+
+Les communications importantes doivent pouvoir être associées à un dossier.
+
+---
+
+7. VISIOCONFÉRENCE SÉCURISÉE
+
+Ajouter dans l'espace de Nuria un accès direct à une fonctionnalité de visioconférence sécurisée.
+
+Créer par exemple un bouton :
+
+« Visioconférence sécurisée »
+
+Cependant, cet accès ne doit PAS être automatiquement autorisé.
+
+Principe d'autorisation
+
+Lorsque Nuria clique sur le bouton :
+
+- Vérifier si une autorisation de visioconférence existe.
+- Si l'autorisation n'a pas été accordée, l'accès est refusé.
+- Afficher un message clair indiquant que l'accès nécessite une autorisation.
+- Ne jamais contourner cette restriction côté interface.
+
+Exemple :
+
+Accès à la visioconférence refusé
+« Votre accès à la visioconférence nécessite une autorisation préalable. Veuillez attendre qu'elle soit accordée par le Directeur. »
+
+Si une autorisation valide existe :
+
+→ permettre l'accès à la salle de visioconférence sécurisée.
+
+Prévoir également
+
+- Autorisation temporaire
+- Date/heure de début
+- Date/heure d'expiration
+- Révocation de l'autorisation
+- Identification des participants autorisés
+- Journal des accès
+
+La visioconférence doit être considérée comme une fonctionnalité sensible.
+
+Pour la première version, prévoir une architecture permettant d'intégrer ultérieurement un véritable fournisseur de visioconférence sécurisé plutôt que de créer un faux système de visioconférence.
+
+---
+
+8. CALENDRIER / AGENDA
+
+Ajouter un agenda professionnel permettant à Nuria de consulter :
+
+- Réunions
+- Rendez-vous
+- Échéances
+- Sessions de visioconférence
+- Événements importants
+- Tâches planifiées
+
+Le Directeur doit pouvoir, dans une future interface administrative, lui ajouter des événements.
+
+---
+
+9. DOCUMENTS
+
+Créer une section :
+
+Mes documents
+
+Elle doit permettre de retrouver les documents auxquels Nuria est autorisée à accéder.
+
+Organiser les documents par :
+
+- Dossier
+- Catégorie
+- Date
+- Type de document
+
+Prévoir des permissions afin qu'un collaborateur ne puisse voir que les documents qui lui sont accessibles.
+
+---
+
+10. NOTIFICATIONS
+
+Créer un centre de notifications.
+
+Notifications possibles :
+
+- Nouveau dossier attribué
+- Nouvelle tâche
+- Nouvelle instruction du Directeur
+- Nouveau message
+- Modification d'un dossier
+- Échéance proche
+- Échéance dépassée
+- Invitation à une réunion
+- Autorisation de visioconférence accordée
+- Autorisation de visioconférence révoquée
+
+Les notifications importantes doivent être clairement visibles.
+
+---
+
+11. PROFIL DE NURIA
+
+Créer une page de profil interne affichant uniquement les informations professionnelles nécessaires :
+
+Nuria Molero Rodriguez
+Assistante Exécutive & Conseillère Stratégique
+
+Prévoir :
+
+- Photo de profil
+- Fonction
+- Identifiant interne
+- Coordonnées professionnelles, si configurées
+- Statut du compte
+- Dernière connexion
+
+Ne pas afficher d'informations sensibles inutilement.
+
+---
+
+12. SÉCURITÉ ET PERMISSIONS
+
+Le principe fondamental du projet est :
+
+« Accès selon le rôle et les autorisations. »
+
+Nuria ne doit pas automatiquement avoir accès à toutes les fonctionnalités de la plateforme.
+
+Elle doit uniquement accéder aux éléments qui lui sont explicitement autorisés.
+
+Mettre en place une logique de permissions permettant notamment de contrôler :
+
+- Dossiers accessibles
+- Documents accessibles
+- Fonctionnalités accessibles
+- Visioconférence
+- Communications
+- Actions autorisées
+- Données confidentielles
+
+Les contrôles de sécurité doivent être appliqués côté serveur/backend, et pas uniquement masqués dans l'interface.
+
+Ne jamais considérer qu'un bouton caché constitue une mesure de sécurité.
+
+---
+
+13. JOURNAL D'ACTIVITÉ
+
+Prévoir un journal interne permettant d'enregistrer les événements importants :
+
+- Connexion
+- Déconnexion
+- Ouverture d'un dossier
+- Modification d'un dossier
+- Ajout d'un document
+- Modification d'une tâche
+- Envoi d'un message
+- Demande d'autorisation
+- Accès à la visioconférence
+- Refus d'accès
+- Modification des permissions
+
+Le journal doit permettre au Directeur de comprendre l'activité réalisée sur la plateforme.
+
+---
+
+14. INTERFACE
+
+L'interface doit être :
+
+- Professionnelle
+- Sobre
+- Moderne
+- Rapide
+- Responsive
+- Adaptée aux ordinateurs, tablettes et smartphones
+- Facile à utiliser
+- Sans éléments inutiles
+
+Éviter de surcharger le tableau de bord.
+
+La priorité doit être donnée à :
+
+Dossiers → Tâches → Instructions → Communication → Agenda → Documents → Visioconférence
+
+---
+
+15. NAVIGATION
+
+Créer une navigation claire avec, par exemple :
+
+Tableau de bord
+Mes dossiers
+Mes tâches
+Messages
+Agenda
+Documents
+Visioconférence
+Notifications
+Mon profil
+
+Ajouter une fonction de déconnexion clairement accessible.
+
+---
+
+16. ARCHITECTURE PRÉPARÉE POUR L'ÉVOLUTION
+
+Même si la première version ne contient qu'un seul collaborateur, construire l'architecture de manière à pouvoir ajouter ultérieurement d'autres collaborateurs avec des rôles différents.
+
+Par exemple :
+
+- Assistante Exécutive & Conseillère Stratégique
+- Conseiller
+- Analyste
+- Responsable administratif
+- Responsable financier
+- Responsable juridique
+- etc.
+
+Chaque collaborateur devra pouvoir avoir :
+
+- Son propre compte
+- Son propre rôle
+- Ses propres permissions
+- Ses propres dossiers
+- Ses propres tâches
+- Ses propres documents
+- Ses propres accès aux fonctionnalités
+
+Ne pas coder le système uniquement autour du nom « Nuria ». Le compte de Nuria doit être le premier compte créé dans un système de gestion des collaborateurs évolutif.
+
+---
+
+17. ESPACE DIRECTEUR — PRÉPARATION TECHNIQUE
+
+Même si l'interface du Directeur n'est pas développée immédiatement, prévoir le backend pour qu'un futur espace Directeur puisse :
+
+- Créer des collaborateurs
+- Désactiver un compte
+- Modifier un rôle
+- Attribuer des dossiers
+- Attribuer des tâches
+- Envoyer des instructions
+- Partager des documents
+- Autoriser/refuser la visioconférence
+- Révoquer une autorisation
+- Consulter les activités
+- Gérer les permissions
+
+Le Directeur doit être le niveau d'autorité supérieur du système.
+
+---
+
+18. DONNÉES DE DÉMONSTRATION
+
+Créer uniquement les données nécessaires pour le premier compte :
+
+Nom : Nuria Molero Rodriguez
+Fonction : Assistante Exécutive & Conseillère Stratégique
+
+Ne pas créer artificiellement plusieurs collaborateurs.
+
+Utiliser des données de démonstration clairement identifiées lorsqu'elles sont nécessaires au fonctionnement de l'interface.
+
+---
+
+19. IMPORTANT — NE PAS AJOUTER
+
+Ne pas créer dans cette version :
+
+- Inscription publique
+- Création de compte par les utilisateurs
+- Marketplace
+- Espace client
+- Système de paiement
+- Fonctionnalités sociales
+- Fonctionnalités inutiles au travail de Nuria
+- Accès automatique aux données sensibles
+- Accès automatique à la visioconférence
+
+Cette version doit rester simple, légère, sécurisée et centrée sur le travail des collaborateurs internes.
+
+---
+
+20. RÉSULTAT ATTENDU
+
+À la fin du développement, nous devons avoir un véritable espace collaborateur interne sécurisé, dont Nuria est la première utilisatrice.
+
+Son expérience doit être similaire à celle d'un espace de travail professionnel :
+
+Connexion sécurisée → Tableau de bord → Instructions → Dossiers → Tâches → Documents → Communication → Agenda → Visioconférence selon autorisation → Déconnexion.
+
+Construire le projet avec une architecture propre, modulaire et évolutive afin que l'ajout d'autres collaborateurs et de leurs rôles puisse être effectué ultérieurement sans devoir reconstruire l'application.
+
+Avant de modifier ou créer des fonctionnalités supplémentaires, privilégier la sécurité, la simplicité, la stabilité et la facilité d'utilisation
