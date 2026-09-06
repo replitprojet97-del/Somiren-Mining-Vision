@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation, Link } from "wouter";
 import { useLang } from "@/contexts/LanguageContext";
 import type { Lang } from "@/i18n/translations";
-import { useAuth, useClerk } from "@clerk/react";
+import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: "fr", label: "FR" },
@@ -76,8 +76,14 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { t } = useLang();
-  const { isSignedIn } = useAuth();
-  const { signOut } = useClerk();
+  const { profile, logout } = useWorkspaceAuth();
+  const isSignedIn = Boolean(profile);
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileMenuOpen(false);
+    setLocation("/");
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -179,7 +185,7 @@ export default function Header() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => signOut({ redirectUrl: "/" })}
+                  onClick={() => void handleLogout()}
                   className="w-full rounded-none border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-semibold"
                 >
                   Déconnexion
@@ -211,7 +217,7 @@ export default function Header() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => signOut({ redirectUrl: "/" })}
+                onClick={() => void handleLogout()}
                 className="rounded-none border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-semibold px-4"
               >
                 Déconnexion

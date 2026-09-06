@@ -12,9 +12,9 @@ import {
   Menu,
   X
 } from "lucide-react";
-import { useClerk } from "@clerk/react";
 import { useMe } from "@/hooks/use-workspace";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 
 import DashboardOverview from "./DashboardOverview";
 import DossiersView from "./DossiersView";
@@ -28,7 +28,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function WorkspaceLayout() {
   const [location] = useLocation();
-  const { signOut } = useClerk();
+  const { logout } = useWorkspaceAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: me, isLoading, error } = useMe();
 
@@ -51,7 +51,7 @@ export default function WorkspaceLayout() {
           </p>
           <button
             type="button"
-            onClick={() => signOut({ redirectUrl: basePath || "/" })}
+            onClick={() => void logout().then(() => { window.location.href = basePath || "/"; })}
             className="mt-6 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
           >
             Se déconnecter
@@ -124,7 +124,7 @@ export default function WorkspaceLayout() {
 
         <div className="p-4 border-t border-border">
           <button
-            onClick={() => signOut({ redirectUrl: basePath || "/" })}
+            onClick={() => void logout().then(() => { window.location.href = basePath || "/"; })}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
           >
             <LogOut size={18} />

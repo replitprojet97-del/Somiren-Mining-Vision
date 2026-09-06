@@ -1,4 +1,14 @@
+import { randomBytes, scrypt as scryptCallback } from "node:crypto";
+import { promisify } from "node:util";
 import { pool } from "./index.js";
+
+const scrypt = promisify(scryptCallback);
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derived = await scrypt(password, salt, 64) as Buffer;
+  return `scrypt:${salt}:${derived.toString("hex")}`;
+}
 
 async function migrate() {
   const client = await pool.connect();
@@ -52,6 +62,9 @@ async function migrate() {
         id SERIAL PRIMARY KEY,
         clerk_user_id TEXT UNIQUE,
         email TEXT NOT NULL UNIQUE,
+        password_hash TEXT,
+        must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
+        last_login_at TIMESTAMPTZ,
         full_name TEXT NOT NULL,
         role TEXT NOT NULL,
         permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -60,6 +73,17 @@ async function migrate() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       ALTER TABLE collaborators ALTER COLUMN clerk_user_id DROP NOT NULL;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS password_hash TEXT;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT TRUE;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS collaborator_sessions (
+        id SERIAL PRIMARY KEY,
+        collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
 
       CREATE TABLE IF NOT EXISTS workspace_cases (
         id SERIAL PRIMARY KEY,
@@ -148,6 +172,21 @@ async function migrate() {
           JSON.stringify(["workspace:read", "workspace:write"]),
         ],
       );
+      const initialPassword = process.env.NURIA_INITIAL_PASSWORD;
+      if (initialPassword) {
+        if (initialPassword.length < 12) {
+          throw new Error("NURIA_INITIAL_PASSWORD must contain at least 12 characters");
+        }
+        const passwordHash = await hashPassword(initialPassword);
+        await client.query(
+          `UPDATE collaborators
+           SET password_hash = $1, must_change_password = FALSE, updated_at = NOW()
+           WHERE email = $2 AND password_hash IS NULL`,
+          [passwordHash, allowedEmail],
+        );
+      } else {
+        console.warn("NURIA_INITIAL_PASSWORD is not configured; the collaborator cannot sign in until an initial password is provisioned.");
+      }
     } else {
       console.warn("NURIA_EMAIL is not configured; workspace access remains disabled.");
     }

@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@clerk/react";
 import { useCallback } from "react";
 import { getApiBase } from "@/lib/api";
 
@@ -23,11 +22,9 @@ const fetchWithAuth = async (url: string, token: string | null, options?: Reques
 };
 
 const useApiClient = () => {
-  const { getToken } = useAuth();
   return useCallback(async (url: string, options?: RequestInit) => {
-    const token = await getToken();
-    return fetchWithAuth(url, token, options);
-  }, [getToken]);
+    return fetchWithAuth(url, null, options);
+  }, []);
 };
 
 const normalizeCase = (item: any) => ({

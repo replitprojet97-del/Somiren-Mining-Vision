@@ -1,13 +1,11 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
 app.set("trust proxy", 1);
@@ -62,34 +60,10 @@ app.use(
   }),
 );
 
-// Must precede body parsers because the Clerk proxy streams raw request bytes.
-app.use(CLERK_PROXY_PATH, (req, res, next) => {
-  if (req.method === "POST" && /\/v1\/client\/sign_ups(?:\/|$|\?)/.test(req.originalUrl)) {
-    res.status(403).json({ error: "Public registration is disabled" });
-    return;
-  }
-  next();
-});
-app.use(CLERK_PROXY_PATH, rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Trop de tentatives de connexion. Réessayez dans 15 minutes." },
-}));
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-
 // Body size limit (prevent large-payload DoS)
 app.use(express.json({ limit: "32kb" }));
 app.use(express.urlencoded({ extended: true, limit: "32kb" }));
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+app.use(cookieParser());
 
 // Rate limiting for contact endpoint: max 5 submissions per IP per 15 min
 const contactLimiter = rateLimit({

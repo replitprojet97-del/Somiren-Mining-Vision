@@ -1,4 +1,3 @@
-import { clerkClient, getAuth } from "@clerk/express";
 import {
   activityLogsTable, casesTable, collaboratorsTable, db, documentsTable,
   notificationsTable, tasksTable, videoAuthorizationsTable,
@@ -6,6 +5,7 @@ import {
 import { and, asc, desc, eq, gt, gte, lte, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
+import { getWorkspaceActor } from "./collaboratorAuth";
 
 const router: IRouter = Router();
 const idSchema = z.coerce.number().int().positive();
@@ -22,10 +22,6 @@ const taskUpdateSchema = z.object({
 }).refine((value) => Object.keys(value).length > 0, "At least one update is required");
 
 type WorkspaceActor = typeof collaboratorsTable.$inferSelect;
-
-function configuredNuriaEmail(): string | undefined {
-  return process.env.NURIA_EMAIL?.trim().toLowerCase() || undefined;
-}
 
 async function addActivity(actor: WorkspaceActor, entityType: string, entityId: number | null, action: string, details: Record<string, unknown> = {}) {
   await db.insert(activityLogsTable).values({
@@ -65,45 +61,13 @@ async function seedNuria(actor: WorkspaceActor): Promise<void> {
 }
 
 async function requireWorkspaceAccess(req: Request, res: Response, next: () => void): Promise<void> {
-  const auth = getAuth(req);
-  if (!auth.userId) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-  const expectedEmail = configuredNuriaEmail();
-  if (!expectedEmail) {
-    req.log.error("NURIA_EMAIL is not configured");
-    res.status(503).json({ error: "Workspace authorization is not configured" });
-    return;
-  }
   try {
-    const user = await clerkClient.users.getUser(auth.userId);
-    const primaryEmail = user.primaryEmailAddress;
-    const email = primaryEmail?.emailAddress?.trim().toLowerCase();
-    if (!email || email !== expectedEmail || primaryEmail?.verification?.status !== "verified") {
-      req.log.warn({ clerkUserId: auth.userId }, "Workspace access denied for non-invited account");
-      res.status(403).json({ error: "This account is not invited to the workspace" });
+    const actor = await getWorkspaceActor(req);
+    if (!actor) {
+      res.status(401).json({ error: "Authentication required" });
       return;
     }
-    let [actor] = await db.select().from(collaboratorsTable)
-      .where(and(eq(collaboratorsTable.clerkUserId, auth.userId), eq(collaboratorsTable.isActive, true))).limit(1);
-    if (!actor) {
-      const [invitedActor] = await db.select().from(collaboratorsTable)
-        .where(and(eq(collaboratorsTable.email, email), eq(collaboratorsTable.isActive, true))).limit(1);
-      if (!invitedActor || invitedActor.clerkUserId) {
-        req.log.warn({ clerkUserId: auth.userId }, "Workspace access denied: no unlinked administrator invitation");
-        res.status(403).json({ error: "This account is not invited to the workspace" });
-        return;
-      }
-      await db.update(collaboratorsTable)
-        .set({ clerkUserId: auth.userId, updatedAt: new Date() })
-        .where(and(eq(collaboratorsTable.id, invitedActor.id), eq(collaboratorsTable.isActive, true)));
-      [actor] = await db.select().from(collaboratorsTable)
-        .where(and(eq(collaboratorsTable.clerkUserId, auth.userId), eq(collaboratorsTable.isActive, true))).limit(1);
-      if (!actor) throw new Error("Administrator-provisioned collaborator link could not be completed");
-      await seedNuria(actor);
-      req.log.info({ collaboratorId: actor.id }, "Administrator-provisioned Nuria collaborator linked");
-    }
+    await seedNuria(actor);
     res.locals.workspaceActor = actor;
     next();
   } catch (error) {
