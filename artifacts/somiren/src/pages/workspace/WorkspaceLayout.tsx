@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useClerk } from "@clerk/react";
 import { useMe } from "@/hooks/use-workspace";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import DashboardOverview from "./DashboardOverview";
 import DossiersView from "./DossiersView";
@@ -29,7 +30,36 @@ export default function WorkspaceLayout() {
   const [location] = useLocation();
   const { signOut } = useClerk();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { data: me } = useMe();
+  const { data: me, isLoading, error } = useMe();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background text-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Vérification de l'accès" />
+      </div>
+    );
+  }
+
+  if (error || !me) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 text-foreground">
+        <div className="w-full max-w-lg border border-destructive/30 bg-card p-8 text-center">
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-destructive" />
+          <h1 className="font-serif text-2xl font-bold">Accès refusé</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Ce compte n’est pas autorisé à accéder à l’espace collaborateur Somiren.
+          </p>
+          <button
+            type="button"
+            onClick={() => signOut({ redirectUrl: basePath || "/" })}
+            className="mt-6 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   // Extract just the nested part
   const activeTab = location.replace(/^\/espace-collaborateur\/?/, "") || "dashboard";

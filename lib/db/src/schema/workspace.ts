@@ -9,7 +9,7 @@ const timestamps = {
 
 export const collaboratorsTable = pgTable("collaborators", {
   id: serial("id").primaryKey(),
-  clerkUserId: text("clerk_user_id").notNull().unique(),
+  clerkUserId: text("clerk_user_id").unique(),
   email: text("email").notNull().unique(),
   fullName: text("full_name").notNull(),
   role: text("role").notNull(),

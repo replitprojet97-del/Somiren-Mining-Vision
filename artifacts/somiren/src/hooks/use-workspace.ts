@@ -1,20 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@clerk/react";
+import { useCallback } from "react";
 import { getApiBase } from "@/lib/api";
 
-const fetchWithAuth = async (url: string, options?: RequestInit) => {
+const fetchWithAuth = async (url: string, token: string | null, options?: RequestInit) => {
   const res = await fetch(`${getApiBase()}${url}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
     credentials: "include",
   });
   if (!res.ok) {
-    if (res.status === 401) throw new Error("Unauthorized");
-    throw new Error(`API Error: ${res.statusText}`);
+    const payload = await res.json().catch(() => ({}));
+    const error = new Error(payload.error || `API Error: ${res.statusText}`) as Error & { status: number };
+    error.status = res.status;
+    throw error;
   }
   return res.json();
+};
+
+const useApiClient = () => {
+  const { getToken } = useAuth();
+  return useCallback(async (url: string, options?: RequestInit) => {
+    const token = await getToken();
+    return fetchWithAuth(url, token, options);
+  }, [getToken]);
 };
 
 const normalizeCase = (item: any) => ({
@@ -32,10 +45,11 @@ const normalizeTask = (item: any) => ({
 });
 
 export const useMe = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "me"],
     queryFn: async () => {
-      const data = await fetchWithAuth("/workspace/me");
+      const data = await api("/workspace/me");
       return { ...data.profile, name: data.profile.fullName, permissions: data.permissions };
     },
     retry: false,
@@ -43,10 +57,11 @@ export const useMe = () => {
 };
 
 export const useDashboard = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "dashboard"],
     queryFn: async () => {
-      const data = await fetchWithAuth("/workspace/dashboard");
+      const data = await api("/workspace/dashboard");
       return {
         summary: {
           activeCases: data.counts.cases,
@@ -64,17 +79,19 @@ export const useDashboard = () => {
 };
 
 export const useCases = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "cases"],
-    queryFn: async () => (await fetchWithAuth("/workspace/cases")).cases.map(normalizeCase),
+    queryFn: async () => (await api("/workspace/cases")).cases.map(normalizeCase),
   });
 };
 
 export const useCase = (id: string) => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "cases", id],
     queryFn: async () => {
-      const data = await fetchWithAuth(`/workspace/cases/${id}`);
+      const data = await api(`/workspace/cases/${id}`);
       return { ...data, case: normalizeCase(data.case), tasks: data.tasks.map(normalizeTask) };
     },
     enabled: !!id,
@@ -82,10 +99,11 @@ export const useCase = (id: string) => {
 };
 
 export const useUpdateCase = () => {
+  const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      fetchWithAuth(`/workspace/cases/${id}`, {
+      api(`/workspace/cases/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -97,17 +115,19 @@ export const useUpdateCase = () => {
 };
 
 export const useTasks = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "tasks"],
-    queryFn: async () => (await fetchWithAuth("/workspace/tasks")).tasks.map(normalizeTask),
+    queryFn: async () => (await api("/workspace/tasks")).tasks.map(normalizeTask),
   });
 };
 
 export const useUpdateTask = () => {
+  const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      fetchWithAuth(`/workspace/tasks/${id}`, {
+      api(`/workspace/tasks/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
           ...data,
@@ -122,9 +142,10 @@ export const useUpdateTask = () => {
 };
 
 export const useDocuments = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "documents"],
-    queryFn: async () => (await fetchWithAuth("/workspace/documents")).documents.map((document: any) => ({
+    queryFn: async () => (await api("/workspace/documents")).documents.map((document: any) => ({
       ...document,
       category: "Dossier",
       format: document.contentType?.split("/").pop() ?? "document",
@@ -135,9 +156,10 @@ export const useDocuments = () => {
 };
 
 export const useNotifications = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "notifications"],
-    queryFn: async () => (await fetchWithAuth("/workspace/notifications")).notifications.map((notification: any) => ({
+    queryFn: async () => (await api("/workspace/notifications")).notifications.map((notification: any) => ({
       ...notification,
       message: notification.body,
       type: "INFO",
@@ -146,10 +168,11 @@ export const useNotifications = () => {
 };
 
 export const useMarkNotificationRead = () => {
+  const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      fetchWithAuth(`/workspace/notifications/${id}/read`, {
+      api(`/workspace/notifications/${id}/read`, {
         method: "PATCH",
       }),
     onSuccess: () => {
@@ -160,9 +183,10 @@ export const useMarkNotificationRead = () => {
 };
 
 export const useActivity = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "activity"],
-    queryFn: async () => (await fetchWithAuth("/workspace/activity")).activity.map((activity: any) => ({
+    queryFn: async () => (await api("/workspace/activity")).activity.map((activity: any) => ({
       ...activity,
       timestamp: activity.createdAt,
       description: activity.action.replaceAll("_", " "),
@@ -171,10 +195,11 @@ export const useActivity = () => {
 };
 
 export const useVideoAccess = () => {
+  const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "video-access"],
     queryFn: async () => {
-      const data = await fetchWithAuth("/workspace/video-access");
+      const data = await api("/workspace/video-access");
       return { ...data, allowed: data.authorized };
     },
   });

@@ -78,8 +78,9 @@ async function requireWorkspaceAccess(req: Request, res: Response, next: () => v
   }
   try {
     const user = await clerkClient.users.getUser(auth.userId);
-    const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
-    if (!email || email !== expectedEmail) {
+    const primaryEmail = user.primaryEmailAddress;
+    const email = primaryEmail?.emailAddress?.trim().toLowerCase();
+    if (!email || email !== expectedEmail || primaryEmail?.verification?.status !== "verified") {
       req.log.warn({ clerkUserId: auth.userId }, "Workspace access denied for non-invited account");
       res.status(403).json({ error: "This account is not invited to the workspace" });
       return;
@@ -87,19 +88,21 @@ async function requireWorkspaceAccess(req: Request, res: Response, next: () => v
     let [actor] = await db.select().from(collaboratorsTable)
       .where(and(eq(collaboratorsTable.clerkUserId, auth.userId), eq(collaboratorsTable.isActive, true))).limit(1);
     if (!actor) {
-      await db.insert(collaboratorsTable).values({
-        clerkUserId: auth.userId, email, fullName: "Nuria Molero Rodriguez",
-        role: "Assistante Exécutive & Conseillère Stratégique",
-        permissions: ["workspace:read", "workspace:write"],
-      }).onConflictDoUpdate({
-        target: collaboratorsTable.email,
-        set: { clerkUserId: auth.userId, isActive: true, updatedAt: new Date() },
-      });
+      const [invitedActor] = await db.select().from(collaboratorsTable)
+        .where(and(eq(collaboratorsTable.email, email), eq(collaboratorsTable.isActive, true))).limit(1);
+      if (!invitedActor || invitedActor.clerkUserId) {
+        req.log.warn({ clerkUserId: auth.userId }, "Workspace access denied: no unlinked administrator invitation");
+        res.status(403).json({ error: "This account is not invited to the workspace" });
+        return;
+      }
+      await db.update(collaboratorsTable)
+        .set({ clerkUserId: auth.userId, updatedAt: new Date() })
+        .where(and(eq(collaboratorsTable.id, invitedActor.id), eq(collaboratorsTable.isActive, true)));
       [actor] = await db.select().from(collaboratorsTable)
         .where(and(eq(collaboratorsTable.clerkUserId, auth.userId), eq(collaboratorsTable.isActive, true))).limit(1);
-      if (!actor) throw new Error("Collaborator link was not created");
+      if (!actor) throw new Error("Administrator-provisioned collaborator link could not be completed");
       await seedNuria(actor);
-      req.log.info({ collaboratorId: actor.id }, "Authorized Nuria collaborator linked");
+      req.log.info({ collaboratorId: actor.id }, "Administrator-provisioned Nuria collaborator linked");
     }
     res.locals.workspaceActor = actor;
     next();

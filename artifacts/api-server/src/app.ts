@@ -63,6 +63,20 @@ app.use(
 );
 
 // Must precede body parsers because the Clerk proxy streams raw request bytes.
+app.use(CLERK_PROXY_PATH, (req, res, next) => {
+  if (req.method === "POST" && /\/v1\/client\/sign_ups(?:\/|$|\?)/.test(req.originalUrl)) {
+    res.status(403).json({ error: "Public registration is disabled" });
+    return;
+  }
+  next();
+});
+app.use(CLERK_PROXY_PATH, rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop de tentatives de connexion. Réessayez dans 15 minutes." },
+}));
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 // Body size limit (prevent large-payload DoS)
