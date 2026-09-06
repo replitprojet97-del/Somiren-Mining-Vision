@@ -66,8 +66,73 @@ export const documentsTable = pgTable("workspace_documents", {
   title: text("title").notNull(),
   contentType: text("content_type"),
   objectPath: text("object_path"),
+  category: text("category").notNull().default("general"),
+  confidentiality: text("confidentiality").notNull().default("private"),
   uploadedById: integer("uploaded_by_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }),
   ...timestamps,
+});
+
+export const documentAssignmentsTable = pgTable("workspace_document_assignments", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documentsTable.id, { onDelete: "cascade" }),
+  collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  instruction: text("instruction"),
+  priority: text("priority").notNull().default("normal"),
+  dueAt: timestamp("due_at", { withTimezone: true }),
+  status: text("status").notNull().default("received"),
+  ...timestamps,
+});
+
+export const executiveRequestsTable = pgTable("workspace_executive_requests", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(), description: text("description").notNull().default(""),
+  status: text("status").notNull().default("new"), priority: text("priority").notNull().default("normal"),
+  dueAt: timestamp("due_at", { withTimezone: true }),
+  assigneeId: integer("assignee_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }),
+  ...timestamps,
+});
+export const meetingsTable = pgTable("workspace_meetings", {
+  id: serial("id").primaryKey(), title: text("title").notNull(), description: text("description").notNull().default(""),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(), endsAt: timestamp("ends_at", { withTimezone: true }),
+  headquartersTimezone: text("headquarters_timezone").notNull().default("Europe/Madrid"), meetingUrl: text("meeting_url"), ...timestamps,
+});
+export const meetingParticipantsTable = pgTable("workspace_meeting_participants", {
+  id: serial("id").primaryKey(), meetingId: integer("meeting_id").notNull().references(() => meetingsTable.id, { onDelete: "cascade" }),
+  collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }), ...timestamps,
+});
+export const conversationsTable = pgTable("workspace_conversations", {
+  id: serial("id").primaryKey(), subject: text("subject").notNull(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }), ...timestamps,
+});
+export const messagesTable = pgTable("workspace_messages", {
+  id: serial("id").primaryKey(), conversationId: integer("conversation_id").notNull().references(() => conversationsTable.id, { onDelete: "cascade" }),
+  senderId: integer("sender_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }), body: text("body").notNull(), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const strategicNotesTable = pgTable("workspace_strategic_notes", {
+  id: serial("id").primaryKey(), title: text("title").notNull(), body: text("body").notNull().default(""), isShared: boolean("is_shared").notNull().default(false),
+  collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }), ...timestamps,
+});
+export const contactsTable = pgTable("workspace_contacts", {
+  id: serial("id").primaryKey(), fullName: text("full_name").notNull(), email: text("email"), phone: text("phone"), organization: text("organization"), collaboratorId: integer("collaborator_id").references(() => collaboratorsTable.id, { onDelete: "cascade" }), ...timestamps,
+});
+export const financialRecordsTable = pgTable("workspace_financial_records", {
+  id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  salaryStatus: text("salary_status").notNull(), periodLabel: text("period_label").notNull(), communicatedDelayReason: text("communicated_delay_reason"), ...timestamps,
+});
+export const paymentsTable = pgTable("workspace_payments", {
+  id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  periodLabel: text("period_label").notNull(), status: text("status").notNull(), paidAt: timestamp("paid_at", { withTimezone: true }), ...timestamps,
+});
+export const arrearsTable = pgTable("workspace_arrears", {
+  id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  periodLabel: text("period_label").notNull(), status: text("status").notNull(), communicatedReason: text("communicated_reason"), ...timestamps,
+});
+export const paymentRequirementsTable = pgTable("workspace_payment_requirements", {
+  id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(), details: text("details").notNull().default(""), status: text("status").notNull().default("pending"), ...timestamps,
+});
+export const paymentRequirementDocumentsTable = pgTable("workspace_payment_requirement_documents", {
+  id: serial("id").primaryKey(), requirementId: integer("requirement_id").notNull().references(() => paymentRequirementsTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(), objectPath: text("object_path"), contentType: text("content_type"), submittedById: integer("submitted_by_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }), ...timestamps,
 });
 
 export const notificationsTable = pgTable("workspace_notifications", {

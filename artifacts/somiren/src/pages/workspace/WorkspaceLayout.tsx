@@ -1,58 +1,53 @@
 import { useState } from "react";
-import { useLocation, Link, Route, Switch } from "wouter";
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  CheckSquare, 
-  FileText, 
-  Bell, 
-  User, 
-  Video,
-  LogOut,
-  Menu,
-  X
-} from "lucide-react";
+import { Route, Switch } from "wouter";
 import { useMe } from "@/hooks/use-workspace";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 
-import DashboardOverview from "./DashboardOverview";
-import DossiersView from "./DossiersView";
-import TasksView from "./TasksView";
-import DocumentsView from "./DocumentsView";
-import NotificationsView from "./NotificationsView";
-import ProfileView from "./ProfileView";
-import VideoView from "./VideoView";
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { Sidebar, Topbar } from "./components/Layout";
+import Dashboard from "./Dashboard";
+import Inbox from "./Inbox";
+import Cases from "./Cases";
+import Tasks from "./Tasks";
+import Requests from "./Requests";
+import Agenda from "./Agenda";
+import VideoView from "./Video";
+import Comms from "./Comms";
+import Documents from "./Documents";
+import Notes from "./Notes";
+import Finance from "./Finance";
+import Contacts from "./Contacts";
+import Notifications from "./Notifications";
+import Security from "./Security";
 
 export default function WorkspaceLayout() {
-  const [location] = useLocation();
   const { logout } = useWorkspaceAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { data: me, isLoading, error } = useMe();
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-background text-foreground">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Vérification de l'accès" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#F3F5F7]">
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#B4713B" }} />
       </div>
     );
   }
 
   if (error || !me) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 text-foreground">
-        <div className="w-full max-w-lg border border-destructive/30 bg-card p-8 text-center">
-          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-destructive" />
-          <h1 className="font-serif text-2xl font-bold">Accès refusé</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#F3F5F7] px-4">
+        <div className="w-full max-w-lg border border-red-200 bg-white p-8 text-center rounded-lg shadow-sm">
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
+          <h1 className="text-2xl font-bold text-[#1B242C]">Accès refusé</h1>
+          <p className="mt-3 text-sm text-[#5B6B76]">
             Ce compte n’est pas autorisé à accéder à l’espace collaborateur Somiren.
           </p>
           <button
             type="button"
-            onClick={() => void logout().then(() => { window.location.href = basePath || "/"; })}
-            className="mt-6 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+            onClick={() => void logout().then(() => { window.location.href = "/"; })}
+            className="mt-6 px-5 py-2.5 text-sm font-semibold text-white rounded-md transition-colors"
+            style={{ background: "#0E2233" }}
           >
             Se déconnecter
           </button>
@@ -60,93 +55,40 @@ export default function WorkspaceLayout() {
       </div>
     );
   }
-  
-  // Extract just the nested part
-  const activeTab = location.replace(/^\/espace-collaborateur\/?/, "") || "dashboard";
-
-  const navItems = [
-    { id: "dashboard", label: "Vue d'ensemble", icon: LayoutDashboard, href: "/espace-collaborateur" },
-    { id: "dossiers", label: "Dossiers (Priorité)", icon: Briefcase, href: "/espace-collaborateur/dossiers" },
-    { id: "taches", label: "Tâches & Instructions", icon: CheckSquare, href: "/espace-collaborateur/taches" },
-    { id: "documents", label: "Documents", icon: FileText, href: "/espace-collaborateur/documents" },
-    { id: "notifications", label: "Notifications", icon: Bell, href: "/espace-collaborateur/notifications" },
-    { id: "profil", label: "Mon Profil", icon: User, href: "/espace-collaborateur/profil" },
-    { id: "video", label: "Visioconférence", icon: Video, href: "/espace-collaborateur/video" },
-  ];
 
   return (
-    <div className="flex h-[100dvh] bg-background text-foreground overflow-hidden">
-      {/* Mobile sidebar toggle */}
-      <div className="lg:hidden absolute top-4 left-4 z-50">
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 bg-card border border-border rounded-md text-foreground"
-        >
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+    <div className="flex h-[100dvh] w-full bg-[#F3F5F7] font-sans text-[#1B242C] overflow-hidden">
+      <Sidebar 
+        collapsed={collapsed} 
+        setCollapsed={setCollapsed} 
+        mobileOpen={mobileOpen} 
+        setMobileOpen={setMobileOpen} 
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <Topbar onOpenMobile={() => setMobileOpen(true)} />
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="max-w-[1200px] mx-auto">
+            <Switch>
+              <Route path="/espace-collaborateur" component={Dashboard} />
+              <Route path="/espace-collaborateur/inbox" component={Inbox} />
+              <Route path="/espace-collaborateur/cases" component={Cases} />
+              <Route path="/espace-collaborateur/tasks" component={Tasks} />
+              <Route path="/espace-collaborateur/requests" component={Requests} />
+              <Route path="/espace-collaborateur/agenda" component={Agenda} />
+              <Route path="/espace-collaborateur/video" component={VideoView} />
+              <Route path="/espace-collaborateur/comms" component={Comms} />
+              <Route path="/espace-collaborateur/documents" component={Documents} />
+              <Route path="/espace-collaborateur/notes" component={Notes} />
+              <Route path="/espace-collaborateur/finance" component={Finance} />
+              <Route path="/espace-collaborateur/contacts" component={Contacts} />
+              <Route path="/espace-collaborateur/notifications" component={Notifications} />
+              <Route path="/espace-collaborateur/security" component={Security} />
+            </Switch>
+          </div>
+        </main>
       </div>
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        <div className="p-6 border-b border-border flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <img src={`${basePath}/logo.svg`} alt="Somiren" className="w-8 h-8" />
-            <span className="text-xl font-bold tracking-wider text-primary">SOMIREN</span>
-          </div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
-            Espace Collaborateur
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.href || (item.href !== "/espace-collaborateur" && location.startsWith(item.href));
-            
-            return (
-              <Link key={item.id} href={item.href} onClick={() => setSidebarOpen(false)}>
-                <div className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors
-                  ${isActive 
-                    ? "bg-primary/10 text-primary font-medium" 
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"}
-                `}>
-                  <Icon size={18} />
-                  <span className="text-sm">{item.label}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="p-4 border-t border-border">
-          <button
-            onClick={() => void logout().then(() => { window.location.href = basePath || "/"; })}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-          >
-            <LogOut size={18} />
-            <span>Déconnexion</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        <div className="h-full overflow-y-auto p-4 lg:p-8 pt-16 lg:pt-8 bg-background">
-          <Switch>
-            <Route path="/espace-collaborateur" component={DashboardOverview} />
-            <Route path="/espace-collaborateur/dossiers" component={DossiersView} />
-            <Route path="/espace-collaborateur/taches" component={TasksView} />
-            <Route path="/espace-collaborateur/documents" component={DocumentsView} />
-            <Route path="/espace-collaborateur/notifications" component={NotificationsView} />
-            <Route path="/espace-collaborateur/profil" component={ProfileView} />
-            <Route path="/espace-collaborateur/video" component={VideoView} />
-          </Switch>
-        </div>
-      </main>
     </div>
   );
 }

@@ -1,0 +1,31 @@
+Utilise les deux fichiers fournis comme base du projet.
+
+IMPORTANT :
+
+1. Ne refais pas le design depuis zéro.
+   Le design actuel est volontairement conservé : navigation latérale, palette, cartes, hiérarchie visuelle, dashboard, responsive et identité premium doivent être préservés.
+
+2. Intègre réellement les fonctionnalités décrites dans BRIEF-AGENT-REPLIT-modifie.md au backend et au frontend.
+
+3. Les données actuellement présentes dans le JSX, notamment les données financières de démonstration, ne doivent PAS être considérées comme des données réelles.
+   Elles servent uniquement à visualiser l'interface.
+   Connecte-les aux véritables API, à la base de données et au système d'authentification du projet.
+
+4. Les trois fonctionnalités suivantes sont NON NÉGOCIABLES :
+   
+   - les documents et dossiers peuvent être envoyés directement dans l'espace personnel de Nuria avec instruction, priorité et échéance ;
+   - Nuria peut consulter sa situation financière personnelle : salaire, paiements, statut du paiement, historique, arriérés, motif d'un retard ou d'une absence de paiement et exigences à remplir ;
+   - la visioconférence est accessible uniquement si la permission correspondante lui est accordée par l'administration.
+
+5. Pour les informations financières et les permissions, la sécurité doit être appliquée côté serveur.
+   Il ne suffit jamais de masquer une section dans le frontend.
+
+6. Ne supprime aucune fonctionnalité existante du projet pour intégrer ces éléments.
+
+7. Si une fonctionnalité existe déjà dans le projet, améliore-la ou raccorde-la au nouveau système au lieu de créer un doublon.
+
+8. Vérifie la cohérence entre frontend, backend, base de données, authentification, autorisations et API avant de considérer le travail comme terminé.
+
+9. Le résultat final doit donner l'impression d'une véritable plateforme professionnelle utilisée quotidiennement par une assistante exécutive et conseillère stratégique, et non d'un simple template de dashboard.
+
+10. Ne remplace pas arbitrairement l'identité visuelle actuelle. Les évolutions doivent rester cohérentes avec la maquette fournie.

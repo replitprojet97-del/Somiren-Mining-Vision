@@ -28,20 +28,6 @@ const useApiClient = () => {
   }, []);
 };
 
-const normalizeCase = (item: any) => ({
-  ...item,
-  priority: String(item.priority ?? "normal").toUpperCase(),
-  status: String(item.status ?? "active").toUpperCase(),
-  dueDate: item.dueDate ?? item.createdAt,
-});
-
-const normalizeTask = (item: any) => ({
-  ...item,
-  status: item.status === "completed" ? "DONE" : "PENDING",
-  priority: String(item.priority ?? "normal").toUpperCase(),
-  dueDate: item.dueAt ?? item.createdAt,
-});
-
 export const useMe = () => {
   const api = useApiClient();
   return useQuery({
@@ -58,21 +44,7 @@ export const useDashboard = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "dashboard"],
-    queryFn: async () => {
-      const data = await api("/workspace/dashboard");
-      return {
-        summary: {
-          activeCases: data.counts.cases,
-          pendingTasks: data.counts.openTasks,
-          unreadNotifications: data.counts.unreadNotifications,
-        },
-        recentCases: data.urgentCases.map(normalizeCase),
-        priorityTasks: [...data.todayWork, ...data.nextItems]
-          .filter((task, index, all) => all.findIndex((item) => item.id === task.id) === index)
-          .map(normalizeTask)
-          .slice(0, 6),
-      };
-    },
+    queryFn: async () => api("/workspace/dashboard"),
   });
 };
 
@@ -80,7 +52,7 @@ export const useCases = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "cases"],
-    queryFn: async () => (await api("/workspace/cases")).cases.map(normalizeCase),
+    queryFn: async () => (await api("/workspace/cases")).cases,
   });
 };
 
@@ -88,10 +60,7 @@ export const useCase = (id: string) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "cases", id],
-    queryFn: async () => {
-      const data = await api(`/workspace/cases/${id}`);
-      return { ...data, case: normalizeCase(data.case), tasks: data.tasks.map(normalizeTask) };
-    },
+    queryFn: async () => api(`/workspace/cases/${id}`),
     enabled: !!id,
   });
 };
@@ -100,7 +69,7 @@ export const useUpdateCase = () => {
   const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
       api(`/workspace/cases/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -108,6 +77,7 @@ export const useUpdateCase = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["workspace", "cases"] });
       queryClient.invalidateQueries({ queryKey: ["workspace", "cases", id] });
+      queryClient.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
     },
   });
 };
@@ -116,7 +86,7 @@ export const useTasks = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "tasks"],
-    queryFn: async () => (await api("/workspace/tasks")).tasks.map(normalizeTask),
+    queryFn: async () => (await api("/workspace/tasks")).tasks,
   });
 };
 
@@ -124,13 +94,10 @@ export const useUpdateTask = () => {
   const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
       api(`/workspace/tasks/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          ...data,
-          status: data.status === "DONE" ? "completed" : data.status === "PENDING" ? "todo" : data.status,
-        }),
+        body: JSON.stringify(data),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace", "tasks"] });
@@ -143,13 +110,7 @@ export const useDocuments = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "documents"],
-    queryFn: async () => (await api("/workspace/documents")).documents.map((document: any) => ({
-      ...document,
-      category: "Dossier",
-      format: document.contentType?.split("/").pop() ?? "document",
-      size: "Stockage privé",
-      uploadedAt: document.createdAt,
-    })),
+    queryFn: async () => (await api("/workspace/documents")).documents,
   });
 };
 
@@ -157,11 +118,7 @@ export const useNotifications = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "notifications"],
-    queryFn: async () => (await api("/workspace/notifications")).notifications.map((notification: any) => ({
-      ...notification,
-      message: notification.body,
-      type: "INFO",
-    })),
+    queryFn: async () => (await api("/workspace/notifications")).notifications,
   });
 };
 
@@ -169,7 +126,7 @@ export const useMarkNotificationRead = () => {
   const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: (id: string | number) =>
       api(`/workspace/notifications/${id}/read`, {
         method: "PATCH",
       }),
@@ -184,11 +141,7 @@ export const useActivity = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "activity"],
-    queryFn: async () => (await api("/workspace/activity")).activity.map((activity: any) => ({
-      ...activity,
-      timestamp: activity.createdAt,
-      description: activity.action.replaceAll("_", " "),
-    })),
+    queryFn: async () => (await api("/workspace/activity")).activity,
   });
 };
 
@@ -196,9 +149,172 @@ export const useVideoAccess = () => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "video-access"],
-    queryFn: async () => {
-      const data = await api("/workspace/video-access");
-      return { ...data, allowed: data.authorized };
-    },
+    queryFn: async () => api("/workspace/video-access"),
+  });
+};
+
+// New Hooks
+export const useReceivedDocuments = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "documents", "received"],
+    queryFn: async () => (await api("/workspace/documents/received")).documents,
+  });
+};
+
+export const useUpdateReceivedDocument = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
+      api(`/workspace/documents/received/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "documents", "received"] }),
+  });
+};
+
+export const useRequests = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "requests"],
+    queryFn: async () => (await api("/workspace/requests")).requests,
+  });
+};
+
+export const useUpdateRequest = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
+      api(`/workspace/requests/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "requests"] }),
+  });
+};
+
+export const useMeetings = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "meetings"],
+    queryFn: async () => (await api("/workspace/meetings")).meetings,
+  });
+};
+
+export const useConversations = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "conversations"],
+    queryFn: async () => (await api("/workspace/conversations")).conversations,
+  });
+};
+
+export const useCreateConversation = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      api(`/workspace/conversations`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "conversations"] }),
+  });
+};
+
+export const useNotes = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "notes"],
+    queryFn: async () => (await api("/workspace/notes")).notes,
+  });
+};
+
+export const useCreateNote = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      api(`/workspace/notes`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "notes"] }),
+  });
+};
+
+export const useUpdateNote = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
+      api(`/workspace/notes/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "notes"] }),
+  });
+};
+
+export const useContacts = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "contacts"],
+    queryFn: async () => (await api("/workspace/contacts")).contacts,
+  });
+};
+
+export const useFinanceSummary = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "finance", "summary"],
+    queryFn: async () => (await api("/workspace/me/financial-summary")).summary,
+  });
+};
+
+export const usePayments = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "finance", "payments"],
+    queryFn: async () => (await api("/workspace/me/payments")).payments,
+  });
+};
+
+export const useArrears = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "finance", "arrears"],
+    queryFn: async () => (await api("/workspace/me/arrears")).arrears,
+  });
+};
+
+export const usePaymentRequirements = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "finance", "requirements"],
+    queryFn: async () => (await api("/workspace/me/payment-requirements")).requirements,
+  });
+};
+
+export const useSessions = () => {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: ["workspace", "sessions"],
+    queryFn: async () => (await api("/workspace/sessions")).sessions,
+  });
+};
+
+export const useRevokeSession = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) =>
+      api(`/workspace/sessions/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "sessions"] }),
   });
 };

@@ -1,0 +1,22 @@
+
+export const C = {
+  navy: "#0E2233",
+  navySoft: "#16324A",
+  navyLine: "#25445F",
+  copper: "#B4713B",
+  copperSoft: "#F4E9DE",
+  bg: "#F3F5F7",
+  card: "#FFFFFF",
+  line: "#E3E7EB",
+  ink: "#1B242C",
+  inkSoft: "#5B6B76",
+  inkFaint: "#8A98A2",
+  red: "#B3432E",
+  redBg: "#FBEAE6",
+  amber: "#9C6B15",
+  amberBg: "#FBF1DE",
+  green: "#2F6B4F",
+  greenBg: "#E8F2ED",
+  blue: "#2E5C8A",
+  blueBg: "#E9F0F7",
+};
