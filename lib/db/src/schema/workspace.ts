@@ -9,11 +9,12 @@ const timestamps = {
 
 export const collaboratorsTable = pgTable("collaborators", {
   id: serial("id").primaryKey(),
-  clerkUserId: text("clerk_user_id").unique(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash"),
   mustChangePassword: boolean("must_change_password").notNull().default(true),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
   fullName: text("full_name").notNull(),
   role: text("role").notNull(),
   permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
@@ -26,6 +27,7 @@ export const collaboratorSessionsTable = pgTable("collaborator_sessions", {
   collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   tokenHash: text("token_hash").notNull().unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

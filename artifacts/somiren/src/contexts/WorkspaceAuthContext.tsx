@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { getApiBase } from "@/lib/api";
 
 type WorkspaceProfile = {
@@ -39,6 +40,7 @@ async function authRequest(path: string, options?: RequestInit) {
 }
 
 export function WorkspaceAuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<WorkspaceProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,21 +59,32 @@ export function WorkspaceAuthProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      queryClient.clear();
+      setProfile(null);
+    };
+    window.addEventListener("workspace:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("workspace:unauthorized", handleUnauthorized);
+  }, [queryClient]);
+
   const login = useCallback(async (email: string, password: string) => {
     const data = await authRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    queryClient.clear();
     setProfile(data.profile);
-  }, []);
+  }, [queryClient]);
 
   const logout = useCallback(async () => {
     try {
       await authRequest("/auth/logout", { method: "POST" });
     } finally {
+      queryClient.clear();
       setProfile(null);
     }
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({ profile, isLoading, login, logout, refresh }),

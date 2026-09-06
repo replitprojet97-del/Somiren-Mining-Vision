@@ -16,6 +16,7 @@ const fetchWithAuth = async (url: string, token: string | null, options?: Reques
     const payload = await res.json().catch(() => ({}));
     const error = new Error(payload.error || `API Error: ${res.statusText}`) as Error & { status: number };
     error.status = res.status;
+    if (res.status === 401) window.dispatchEvent(new Event("workspace:unauthorized"));
     throw error;
   }
   return res.json();

@@ -60,11 +60,12 @@ async function migrate() {
 
       CREATE TABLE IF NOT EXISTS collaborators (
         id SERIAL PRIMARY KEY,
-        clerk_user_id TEXT UNIQUE,
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT,
         must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
         last_login_at TIMESTAMPTZ,
+        failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+        locked_until TIMESTAMPTZ,
         full_name TEXT NOT NULL,
         role TEXT NOT NULL,
         permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -72,18 +73,21 @@ async function migrate() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
-      ALTER TABLE collaborators ALTER COLUMN clerk_user_id DROP NOT NULL;
       ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS password_hash TEXT;
       ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT TRUE;
       ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
 
       CREATE TABLE IF NOT EXISTS collaborator_sessions (
         id SERIAL PRIMARY KEY,
         collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
         token_hash TEXT NOT NULL UNIQUE,
         expires_at TIMESTAMPTZ NOT NULL,
+        last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      ALTER TABLE collaborator_sessions ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
       CREATE TABLE IF NOT EXISTS workspace_cases (
         id SERIAL PRIMARY KEY,
@@ -162,8 +166,8 @@ async function migrate() {
     const allowedEmail = process.env.NURIA_EMAIL?.trim().toLowerCase();
     if (allowedEmail) {
       await client.query(
-        `INSERT INTO collaborators (clerk_user_id, email, full_name, role, permissions)
-         VALUES (NULL, $1, $2, $3, $4::jsonb)
+        `INSERT INTO collaborators (email, full_name, role, permissions)
+         VALUES ($1, $2, $3, $4::jsonb)
          ON CONFLICT (email) DO NOTHING`,
         [
           allowedEmail,

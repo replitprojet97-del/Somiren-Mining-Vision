@@ -25,12 +25,26 @@ const extraOrigins = (process.env.EXTRA_ALLOWED_ORIGINS ?? "")
 const allowedOrigins: (string | RegExp)[] = [
   "https://somiren.com",
   "https://www.somiren.com",
-  /\.replit\.dev$/,
-  /\.replit\.app$/,
-  /\.onrender\.com$/,
-  /localhost/,
   ...extraOrigins,
+  ...(process.env.NODE_ENV === "development"
+    ? [/\.replit\.dev$/, /\.replit\.app$/, /localhost/]
+    : []),
 ];
+app.use((req, res, next) => {
+  const origin = req.get("origin");
+  if (!origin) {
+    next();
+    return;
+  }
+  const allowed = allowedOrigins.some((candidate) =>
+    typeof candidate === "string" ? candidate === origin : candidate.test(origin)
+  );
+  if (!allowed) {
+    res.status(403).json({ error: "Origine non autorisée." });
+    return;
+  }
+  next();
+});
 app.use(cors({
   origin: (origin, cb) => {
     // Allow server-to-server / curl (no origin)
@@ -38,7 +52,7 @@ app.use(cors({
     const allowed = allowedOrigins.some((o) =>
       typeof o === "string" ? o === origin : o.test(origin)
     );
-    cb(allowed ? null : new Error("Not allowed by CORS"), allowed);
+    cb(null, allowed);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -64,6 +78,30 @@ app.use(
 app.use(express.json({ limit: "32kb" }));
 app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 app.use(cookieParser());
+
+app.use("/api", (req, res, next) => {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    next();
+    return;
+  }
+  const origin = req.get("origin");
+  if (!origin) {
+    if (req.path.startsWith("/auth/") || req.path.startsWith("/workspace/")) {
+      res.status(403).json({ error: "Origine requise." });
+      return;
+    }
+    next();
+    return;
+  }
+  const allowed = allowedOrigins.some((candidate) =>
+    typeof candidate === "string" ? candidate === origin : candidate.test(origin)
+  );
+  if (!allowed) {
+    res.status(403).json({ error: "Origine non autorisée." });
+    return;
+  }
+  next();
+});
 
 // Rate limiting for contact endpoint: max 5 submissions per IP per 15 min
 const contactLimiter = rateLimit({

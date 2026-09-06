@@ -29,7 +29,11 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Start the managed `artifacts/api-server: API Server` and `artifacts/somiren: web` workflows.
 - API startup runs the idempotent `@workspace/db` migration before accepting requests, including in published environments.
 - The public website is served at `/`; the private collaborator sign-in is at `/sign-in`.
-- The collaborator workspace is at `/espace-collaborateur` and requires Clerk authentication plus an exact server-side match with `NURIA_EMAIL`.
+- The collaborator workspace is at `/espace-collaborateur` and uses private PostgreSQL-backed sessions in secure `HttpOnly` cookies.
+- Collaborator sessions expire after 30 minutes of inactivity and always expire after 12 hours.
+- There is no public registration route. A collaborator must be pre-provisioned with `NURIA_EMAIL`; `NURIA_INITIAL_PASSWORD` is used only once to create the password hash and should then be deleted.
+- The production PostgreSQL database is hosted by Neon and consumed by the Render deployment through `DATABASE_URL`.
+- Prefer exposing the Render API through `https://api.somiren.com/api` and keep `COOKIE_CROSS_SITE` unset. If the frontend must call an `onrender.com` API directly, set `COOKIE_CROSS_SITE=true` and add that exact frontend origin through `EXTRA_ALLOWED_ORIGINS`.
 - Public sign-up is intentionally not exposed. Collaborator accounts are created and managed by the administrator.
 - Declarative schema changes use `pnpm --filter @workspace/db run push` during development. Keep the idempotent SQL migration in `lib/db/src/migrate.ts` in sync because API startup uses it in every environment.
 
