@@ -3,10 +3,14 @@ import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import pinoHttp from "pino-http";
+import { clerkMiddleware } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
+app.set("trust proxy", 1);
 
 // Security headers
 app.use(helmet({
@@ -38,13 +42,10 @@ app.use(cors({
     );
     cb(allowed ? null : new Error("Not allowed by CORS"), allowed);
   },
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 }));
-
-// Body size limit (prevent large-payload DoS)
-app.use(express.json({ limit: "32kb" }));
-app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 
 // Logging
 app.use(
@@ -59,6 +60,21 @@ app.use(
       },
     },
   }),
+);
+
+// Must precede body parsers because the Clerk proxy streams raw request bytes.
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+
+// Body size limit (prevent large-payload DoS)
+app.use(express.json({ limit: "32kb" }));
+app.use(express.urlencoded({ extended: true, limit: "32kb" }));
+app.use(
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
 );
 
 // Rate limiting for contact endpoint: max 5 submissions per IP per 15 min

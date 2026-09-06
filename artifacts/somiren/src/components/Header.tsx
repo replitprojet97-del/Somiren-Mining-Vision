@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { TrendingUp, Menu, X, ChevronDown } from "lucide-react";
+import { TrendingUp, Menu, X, ChevronDown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, Link } from "wouter";
 import { useLang } from "@/contexts/LanguageContext";
 import type { Lang } from "@/i18n/translations";
+import { useAuth, useClerk } from "@clerk/react";
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: "fr", label: "FR" },
@@ -75,6 +76,8 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { t } = useLang();
+  const { isSignedIn } = useAuth();
+  const { signOut } = useClerk();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -165,26 +168,64 @@ export default function Header() {
           {/* Mobile: lang dropdown + investor button */}
           <div className="lg:hidden flex flex-col items-center gap-4 mt-2">
             <LangDropdown compact />
-            <Button
-              onClick={handleInvestorClick}
-              className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
-            >
-              <TrendingUp className="w-4 h-4" />
-              {t.header.investors}
-            </Button>
+            {isSignedIn ? (
+              <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                <Button
+                  onClick={() => { setMobileMenuOpen(false); setLocation("/espace-collaborateur"); }}
+                  className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none w-full uppercase tracking-wider font-semibold"
+                >
+                  <Lock className="w-4 h-4" />
+                  Espace
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => signOut({ redirectUrl: "/" })}
+                  className="w-full rounded-none border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-semibold"
+                >
+                  Déconnexion
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => { setMobileMenuOpen(false); setLocation("/sign-in"); }}
+                className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
+              >
+                <Lock className="w-4 h-4" />
+                Connexion
+              </Button>
+            )}
           </div>
         </nav>
 
-        {/* Desktop: lang dropdown + investor button */}
+        {/* Desktop: lang dropdown + auth buttons */}
         <div className="hidden lg:flex items-center gap-3">
           <LangDropdown />
-          <Button
-            onClick={handleInvestorClick}
-            className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
-          >
-            <TrendingUp className="w-4 h-4" />
-            {t.header.investors}
-          </Button>
+          {isSignedIn ? (
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setLocation("/espace-collaborateur")}
+                className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-4 uppercase tracking-wider font-semibold"
+              >
+                <Lock className="w-4 h-4" />
+                Espace
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => signOut({ redirectUrl: "/" })}
+                className="rounded-none border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-semibold px-4"
+              >
+                Déconnexion
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setLocation("/sign-in")}
+              className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-6 uppercase tracking-wider font-semibold"
+            >
+              <Lock className="w-4 h-4" />
+              Connexion
+            </Button>
+          )}
         </div>
       </div>
     </header>
