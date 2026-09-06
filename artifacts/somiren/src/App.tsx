@@ -60,7 +60,7 @@ const clerkAppearance = {
     rootBox: "w-full flex justify-center",
     cardBox: "bg-[#0A0A0A] border border-[#3d2f1f] rounded-none w-[440px] max-w-full overflow-hidden shadow-[0px_8px_10px_-1px_hsl(0,0%,0%,0.5)]",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    footer: "hidden",
     headerTitle: "text-white font-serif tracking-wider",
     headerSubtitle: "text-[#a6a6a6]",
     socialButtonsBlockButtonText: "hidden",
