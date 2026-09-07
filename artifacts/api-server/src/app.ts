@@ -86,7 +86,7 @@ app.use("/api", (req, res, next) => {
   }
   const origin = req.get("origin");
   if (!origin) {
-    if (req.path.startsWith("/auth/") || req.path.startsWith("/workspace/")) {
+    if (req.path.startsWith("/auth/") || req.path.startsWith("/workspace/") || req.path.startsWith("/admin/")) {
       res.status(403).json({ error: "Origine requise." });
       return;
     }

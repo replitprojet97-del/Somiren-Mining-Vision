@@ -89,6 +89,14 @@ async function migrate() {
       );
       ALTER TABLE collaborator_sessions ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+      CREATE TABLE IF NOT EXISTS workspace_roles (
+        id SERIAL PRIMARY KEY,
+        label TEXT NOT NULL,
+        permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS workspace_cases (
         id SERIAL PRIMARY KEY,
         reference TEXT NOT NULL DEFAULT 'DEMO',
@@ -231,6 +239,27 @@ async function migrate() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+    await client.query(
+      `INSERT INTO collaborators (email, full_name, role, permissions, must_change_password)
+       VALUES ($1, $2, 'ADMIN', $3::jsonb, FALSE)
+       ON CONFLICT (email) DO UPDATE SET
+         full_name = EXCLUDED.full_name, role = EXCLUDED.role,
+         is_active = TRUE, updated_at = NOW()`,
+      ["admin@somiren.local", "Administration Somiren", JSON.stringify(["workspace:read", "workspace:write", "MANAGE_USERS", "MANAGE_PERMISSIONS", "CAN_USE_VIDEO_CONFERENCE"])],
+    );
+    await client.query(
+      `INSERT INTO workspace_roles (label, permissions)
+       SELECT value.label, value.permissions::jsonb
+       FROM (VALUES
+         ('ADMIN', $1),
+         ('EXECUTIVE_ASSISTANT_STRATEGIC_ADVISOR', $2)
+       ) AS value(label, permissions)
+       WHERE NOT EXISTS (SELECT 1 FROM workspace_roles r WHERE r.label = value.label)`,
+      [
+        JSON.stringify(["workspace:read", "workspace:write", "MANAGE_USERS", "MANAGE_PERMISSIONS", "CAN_USE_VIDEO_CONFERENCE"]),
+        JSON.stringify(["workspace:read", "workspace:write", "VIEW_ASSIGNED_CASES", "MANAGE_ASSIGNED_CASES", "VIEW_ASSIGNED_TASKS", "MANAGE_ASSIGNED_TASKS", "VIEW_EXECUTIVE_REQUESTS", "MANAGE_ASSIGNED_REQUESTS", "VIEW_ASSIGNED_DOCUMENTS", "SUBMIT_DOCUMENTS", "USE_INTERNAL_MESSAGING", "PARTICIPATE_IN_MEETINGS"]),
+      ],
+    );
     const allowedEmail = process.env.NURIA_EMAIL?.trim().toLowerCase();
     if (allowedEmail) {
       await client.query(

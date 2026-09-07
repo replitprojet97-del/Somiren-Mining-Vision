@@ -19,7 +19,7 @@ const SESSION_ACTIVITY_WRITE_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
 const ACCOUNT_LOCK_MS = 15 * 60 * 1000;
 
-function sessionCookieOptions(req: Request) {
+export function sessionCookieOptions(req: Request) {
   const origin = req.get("origin");
   let crossSite = process.env.COOKIE_CROSS_SITE === "true";
   if (origin) {
@@ -42,7 +42,7 @@ const loginSchema = z.object({
   password: z.string().min(1).max(1024),
 });
 
-function tokenHash(token: string): string {
+export function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
@@ -52,6 +52,21 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   const expected = Buffer.from(expectedHex, "hex");
   const actual = await scrypt(password, salt, expected.length) as Buffer;
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+export async function hashCollaboratorPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derived = await scrypt(password, salt, 64) as Buffer;
+  return `scrypt:${salt}:${derived.toString("hex")}`;
+}
+
+export async function createCollaboratorSession(req: Request, res: Response, collaboratorId: number): Promise<void> {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+  await db.insert(collaboratorSessionsTable).values({
+    collaboratorId, tokenHash: tokenHash(token), expiresAt, lastActiveAt: new Date(),
+  });
+  res.cookie(SESSION_COOKIE, token, { ...sessionCookieOptions(req), maxAge: SESSION_DURATION_MS });
 }
 
 function publicProfile(collaborator: typeof collaboratorsTable.$inferSelect) {
@@ -139,21 +154,10 @@ router.post("/auth/login", rateLimit({
     res.status(401).json({ error: "Adresse e-mail ou mot de passe incorrect." });
     return;
   }
-  const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
-  await db.insert(collaboratorSessionsTable).values({
-    collaboratorId: collaborator.id,
-    tokenHash: tokenHash(token),
-    expiresAt,
-    lastActiveAt: new Date(),
-  });
+  await createCollaboratorSession(req, res, collaborator.id);
   await db.update(collaboratorsTable)
     .set({ lastLoginAt: new Date(), failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(collaboratorsTable.id, collaborator.id));
-  res.cookie(SESSION_COOKIE, token, {
-    ...sessionCookieOptions(req),
-    maxAge: SESSION_DURATION_MS,
-  });
   res.json({ profile: publicProfile(collaborator) });
 });
 

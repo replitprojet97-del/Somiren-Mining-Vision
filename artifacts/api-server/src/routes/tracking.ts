@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@workspace/db";
 import { shipmentsTable, trackingEventsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { addAdminActivity, requireAdminAccess } from "./adminWorkspace";
 
 const router: IRouter = Router();
 
@@ -69,43 +70,9 @@ router.get("/tracking/:code", async (req: Request, res: Response) => {
   res.json({ shipment, events });
 });
 
-// ── Admin middleware ─────────────────────────────────────────────────────────
-
-function requireAdmin(req: Request, res: Response, next: () => void) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Non autorisé." });
-    return;
-  }
-  const token = auth.slice(7);
-  const expected = process.env["JWT_SECRET"] + "_admin_token";
-  if (token !== expected) {
-    res.status(403).json({ error: "Accès refusé." });
-    return;
-  }
-  next();
-}
-
-// ── Admin: login ─────────────────────────────────────────────────────────────
-
-router.post("/admin/login", (req: Request, res: Response) => {
-  const { password } = req.body as { password?: string };
-  const adminPassword = process.env["ADMIN_PASSWORD"];
-  if (!adminPassword) {
-    res.status(503).json({ error: "Admin non configuré." });
-    return;
-  }
-  if (password !== adminPassword) {
-    res.status(401).json({ error: "Mot de passe incorrect." });
-    return;
-  }
-  const token = process.env["JWT_SECRET"] + "_admin_token";
-  res.json({ token });
-});
-
 // ── Admin: list all shipments ─────────────────────────────────────────────────
 
-router.get("/admin/shipments", requireAdmin as any, async (_req: Request, res: Response) => {
+router.get("/admin/shipments", requireAdminAccess as any, async (_req: Request, res: Response) => {
   const shipments = await db
     .select()
     .from(shipmentsTable)
@@ -115,7 +82,7 @@ router.get("/admin/shipments", requireAdmin as any, async (_req: Request, res: R
 
 // ── Admin: create shipment ────────────────────────────────────────────────────
 
-router.post("/admin/shipments", requireAdmin as any, async (req: Request, res: Response) => {
+router.post("/admin/shipments", requireAdminAccess as any, async (req: Request, res: Response) => {
   const parsed = InsertShipmentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Données invalides", details: parsed.error.flatten() });
@@ -148,13 +115,14 @@ router.post("/admin/shipments", requireAdmin as any, async (req: Request, res: R
     description: "Envoi enregistré par SOMIREN Logistics",
     isCompleted: true,
   });
+  await addAdminActivity(res.locals.adminActor, "shipment", shipment.id, "created");
 
   res.status(201).json({ shipment });
 });
 
 // ── Admin: update shipment ────────────────────────────────────────────────────
 
-router.put("/admin/shipments/:id", requireAdmin as any, async (req: Request, res: Response) => {
+router.put("/admin/shipments/:id", requireAdminAccess as any, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "ID invalide." }); return; }
 
@@ -188,23 +156,25 @@ router.put("/admin/shipments/:id", requireAdmin as any, async (req: Request, res
         .where(eq(trackingEventsTable.id, latestEvent.id));
     }
   }
-
+  await addAdminActivity(res.locals.adminActor, "shipment", shipment.id, "updated");
   res.json({ shipment });
 });
 
 // ── Admin: delete shipment ────────────────────────────────────────────────────
 
-router.delete("/admin/shipments/:id", requireAdmin as any, async (req: Request, res: Response) => {
+router.delete("/admin/shipments/:id", requireAdminAccess as any, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "ID invalide." }); return; }
 
-  await db.delete(shipmentsTable).where(eq(shipmentsTable.id, id));
+  const deleted = await db.delete(shipmentsTable).where(eq(shipmentsTable.id, id)).returning({ id: shipmentsTable.id });
+  if (!deleted.length) { res.status(404).json({ error: "Envoi introuvable." }); return; }
+  await addAdminActivity(res.locals.adminActor, "shipment", id, "deleted");
   res.json({ success: true });
 });
 
 // ── Admin: add tracking event ─────────────────────────────────────────────────
 
-router.post("/admin/events", requireAdmin as any, async (req: Request, res: Response) => {
+router.post("/admin/events", requireAdminAccess as any, async (req: Request, res: Response) => {
   const parsed = InsertEventBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Données invalides", details: parsed.error.flatten() });
@@ -233,13 +203,13 @@ router.post("/admin/events", requireAdmin as any, async (req: Request, res: Resp
     .update(shipmentsTable)
     .set({ status: data.status, updatedAt: new Date() })
     .where(eq(shipmentsTable.id, data.shipmentId));
-
+  await addAdminActivity(res.locals.adminActor, "tracking_event", event.id, "created", { shipmentId: data.shipmentId });
   res.status(201).json({ event });
 });
 
 // ── Admin: update event ───────────────────────────────────────────────────────
 
-router.put("/admin/events/:id", requireAdmin as any, async (req: Request, res: Response) => {
+router.put("/admin/events/:id", requireAdminAccess as any, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "ID invalide." }); return; }
 
@@ -258,16 +228,19 @@ router.put("/admin/events/:id", requireAdmin as any, async (req: Request, res: R
     .returning();
 
   if (!updated) { res.status(404).json({ error: "Événement introuvable." }); return; }
+  await addAdminActivity(res.locals.adminActor, "tracking_event", updated.id, "updated");
   res.json({ event: updated });
 });
 
 // ── Admin: delete event ───────────────────────────────────────────────────────
 
-router.delete("/admin/events/:id", requireAdmin as any, async (req: Request, res: Response) => {
+router.delete("/admin/events/:id", requireAdminAccess as any, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "ID invalide." }); return; }
 
-  await db.delete(trackingEventsTable).where(eq(trackingEventsTable.id, id));
+  const deleted = await db.delete(trackingEventsTable).where(eq(trackingEventsTable.id, id)).returning({ id: trackingEventsTable.id });
+  if (!deleted.length) { res.status(404).json({ error: "Événement introuvable." }); return; }
+  await addAdminActivity(res.locals.adminActor, "tracking_event", id, "deleted");
   res.json({ success: true });
 });
 

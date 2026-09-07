@@ -31,6 +31,13 @@ export const collaboratorSessionsTable = pgTable("collaborator_sessions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const workspaceRolesTable = pgTable("workspace_roles", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+  ...timestamps,
+});
+
 export const casesTable = pgTable("workspace_cases", {
   id: serial("id").primaryKey(),
   reference: text("reference").notNull().default("DEMO"),
