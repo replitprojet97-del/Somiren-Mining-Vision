@@ -5,6 +5,120 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface CollaboratorLoginInput {
+  /** @maxLength 320 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 1024
+     */
+  password: string;
+}
+
+export interface CollaboratorProfile {
+  id: number;
+  email: string;
+  fullName: string;
+  role: string;
+  permissions: string[];
+  mustChangePassword: boolean;
+}
+
+export interface CollaboratorLoginSuccess {
+  profile: CollaboratorProfile;
+}
+
+export const CollaboratorLoginChallengeValue = {
+  requiresTwoFactor: true,
+} as const;
+export type CollaboratorLoginChallenge = typeof CollaboratorLoginChallengeValue;
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  available: boolean;
+  /** @minimum 0 */
+  recoveryCodesRemaining: number;
+}
+
+export interface TwoFactorSetupInput {
+  /**
+     * @minLength 1
+     * @maxLength 1024
+     */
+  password: string;
+}
+
+export interface TwoFactorSetup {
+  secret: string;
+  otpauthUrl: string;
+  expiresAt: string;
+}
+
+export const TwoFactorUnavailableValue = {
+  available: false,
+} as const;
+export type TwoFactorUnavailable = typeof TwoFactorUnavailableValue;
+
+export interface TwoFactorCodeInput {
+  /**
+     * @minLength 6
+     * @maxLength 32
+     */
+  code: string;
+}
+
+export interface TwoFactorEnabled {
+  enabled: true;
+  /**
+     * @minItems 8
+     * @maxItems 10
+     */
+  recoveryCodes: string[];
+}
+
+export interface TwoFactorDisableInput {
+  /**
+     * @minLength 1
+     * @maxLength 1024
+     */
+  password: string;
+  /**
+     * @minLength 6
+     * @maxLength 32
+     */
+  code: string;
+}
+
+export const TwoFactorDisabledValue = {
+  enabled: false,
+} as const;
+export type TwoFactorDisabled = typeof TwoFactorDisabledValue;
+
+export interface TwoFactorRecoveryCodes {
+  /**
+     * @minItems 8
+     * @maxItems 10
+     */
+  recoveryCodes: string[];
+}
+
+export type WorkspaceSessionListSessionsItem = {
+  id: number;
+  expiresAt: string;
+  lastActiveAt: string;
+  createdAt: string;
+  /** @nullable */
+  browserName: string | null;
+  /** @nullable */
+  osName: string | null;
+  current: boolean;
+  device: string;
+};
+
+export interface WorkspaceSessionList {
+  sessions: WorkspaceSessionListSessionsItem[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -113,6 +227,313 @@ export interface PrivateFileUrl {
   fileName: string;
   contentType: string;
   expiresIn: PrivateFileUrlExpiresIn;
+}
+
+export type ArrearStatus = typeof ArrearStatus[keyof typeof ArrearStatus];
+
+
+export const ArrearStatus = {
+  open: 'open',
+  settled: 'settled',
+  archived: 'archived',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ArrearTransferRequestStatus = typeof ArrearTransferRequestStatus[keyof typeof ArrearTransferRequestStatus] | null;
+
+
+export const ArrearTransferRequestStatus = {
+  pending: 'pending',
+  acknowledged: 'acknowledged',
+  declined: 'declined',
+} as const;
+
+export interface Arrear {
+  id: number;
+  collaboratorId: number;
+  periodLabel: string;
+  /**
+     * Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.
+     * @nullable
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount: string | null;
+  /**
+     * @nullable
+     * @pattern ^[A-Z]{3}$
+     */
+  currency: string | null;
+  status: ArrearStatus;
+  /** @nullable */
+  communicatedReason: string | null;
+  /** @nullable */
+  transferInstructions: string | null;
+  /** @nullable */
+  transferRequestedAt: string | null;
+  /** @nullable */
+  transferRequestStatus: ArrearTransferRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArrearsList {
+  arrears: Arrear[];
+}
+
+export interface ArrearResult {
+  arrear: Arrear;
+}
+
+export type ArrearInputStatus = typeof ArrearInputStatus[keyof typeof ArrearInputStatus];
+
+
+export const ArrearInputStatus = {
+  open: 'open',
+  settled: 'settled',
+  archived: 'archived',
+} as const;
+
+export interface ArrearInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  periodLabel: string;
+  /**
+     * Decimal amount, sent as a string to avoid floating-point precision loss
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount: string;
+  /** @pattern ^[A-Z]{3}$ */
+  currency: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  communicatedReason: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  transferInstructions: string;
+  status?: ArrearInputStatus;
+}
+
+export type ArrearUpdateStatus = typeof ArrearUpdateStatus[keyof typeof ArrearUpdateStatus];
+
+
+export const ArrearUpdateStatus = {
+  open: 'open',
+  settled: 'settled',
+  archived: 'archived',
+} as const;
+
+export type ArrearUpdateTransferRequestStatus = typeof ArrearUpdateTransferRequestStatus[keyof typeof ArrearUpdateTransferRequestStatus];
+
+
+export const ArrearUpdateTransferRequestStatus = {
+  acknowledged: 'acknowledged',
+  declined: 'declined',
+} as const;
+
+export interface ArrearUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  periodLabel?: string;
+  /**
+     * Decimal string; null explicitly clears the amount to unknown
+     * @nullable
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount?: string | null;
+  /**
+     * @nullable
+     * @pattern ^[A-Z]{3}$
+     */
+  currency?: string | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  communicatedReason?: string | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  transferInstructions?: string | null;
+  status?: ArrearUpdateStatus;
+  transferRequestStatus?: ArrearUpdateTransferRequestStatus;
+}
+
+export interface SalaryRecord {
+  id: number;
+  collaboratorId: number;
+  /** Status as communicated by the administrator */
+  salaryStatus: string;
+  periodLabel: string;
+  /** @nullable */
+  communicatedDelayReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalaryRecordsList {
+  salaryRecords: SalaryRecord[];
+}
+
+export interface SalaryRecordResult {
+  salaryRecord: SalaryRecord;
+}
+
+export type SalaryRecordInputSalaryStatus = typeof SalaryRecordInputSalaryStatus[keyof typeof SalaryRecordInputSalaryStatus];
+
+
+export const SalaryRecordInputSalaryStatus = {
+  Non_versé: 'Non versé',
+  Versé: 'Versé',
+} as const;
+
+export interface SalaryRecordInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  periodLabel: string;
+  salaryStatus: SalaryRecordInputSalaryStatus;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  communicatedDelayReason?: string | null;
+}
+
+export type SalaryRecordUpdateSalaryStatus = typeof SalaryRecordUpdateSalaryStatus[keyof typeof SalaryRecordUpdateSalaryStatus];
+
+
+export const SalaryRecordUpdateSalaryStatus = {
+  Non_versé: 'Non versé',
+  Versé: 'Versé',
+} as const;
+
+export interface SalaryRecordUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  periodLabel?: string;
+  salaryStatus?: SalaryRecordUpdateSalaryStatus;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  communicatedDelayReason?: string | null;
+}
+
+export interface FinancialSummaryResponse {
+  summary: SalaryRecord | null;
+}
+
+export interface LiveVideoAuthorization {
+  id: number;
+  collaboratorId: number;
+  meetingTitle: string;
+  meetingUrl: string;
+  startsAt: string;
+  expiresAt: string;
+  isRevoked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveVideoAuthorizationInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  meetingTitle: string;
+  /** @maxLength 2000 */
+  meetingUrl: string;
+  startsAt: string;
+  expiresAt: string;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     * @items.minimum 1
+     */
+  collaboratorIds: number[];
+}
+
+export type AdminVideoAuthorizationAssignmentCollaborator = {
+  id: number;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+};
+
+export interface AdminVideoAuthorizationAssignment {
+  authorization: LiveVideoAuthorization;
+  collaborator: AdminVideoAuthorizationAssignmentCollaborator;
+}
+
+export interface AdminVideoAuthorizationList {
+  assignments: AdminVideoAuthorizationAssignment[];
+}
+
+export interface AssignedVideoAuthorizations {
+  assignments: LiveVideoAuthorization[];
+}
+
+export interface VideoAuthorizationRevocation {
+  authorization: LiveVideoAuthorization;
+  alreadyRevoked: boolean;
+}
+
+export interface WorkspaceVideoMeeting {
+  id: number;
+  title: string;
+  url: string;
+  startsAt: string;
+  expiresAt: string;
+}
+
+export interface WorkspaceVideoAccess {
+  authorized: boolean;
+  allowed: boolean;
+  meeting: WorkspaceVideoMeeting | null;
+  meetings: WorkspaceVideoMeeting[];
+  reason?: string;
+}
+
+export interface WorkspaceVideoJoinInput {
+  /** @minimum 1 */
+  authorizationId: number;
+}
+
+export interface WorkspaceVideoJoinResult {
+  meetingUrl: string;
+  authorizationId: number;
+  expiresAt: string;
+}
+
+export interface UnreadMessageCount {
+  /** @minimum 0 */
+  count: number;
+}
+
+export interface ConversationReadInput {
+  /** @minimum 1 */
+  lastReadMessageId: number;
+}
+
+export interface ConversationReadResult {
+  updated: true;
+  /** @minimum 1 */
+  lastReadMessageId: number;
 }
 
 export type DocumentAssignmentInputPriority = typeof DocumentAssignmentInputPriority[keyof typeof DocumentAssignmentInputPriority];

@@ -8,6 +8,7 @@ type ProcessRequest = {
   audio: ArrayBuffer;
   sourceLanguage: AudioLanguage;
   targetLanguage: AudioLanguage;
+  uiLanguage: "fr" | "en";
 };
 
 type WorkerResponse =
@@ -25,7 +26,17 @@ function post(response: WorkerResponse): void {
   self.postMessage(response);
 }
 
-function getTransformers(): Promise<typeof import("@huggingface/transformers")> {
+function text(french: string, english: string, lang: "fr" | "en"): string {
+  return lang === "en" ? english : french;
+}
+
+function localizedError(french: string, english: string, lang: "fr" | "en"): Error {
+  const error = new Error(text(french, english, lang));
+  error.name = "AudioProcessingError";
+  return error;
+}
+
+function getTransformers(requestId: number): Promise<typeof import("@huggingface/transformers")> {
   if (!transformersPromise) {
     transformersPromise = import("@huggingface/transformers").then((transformers) => {
       transformers.env.allowRemoteModels = true;
@@ -33,7 +44,11 @@ function getTransformers(): Promise<typeof import("@huggingface/transformers")> 
       transformers.env.useBrowserCache = true;
     const wasm = transformers.env.backends.onnx.wasm;
     if (!wasm) {
-      throw new Error("Le moteur WASM ONNX n’est pas disponible dans ce navigateur. Vous pouvez saisir les textes manuellement.");
+      throw localizedError(
+        "Le moteur WASM ONNX n’est pas disponible dans ce navigateur. Vous pouvez saisir les textes manuellement.",
+        "The ONNX WASM engine is not available in this browser. You can enter the text manually.",
+        requestLanguages.get(requestId) ?? "fr",
+      );
     }
     wasm.numThreads = 1;
       return transformers;
@@ -42,8 +57,8 @@ function getTransformers(): Promise<typeof import("@huggingface/transformers")> 
   return transformersPromise;
 }
 
-async function loadPipeline(task: string, model: string, options: Record<string, unknown>): Promise<PipelineFunction> {
-  const { pipeline } = await getTransformers();
+async function loadPipeline(task: string, model: string, options: Record<string, unknown>, requestId: number): Promise<PipelineFunction> {
+  const { pipeline } = await getTransformers(requestId);
   const createPipeline = pipeline as unknown as (
     task: string,
     model: string,
@@ -72,8 +87,8 @@ function getAsr(requestId: number): Promise<PipelineFunction> {
   if (!asrPipeline) {
     const loading = loadPipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
       dtype: "q8",
-      progress_callback: progressCallback(requestId, "download", "Téléchargement du modèle de transcription"),
-    });
+      progress_callback: progressCallback(requestId, "download", requestLanguageText(requestId, "Téléchargement du modèle de transcription", "Downloading transcription model")),
+    }, requestId);
     let cached: Promise<PipelineFunction>;
     cached = loading.catch((error) => {
       if (asrPipeline === cached) asrPipeline = null;
@@ -82,6 +97,12 @@ function getAsr(requestId: number): Promise<PipelineFunction> {
     asrPipeline = cached;
   }
   return asrPipeline;
+}
+
+const requestLanguages = new Map<number, "fr" | "en">();
+
+function requestLanguageText(requestId: number, french: string, english: string): string {
+  return text(french, english, requestLanguages.get(requestId) ?? "fr");
 }
 
 function getTranslator(
@@ -96,8 +117,8 @@ function getTranslator(
   if (!translator) {
     const loading = loadPipeline("translation", model, {
       dtype: "q8",
-      progress_callback: progressCallback(requestId, "download", "Téléchargement du modèle de traduction"),
-    });
+      progress_callback: progressCallback(requestId, "download", requestLanguageText(requestId, "Téléchargement du modèle de traduction", "Downloading translation model")),
+    }, requestId);
     translator = loading.catch((error) => {
       if (translationPipelines.get(model) === translator) translationPipelines.delete(model);
       throw error;
@@ -178,7 +199,7 @@ async function translateTranscript(
       type: "PROGRESS",
       requestId,
       stage: "translate",
-      message: `Traduction locale (${Math.min(start + batch.length, parts.length)} sur ${parts.length})…`,
+       message: requestLanguageText(requestId, `Traduction locale (${Math.min(start + batch.length, parts.length)} sur ${parts.length})…`, `Translating locally (${Math.min(start + batch.length, parts.length)} of ${parts.length})…`),
       progress: Math.round(((start + batch.length) / parts.length) * 100),
     });
     const result = await translator(batch, { max_new_tokens: 256 });
@@ -189,13 +210,14 @@ async function translateTranscript(
 }
 
 async function processAudio(request: ProcessRequest): Promise<void> {
+  requestLanguages.set(request.requestId, request.uiLanguage);
   try {
     const asr = await getAsr(request.requestId);
     post({
       type: "PROGRESS",
       requestId: request.requestId,
       stage: "transcribe",
-      message: "Transcription du segment en cours…",
+      message: text("Transcription du segment en cours…", "Transcribing audio segment…", request.uiLanguage),
     });
     // audio-processing.ts has already converted the audio to mono 16 kHz;
     // Transformers.js v3 expects the Float32Array itself, not an audio wrapper.
@@ -222,11 +244,20 @@ async function processAudio(request: ProcessRequest): Promise<void> {
     );
     post({ type: "RESULT", requestId: request.requestId, transcript, translation });
   } catch (error) {
+    const message = error instanceof Error && error.name === "AudioProcessingError"
+      ? error.message
+      : text(
+        "Le traitement audio IA local a échoué. Vérifiez votre connexion pour télécharger les modèles, puis réessayez ou saisissez les textes manuellement.",
+        "Local AI audio processing failed. Check your connection to download the models, then try again or enter the text manually.",
+        request.uiLanguage,
+      );
     post({
       type: "ERROR",
       requestId: request.requestId,
-      message: error instanceof Error ? error.message : "Le modèle audio local a échoué.",
+      message,
     });
+  } finally {
+    requestLanguages.delete(request.requestId);
   }
 }
 

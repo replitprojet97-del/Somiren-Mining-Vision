@@ -9,6 +9,187 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Sign in with a collaborator password, optionally starting a second-factor challenge
+ */
+export const loginCollaboratorBodyEmailMax = 320;
+
+export const loginCollaboratorBodyPasswordMax = 1024;
+
+
+
+export const LoginCollaboratorBody = zod.object({
+  "email": zod.string().email().max(loginCollaboratorBodyEmailMax),
+  "password": zod.string().min(1).max(loginCollaboratorBodyPasswordMax)
+})
+
+export const LoginCollaboratorResponse = zod.union([zod.object({
+  "profile": zod.object({
+  "id": zod.number().int(),
+  "email": zod.string().email(),
+  "fullName": zod.string(),
+  "role": zod.string(),
+  "permissions": zod.array(zod.string()),
+  "mustChangePassword": zod.boolean()
+})
+}),zod.object({
+  "requiresTwoFactor": zod.literal(true)
+})])
+
+
+/**
+ * @summary Complete a pending collaborator login using a TOTP or unused recovery code
+ */
+export const verifyCollaboratorTwoFactorBodyCodeMin = 6;
+export const verifyCollaboratorTwoFactorBodyCodeMax = 32;
+
+
+
+export const VerifyCollaboratorTwoFactorBody = zod.object({
+  "code": zod.string().min(verifyCollaboratorTwoFactorBodyCodeMin).max(verifyCollaboratorTwoFactorBodyCodeMax)
+})
+
+export const VerifyCollaboratorTwoFactorResponse = zod.object({
+  "profile": zod.object({
+  "id": zod.number().int(),
+  "email": zod.string().email(),
+  "fullName": zod.string(),
+  "role": zod.string(),
+  "permissions": zod.array(zod.string()),
+  "mustChangePassword": zod.boolean()
+})
+})
+
+
+/**
+ * @summary Cancel a pending second-factor login challenge
+ */
+export const CancelCollaboratorTwoFactorResponse = zod.void()
+
+
+/**
+ * @summary Revoke the current collaborator session and clear any pending login challenge
+ */
+export const LogoutCollaboratorResponse = zod.void()
+
+
+/**
+ * @summary Get second-factor enrollment status for the authenticated collaborator
+ */
+export const getWorkspaceTwoFactorStatusResponseRecoveryCodesRemainingMin = 0;
+
+
+
+export const GetWorkspaceTwoFactorStatusResponse = zod.object({
+  "enabled": zod.boolean(),
+  "available": zod.boolean(),
+  "recoveryCodesRemaining": zod.number().int().min(getWorkspaceTwoFactorStatusResponseRecoveryCodesRemainingMin)
+})
+
+
+/**
+ * @summary Begin password-verified TOTP enrollment
+ */
+export const setupWorkspaceTwoFactorBodyPasswordMax = 1024;
+
+
+
+export const SetupWorkspaceTwoFactorBody = zod.object({
+  "password": zod.string().min(1).max(setupWorkspaceTwoFactorBodyPasswordMax)
+})
+
+export const SetupWorkspaceTwoFactorResponse = zod.object({
+  "secret": zod.string(),
+  "otpauthUrl": zod.string().url(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Confirm pending TOTP enrollment and receive one-time recovery codes
+ */
+export const enableWorkspaceTwoFactorBodyCodeMin = 6;
+export const enableWorkspaceTwoFactorBodyCodeMax = 32;
+
+
+
+export const EnableWorkspaceTwoFactorBody = zod.object({
+  "code": zod.string().min(enableWorkspaceTwoFactorBodyCodeMin).max(enableWorkspaceTwoFactorBodyCodeMax)
+})
+
+export const enableWorkspaceTwoFactorResponseRecoveryCodesMin = 8;
+export const enableWorkspaceTwoFactorResponseRecoveryCodesMax = 10;
+
+
+
+export const EnableWorkspaceTwoFactorResponse = zod.object({
+  "enabled": zod.literal(true),
+  "recoveryCodes": zod.array(zod.string()).min(enableWorkspaceTwoFactorResponseRecoveryCodesMin).max(enableWorkspaceTwoFactorResponseRecoveryCodesMax)
+})
+
+
+/**
+ * @summary Disable second factor after password and second-factor verification
+ */
+export const disableWorkspaceTwoFactorBodyPasswordMax = 1024;
+
+export const disableWorkspaceTwoFactorBodyCodeMin = 6;
+export const disableWorkspaceTwoFactorBodyCodeMax = 32;
+
+
+
+export const DisableWorkspaceTwoFactorBody = zod.object({
+  "password": zod.string().min(1).max(disableWorkspaceTwoFactorBodyPasswordMax),
+  "code": zod.string().min(disableWorkspaceTwoFactorBodyCodeMin).max(disableWorkspaceTwoFactorBodyCodeMax)
+})
+
+export const DisableWorkspaceTwoFactorResponse = zod.object({
+  "enabled": zod.literal(false)
+})
+
+
+/**
+ * @summary Regenerate recovery codes after password and existing second-factor verification
+ */
+export const regenerateWorkspaceTwoFactorRecoveryCodesBodyPasswordMax = 1024;
+
+export const regenerateWorkspaceTwoFactorRecoveryCodesBodyCodeMin = 6;
+export const regenerateWorkspaceTwoFactorRecoveryCodesBodyCodeMax = 32;
+
+
+
+export const RegenerateWorkspaceTwoFactorRecoveryCodesBody = zod.object({
+  "password": zod.string().min(1).max(regenerateWorkspaceTwoFactorRecoveryCodesBodyPasswordMax),
+  "code": zod.string().min(regenerateWorkspaceTwoFactorRecoveryCodesBodyCodeMin).max(regenerateWorkspaceTwoFactorRecoveryCodesBodyCodeMax)
+})
+
+export const regenerateWorkspaceTwoFactorRecoveryCodesResponseRecoveryCodesMin = 8;
+export const regenerateWorkspaceTwoFactorRecoveryCodesResponseRecoveryCodesMax = 10;
+
+
+
+export const RegenerateWorkspaceTwoFactorRecoveryCodesResponse = zod.object({
+  "recoveryCodes": zod.array(zod.string()).min(regenerateWorkspaceTwoFactorRecoveryCodesResponseRecoveryCodesMin).max(regenerateWorkspaceTwoFactorRecoveryCodesResponseRecoveryCodesMax)
+})
+
+
+/**
+ * @summary List authenticated collaborator sessions with available browser and operating-system names
+ */
+export const ListWorkspaceSessionsResponse = zod.object({
+  "sessions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "expiresAt": zod.coerce.date(),
+  "lastActiveAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "browserName": zod.string().nullable(),
+  "osName": zod.string().nullable(),
+  "current": zod.boolean(),
+  "device": zod.string()
+}))
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */
@@ -445,6 +626,417 @@ export const GetWorkspaceMeetingVideoResponse = zod.object({
   "fileName": zod.string(),
   "contentType": zod.string(),
   "expiresIn": zod.literal(300)
+})
+
+
+export const ListAdminVideoAuthorizationsResponse = zod.object({
+  "assignments": zod.array(zod.object({
+  "authorization": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "meetingTitle": zod.string(),
+  "meetingUrl": zod.string().url(),
+  "startsAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "isRevoked": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "collaborator": zod.object({
+  "id": zod.number().int(),
+  "fullName": zod.string(),
+  "email": zod.string().email(),
+  "role": zod.string(),
+  "isActive": zod.boolean()
+})
+}))
+})
+
+
+export const assignAdminVideoAuthorizationsBodyMeetingTitleMax = 300;
+
+export const assignAdminVideoAuthorizationsBodyMeetingUrlMax = 2000;
+
+
+export const assignAdminVideoAuthorizationsBodyCollaboratorIdsMax = 100;
+
+
+
+export const AssignAdminVideoAuthorizationsBody = zod.object({
+  "meetingTitle": zod.string().min(1).max(assignAdminVideoAuthorizationsBodyMeetingTitleMax),
+  "meetingUrl": zod.string().url().max(assignAdminVideoAuthorizationsBodyMeetingUrlMax),
+  "startsAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "collaboratorIds": zod.array(zod.number().int().min(1)).min(1).max(assignAdminVideoAuthorizationsBodyCollaboratorIdsMax)
+})
+
+export const AssignAdminVideoAuthorizationsResponse = zod.object({
+  "assignments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "meetingTitle": zod.string(),
+  "meetingUrl": zod.string().url(),
+  "startsAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "isRevoked": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+
+
+
+export const RevokeAdminVideoAuthorizationParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const RevokeAdminVideoAuthorizationResponse = zod.object({
+  "authorization": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "meetingTitle": zod.string(),
+  "meetingUrl": zod.string().url(),
+  "startsAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "isRevoked": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "alreadyRevoked": zod.boolean()
+})
+
+
+export const GetWorkspaceVideoAccessResponse = zod.object({
+  "authorized": zod.boolean(),
+  "allowed": zod.boolean(),
+  "meeting": zod.union([zod.object({
+  "id": zod.number().int(),
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "startsAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),zod.null()]),
+  "meetings": zod.array(zod.object({
+  "id": zod.number().int(),
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "startsAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+})),
+  "reason": zod.string().optional()
+})
+
+
+
+
+
+export const JoinWorkspaceVideoMeetingBody = zod.object({
+  "authorizationId": zod.number().int().min(1)
+})
+
+export const JoinWorkspaceVideoMeetingResponse = zod.object({
+  "meetingUrl": zod.string().url(),
+  "authorizationId": zod.number().int(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+export const getWorkspaceUnreadMessageCountResponseCountMin = 0;
+
+
+
+export const GetWorkspaceUnreadMessageCountResponse = zod.object({
+  "count": zod.number().int().min(getWorkspaceUnreadMessageCountResponseCountMin)
+})
+
+
+
+
+
+export const MarkWorkspaceConversationReadParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+
+
+
+export const MarkWorkspaceConversationReadBody = zod.object({
+  "lastReadMessageId": zod.number().int().min(1)
+})
+
+
+
+
+export const MarkWorkspaceConversationReadResponse = zod.object({
+  "updated": zod.literal(true),
+  "lastReadMessageId": zod.number().int().min(1)
+})
+
+
+
+
+
+export const ListCollaboratorArrearsParams = zod.object({
+  "collaboratorId": zod.coerce.number().int().min(1)
+})
+
+export const listCollaboratorArrearsResponseArrearsItemAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const listCollaboratorArrearsResponseArrearsItemCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const ListCollaboratorArrearsResponse = zod.object({
+  "arrears": zod.array(zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "periodLabel": zod.string(),
+  "amount": zod.string().regex(listCollaboratorArrearsResponseArrearsItemAmountRegExp).nullable().describe('Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.'),
+  "currency": zod.string().regex(listCollaboratorArrearsResponseArrearsItemCurrencyRegExp).nullable(),
+  "status": zod.enum(['open', 'settled', 'archived']),
+  "communicatedReason": zod.string().nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+
+
+
+export const CreateCollaboratorArrearParams = zod.object({
+  "collaboratorId": zod.coerce.number().int().min(1)
+})
+
+export const createCollaboratorArrearBodyPeriodLabelMax = 120;
+
+export const createCollaboratorArrearBodyAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const createCollaboratorArrearBodyCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+export const createCollaboratorArrearBodyCommunicatedReasonMax = 5000;
+
+export const createCollaboratorArrearBodyTransferInstructionsMax = 5000;
+
+
+
+export const CreateCollaboratorArrearBody = zod.object({
+  "periodLabel": zod.string().min(1).max(createCollaboratorArrearBodyPeriodLabelMax),
+  "amount": zod.string().regex(createCollaboratorArrearBodyAmountRegExp).describe('Decimal amount, sent as a string to avoid floating-point precision loss'),
+  "currency": zod.string().regex(createCollaboratorArrearBodyCurrencyRegExp),
+  "communicatedReason": zod.string().min(1).max(createCollaboratorArrearBodyCommunicatedReasonMax),
+  "transferInstructions": zod.string().min(1).max(createCollaboratorArrearBodyTransferInstructionsMax),
+  "status": zod.enum(['open', 'settled', 'archived']).optional()
+})
+
+export const createCollaboratorArrearResponseArrearAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const createCollaboratorArrearResponseArrearCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const CreateCollaboratorArrearResponse = zod.object({
+  "arrear": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "periodLabel": zod.string(),
+  "amount": zod.string().regex(createCollaboratorArrearResponseArrearAmountRegExp).nullable().describe('Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.'),
+  "currency": zod.string().regex(createCollaboratorArrearResponseArrearCurrencyRegExp).nullable(),
+  "status": zod.enum(['open', 'settled', 'archived']),
+  "communicatedReason": zod.string().nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+
+
+
+export const ListCollaboratorSalaryRecordsParams = zod.object({
+  "collaboratorId": zod.coerce.number().int().min(1)
+})
+
+export const ListCollaboratorSalaryRecordsResponse = zod.object({
+  "salaryRecords": zod.array(zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
+  "periodLabel": zod.string(),
+  "communicatedDelayReason": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+
+
+
+export const AssignCollaboratorSalaryRecordParams = zod.object({
+  "collaboratorId": zod.coerce.number().int().min(1)
+})
+
+export const assignCollaboratorSalaryRecordBodyPeriodLabelMax = 120;
+
+export const assignCollaboratorSalaryRecordBodyCommunicatedDelayReasonMax = 5000;
+
+
+
+export const AssignCollaboratorSalaryRecordBody = zod.object({
+  "periodLabel": zod.string().min(1).max(assignCollaboratorSalaryRecordBodyPeriodLabelMax),
+  "salaryStatus": zod.enum(['Non versé', 'Versé']),
+  "communicatedDelayReason": zod.string().max(assignCollaboratorSalaryRecordBodyCommunicatedDelayReasonMax).nullish()
+})
+
+export const AssignCollaboratorSalaryRecordResponse = zod.object({
+  "salaryRecord": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
+  "periodLabel": zod.string(),
+  "communicatedDelayReason": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+
+
+
+export const UpdateSalaryRecordParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateSalaryRecordBodyPeriodLabelMax = 120;
+
+export const updateSalaryRecordBodyCommunicatedDelayReasonMax = 5000;
+
+
+
+export const UpdateSalaryRecordBody = zod.object({
+  "periodLabel": zod.string().min(1).max(updateSalaryRecordBodyPeriodLabelMax).optional(),
+  "salaryStatus": zod.enum(['Non versé', 'Versé']).optional(),
+  "communicatedDelayReason": zod.string().max(updateSalaryRecordBodyCommunicatedDelayReasonMax).nullish()
+})
+
+export const UpdateSalaryRecordResponse = zod.object({
+  "salaryRecord": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
+  "periodLabel": zod.string(),
+  "communicatedDelayReason": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Get the current collaborator's latest salary record
+ */
+export const GetWorkspaceFinancialSummaryResponse = zod.object({
+  "summary": zod.union([zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
+  "periodLabel": zod.string(),
+  "communicatedDelayReason": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+
+
+
+export const UpdateArrearParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateArrearBodyPeriodLabelMax = 120;
+
+export const updateArrearBodyAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const updateArrearBodyCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+export const updateArrearBodyCommunicatedReasonMax = 5000;
+
+export const updateArrearBodyTransferInstructionsMax = 5000;
+
+
+
+export const UpdateArrearBody = zod.object({
+  "periodLabel": zod.string().min(1).max(updateArrearBodyPeriodLabelMax).optional(),
+  "amount": zod.string().regex(updateArrearBodyAmountRegExp).nullish().describe('Decimal string; null explicitly clears the amount to unknown'),
+  "currency": zod.string().regex(updateArrearBodyCurrencyRegExp).nullish(),
+  "communicatedReason": zod.string().max(updateArrearBodyCommunicatedReasonMax).nullish(),
+  "transferInstructions": zod.string().max(updateArrearBodyTransferInstructionsMax).nullish(),
+  "status": zod.enum(['open', 'settled', 'archived']).optional(),
+  "transferRequestStatus": zod.enum(['acknowledged', 'declined']).optional()
+})
+
+export const updateArrearResponseArrearAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const updateArrearResponseArrearCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const UpdateArrearResponse = zod.object({
+  "arrear": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "periodLabel": zod.string(),
+  "amount": zod.string().regex(updateArrearResponseArrearAmountRegExp).nullable().describe('Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.'),
+  "currency": zod.string().regex(updateArrearResponseArrearCurrencyRegExp).nullable(),
+  "status": zod.enum(['open', 'settled', 'archived']),
+  "communicatedReason": zod.string().nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+
+
+
+export const DeleteArrearParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteArrearResponse = zod.void()
+
+
+
+
+
+export const RequestArrearTransferParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const requestArrearTransferResponseArrearAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const requestArrearTransferResponseArrearCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const RequestArrearTransferResponse = zod.object({
+  "arrear": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "periodLabel": zod.string(),
+  "amount": zod.string().regex(requestArrearTransferResponseArrearAmountRegExp).nullable().describe('Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.'),
+  "currency": zod.string().regex(requestArrearTransferResponseArrearCurrencyRegExp).nullable(),
+  "status": zod.enum(['open', 'settled', 'archived']),
+  "communicatedReason": zod.string().nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
 })
 
 

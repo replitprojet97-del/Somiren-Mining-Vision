@@ -11,6 +11,203 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /auth/login:
+    post:
+      operationId: loginCollaborator
+      tags: [collaborator-auth]
+      summary: Sign in with a collaborator password, optionally starting a second-factor challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CollaboratorLoginInput" }
+      responses:
+        "200":
+          description: Signed in, or a short-lived second-factor challenge cookie was set
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+            Set-Cookie:
+              description: HTTP-only secure challenge cookie is set on second-factor login; otherwise a collaborator session cookie is set
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/CollaboratorLoginSuccess"
+                  - $ref: "#/components/schemas/CollaboratorLoginChallenge"
+        "400": { description: Invalid login request }
+        "401": { description: Invalid credentials }
+        "429": { description: Login rate limited or account temporarily locked }
+        "503": { description: Second-factor decryption is unavailable }
+  /auth/2fa/verify:
+    post:
+      operationId: verifyCollaboratorTwoFactor
+      tags: [collaborator-auth]
+      summary: Complete a pending collaborator login using a TOTP or unused recovery code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorCodeInput" }
+      responses:
+        "200":
+          description: Second factor accepted and full collaborator session created
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+            Set-Cookie:
+              description: Full collaborator session cookie is set after challenge consumption
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollaboratorLoginSuccess" }
+        "400": { description: Invalid challenge or code }
+        "401": { description: "Challenge expired, invalid, or code rejected" }
+        "429": { description: Challenge attempt limit reached }
+  /auth/2fa/cancel:
+    post:
+      operationId: cancelCollaboratorTwoFactor
+      tags: [collaborator-auth]
+      summary: Cancel a pending second-factor login challenge
+      responses:
+        "204":
+          description: Challenge cookie cleared
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+            Set-Cookie: { schema: { type: string } }
+  /auth/logout:
+    post:
+      operationId: logoutCollaborator
+      tags: [collaborator-auth]
+      summary: Revoke the current collaborator session and clear any pending login challenge
+      responses:
+        "204":
+          description: Session and challenge cookies cleared
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+            Set-Cookie: { schema: { type: string } }
+  /workspace/security/2fa:
+    get:
+      operationId: getWorkspaceTwoFactorStatus
+      tags: [workspace-security]
+      summary: Get second-factor enrollment status for the authenticated collaborator
+      responses:
+        "200":
+          description: Enrollment status, without disclosing the configured secret
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorStatus" }
+        "401": { description: Authenticated collaborator session required }
+        "403": { description: Legacy ADMIN_PASSWORD portal is not eligible for collaborator second-factor management }
+  /workspace/security/2fa/setup:
+    post:
+      operationId: setupWorkspaceTwoFactor
+      tags: [workspace-security]
+      summary: Begin password-verified TOTP enrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorSetupInput" }
+      responses:
+        "200":
+          description: Pending setup secret and provisioning URI (expires in ten minutes)
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorSetup" }
+        "401": { description: Password invalid or collaborator session absent }
+        "403": { description: Legacy ADMIN_PASSWORD portal is not eligible for collaborator second-factor management }
+        "409": { description: Second factor is already enabled }
+        "429": { description: Enrollment rate limit reached }
+        "503":
+          description: Secret encryption is unavailable because SESSION_SECRET is not configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorUnavailable" }
+  /workspace/security/2fa/enable:
+    post:
+      operationId: enableWorkspaceTwoFactor
+      tags: [workspace-security]
+      summary: Confirm pending TOTP enrollment and receive one-time recovery codes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorCodeInput" }
+      responses:
+        "200":
+          description: Second factor enabled and recovery codes returned once
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorEnabled" }
+        "400": { description: No valid pending setup or invalid code }
+        "401": { description: Authenticated collaborator session required }
+        "403": { description: Legacy ADMIN_PASSWORD portal is not eligible for collaborator second-factor management }
+        "409": { description: Second factor is already enabled }
+        "429": { description: Code verification rate limit reached }
+  /workspace/security/2fa/disable:
+    post:
+      operationId: disableWorkspaceTwoFactor
+      tags: [workspace-security]
+      summary: Disable second factor after password and second-factor verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorDisableInput" }
+      responses:
+        "200":
+          description: Second factor disabled
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorDisabled" }
+        "400": { description: Invalid request or second-factor code }
+        "401": { description: Password invalid or authenticated collaborator session required }
+        "403": { description: Legacy ADMIN_PASSWORD portal is not eligible for collaborator second-factor management }
+        "409": { description: Second factor is not enabled }
+        "429": { description: Code verification rate limit reached }
+  /workspace/security/2fa/recovery-codes:
+    post:
+      operationId: regenerateWorkspaceTwoFactorRecoveryCodes
+      tags: [workspace-security]
+      summary: Regenerate recovery codes after password and existing second-factor verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorDisableInput" }
+      responses:
+        "200":
+          description: Replacement recovery codes returned once
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorRecoveryCodes" }
+        "400": { description: Invalid request or second-factor code }
+        "401": { description: Password invalid or authenticated collaborator session required }
+        "403": { description: Legacy ADMIN_PASSWORD portal is not eligible for collaborator second-factor management }
+        "409": { description: Second factor is not enabled }
+        "429": { description: Code verification rate limit reached }
+  /workspace/sessions:
+    get:
+      operationId: listWorkspaceSessions
+      tags: [workspace-security]
+      summary: List authenticated collaborator sessions with available browser and operating-system names
+      responses:
+        "200":
+          description: Session list without session credentials or raw user-agent values
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceSessionList" }
+        "401": { description: Authenticated collaborator session required }
   /healthz:
     get:
       operationId: healthCheck
@@ -446,8 +643,401 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /admin/video-authorizations:
+    get:
+      operationId: listAdminVideoAuthorizations
+      tags: [admin-video]
+      responses:
+        "200":
+          description: Video authorization assignments and their collaborators
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminVideoAuthorizationList" }
+        "403": { description: Confidential administrator access required }
+    post:
+      operationId: assignAdminVideoAuthorizations
+      tags: [admin-video]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LiveVideoAuthorizationInput" }
+      responses:
+        "201":
+          description: One video authorization created for each assigned collaborator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssignedVideoAuthorizations" }
+        "400": { description: Invalid assignment or inactive/admin participant }
+        "403": { description: Confidential administrator access required }
+  /admin/video-authorizations/{id}:
+    delete:
+      operationId: revokeAdminVideoAuthorization
+      tags: [admin-video]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Authorization revoked, or already revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VideoAuthorizationRevocation" }
+        "400": { description: Invalid authorization id }
+        "403": { description: Confidential administrator access required }
+        "404": { description: Authorization not found }
+        "409": { description: Authorization could not be revoked }
+  /workspace/video-access:
+    get:
+      operationId: getWorkspaceVideoAccess
+      tags: [workspace-video]
+      responses:
+        "200":
+          description: Current collaborator's active video authorizations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceVideoAccess" }
+        "401": { description: Authentication required }
+  /workspace/video/join:
+    post:
+      operationId: joinWorkspaceVideoMeeting
+      tags: [workspace-video]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceVideoJoinInput" }
+      responses:
+        "200":
+          description: Authorized meeting URL and expiry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceVideoJoinResult" }
+        "400": { description: Invalid authorization id }
+        "401": { description: Authentication required }
+        "403": { description: Video permission or active assignment required }
+  /workspace/messages/unread-count:
+    get:
+      operationId: getWorkspaceUnreadMessageCount
+      tags: [workspace-messages]
+      responses:
+        "200":
+          description: Number of incoming unread messages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UnreadMessageCount" }
+        "401": { description: Authentication required }
+        "403": { description: Internal messaging permission required }
+  /workspace/conversations/{id}/read:
+    patch:
+      operationId: markWorkspaceConversationRead
+      tags: [workspace-messages]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConversationReadInput" }
+      responses:
+        "200":
+          description: Conversation read cursor advanced
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversationReadResult" }
+        "400": { description: Invalid conversation id or cursor message }
+        "401": { description: Authentication required }
+        "403": { description: Internal messaging permission required }
+        "404": { description: Conversation not found }
+  /admin/collaborators/{collaboratorId}/arrears:
+    get:
+      operationId: listCollaboratorArrears
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: collaboratorId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Confidential arrears and transfer-request records for a collaborator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearsList" }
+        "400": { description: Invalid collaborator id }
+        "403": { description: Confidential finance data requires the ADMIN role }
+        "404": { description: Collaborator not found }
+    post:
+      operationId: createCollaboratorArrear
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: collaboratorId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ArrearInput" }
+      responses:
+        "201":
+          description: Arrear created and the recipient granted own-finance visibility
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearResult" }
+        "400": { description: Invalid arrear or recipient }
+        "403": { description: Confidential finance data requires the ADMIN role }
+  /admin/collaborators/{collaboratorId}/salary-records:
+    get:
+      operationId: listCollaboratorSalaryRecords
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: collaboratorId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Confidential salary records for a collaborator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordsList" }
+        "400": { description: Invalid collaborator id }
+        "403": { description: Confidential finance data requires the ADMIN role }
+        "404": { description: Collaborator not found }
+    post:
+      operationId: assignCollaboratorSalaryRecord
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: collaboratorId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SalaryRecordInput" }
+      responses:
+        "201":
+          description: Salary record assigned and own-finance visibility granted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordResult" }
+        "400": { description: Invalid record or non-collaborator recipient }
+        "403": { description: Confidential finance data requires the ADMIN role }
+        "409": { description: A record for this period already exists }
+  /admin/salary-records/{id}:
+    patch:
+      operationId: updateSalaryRecord
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SalaryRecordUpdate" }
+      responses:
+        "200":
+          description: Salary record updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordResult" }
+        "400": { description: Invalid update }
+        "403": { description: Confidential finance data requires the ADMIN role }
+        "404": { description: Salary record not found }
+        "409": { description: Another salary record already uses this period }
+  /workspace/me/financial-summary:
+    get:
+      operationId: getWorkspaceFinancialSummary
+      tags: [workspace-finance]
+      summary: Get the current collaborator's latest salary record
+      responses:
+        "200":
+          description: Latest salary data visible to the authenticated collaborator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FinancialSummaryResponse" }
+        "401": { description: Authentication required }
+        "403": { description: Own financial information permission required }
+  /admin/arrears/{id}:
+    patch:
+      operationId: updateArrear
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ArrearUpdate" }
+      responses:
+        "200":
+          description: Arrear updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearResult" }
+        "400": { description: Invalid update or forbidden state transition }
+        "403": { description: Confidential finance data requires the ADMIN role }
+        "404": { description: Arrear not found }
+        "409": { description: Transfer request is not pending or was already reviewed }
+    delete:
+      operationId: deleteArrear
+      tags: [admin-finance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "204": { description: Arrear deleted; only possible before a transfer request exists }
+        "400": { description: Invalid arrear id }
+        "403": { description: Confidential finance data requires the ADMIN role }
+        "404": { description: Arrear not found }
+        "409": { description: Records with transfer requests cannot be deleted }
+  /workspace/me/arrears/{id}/transfer-request:
+    post:
+      operationId: requestArrearTransfer
+      tags: [workspace-finance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: Transfer request saved (no bank transfer or payment is initiated)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearResult" }
+        "403": { description: Own arrears permission required }
+        "400": { description: Invalid arrear id }
+        "404": { description: Arrear not found for this collaborator }
+        "409": { description: A request already exists or this arrear is resolved }
 components:
   schemas:
+    CollaboratorLoginInput:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        password: { type: string, minLength: 1, maxLength: 1024 }
+    CollaboratorProfile:
+      type: object
+      required: [id, email, fullName, role, permissions, mustChangePassword]
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        mustChangePassword: { type: boolean }
+    CollaboratorLoginSuccess:
+      type: object
+      required: [profile]
+      properties:
+        profile: { $ref: "#/components/schemas/CollaboratorProfile" }
+    CollaboratorLoginChallenge:
+      type: object
+      required: [requiresTwoFactor]
+      properties:
+        requiresTwoFactor: { type: boolean, const: true }
+    TwoFactorStatus:
+      type: object
+      required: [enabled, available, recoveryCodesRemaining]
+      properties:
+        enabled: { type: boolean }
+        available: { type: boolean }
+        recoveryCodesRemaining: { type: integer, minimum: 0 }
+    TwoFactorSetupInput:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: { type: string, minLength: 1, maxLength: 1024 }
+    TwoFactorSetup:
+      type: object
+      required: [secret, otpauthUrl, expiresAt]
+      properties:
+        secret: { type: string }
+        otpauthUrl: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
+    TwoFactorUnavailable:
+      type: object
+      required: [available]
+      properties:
+        available: { type: boolean, const: false }
+    TwoFactorCodeInput:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { type: string, minLength: 6, maxLength: 32 }
+    TwoFactorEnabled:
+      type: object
+      required: [enabled, recoveryCodes]
+      properties:
+        enabled: { type: boolean, const: true }
+        recoveryCodes:
+          type: array
+          minItems: 8
+          maxItems: 10
+          items: { type: string }
+    TwoFactorDisableInput:
+      type: object
+      additionalProperties: false
+      required: [password, code]
+      properties:
+        password: { type: string, minLength: 1, maxLength: 1024 }
+        code: { type: string, minLength: 6, maxLength: 32 }
+    TwoFactorDisabled:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean, const: false }
+    TwoFactorRecoveryCodes:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes:
+          type: array
+          minItems: 8
+          maxItems: 10
+          items: { type: string }
+    WorkspaceSessionList:
+      type: object
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            type: object
+            required: [id, expiresAt, lastActiveAt, createdAt, browserName, osName, current, device]
+            properties:
+              id: { type: integer }
+              expiresAt: { type: string, format: date-time }
+              lastActiveAt: { type: string, format: date-time }
+              createdAt: { type: string, format: date-time }
+              browserName: { type: ["string", "null"] }
+              osName: { type: ["string", "null"] }
+              current: { type: boolean }
+              device: { type: string }
     HealthStatus:
       type: object
       properties:
@@ -522,6 +1112,229 @@ components:
         fileName: { type: string }
         contentType: { type: string }
         expiresIn: { type: integer, enum: [300] }
+    Arrear:
+      type: object
+      required: [id, collaboratorId, periodLabel, amount, currency, status, communicatedReason, transferInstructions, transferRequestedAt, transferRequestStatus, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        collaboratorId: { type: integer }
+        periodLabel: { type: string }
+        amount:
+          type: ["string", "null"]
+          pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$'
+          description: Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.
+        currency: { type: ["string", "null"], pattern: "^[A-Z]{3}$" }
+        status: { type: string, enum: [open, settled, archived] }
+        communicatedReason: { type: ["string", "null"] }
+        transferInstructions: { type: ["string", "null"] }
+        transferRequestedAt: { type: ["string", "null"], format: date-time }
+        transferRequestStatus: { type: ["string", "null"], enum: [pending, acknowledged, declined, null] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ArrearsList:
+      type: object
+      required: [arrears]
+      properties:
+        arrears:
+          type: array
+          items: { $ref: "#/components/schemas/Arrear" }
+    ArrearResult:
+      type: object
+      required: [arrear]
+      properties:
+        arrear: { $ref: "#/components/schemas/Arrear" }
+    ArrearInput:
+      type: object
+      additionalProperties: false
+      required: [periodLabel, amount, currency, communicatedReason, transferInstructions]
+      properties:
+        periodLabel: { type: string, minLength: 1, maxLength: 120 }
+        amount:
+          type: string
+          pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$'
+          description: Decimal amount, sent as a string to avoid floating-point precision loss
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        communicatedReason: { type: string, minLength: 1, maxLength: 5000 }
+        transferInstructions: { type: string, minLength: 1, maxLength: 5000 }
+        status: { type: string, enum: [open, settled, archived] }
+    ArrearUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        periodLabel: { type: string, minLength: 1, maxLength: 120 }
+        amount:
+          type: ["string", "null"]
+          pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$'
+          description: Decimal string; null explicitly clears the amount to unknown
+        currency: { type: ["string", "null"], pattern: "^[A-Z]{3}$" }
+        communicatedReason: { type: ["string", "null"], maxLength: 5000 }
+        transferInstructions: { type: ["string", "null"], maxLength: 5000 }
+        status: { type: string, enum: [open, settled, archived] }
+        transferRequestStatus: { type: string, enum: [acknowledged, declined] }
+    SalaryRecord:
+      type: object
+      required: [id, collaboratorId, salaryStatus, periodLabel, communicatedDelayReason, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        collaboratorId: { type: integer }
+        salaryStatus:
+          type: string
+          description: Status as communicated by the administrator
+        periodLabel: { type: string }
+        communicatedDelayReason: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    SalaryRecordsList:
+      type: object
+      required: [salaryRecords]
+      properties:
+        salaryRecords:
+          type: array
+          items: { $ref: "#/components/schemas/SalaryRecord" }
+    SalaryRecordResult:
+      type: object
+      required: [salaryRecord]
+      properties:
+        salaryRecord: { $ref: "#/components/schemas/SalaryRecord" }
+    SalaryRecordInput:
+      type: object
+      additionalProperties: false
+      required: [periodLabel, salaryStatus]
+      properties:
+        periodLabel: { type: string, minLength: 1, maxLength: 120 }
+        salaryStatus: { type: string, enum: ["Non versé", "Versé"] }
+        communicatedDelayReason: { type: ["string", "null"], maxLength: 5000 }
+    SalaryRecordUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        periodLabel: { type: string, minLength: 1, maxLength: 120 }
+        salaryStatus: { type: string, enum: ["Non versé", "Versé"] }
+        communicatedDelayReason: { type: ["string", "null"], maxLength: 5000 }
+    FinancialSummaryResponse:
+      type: object
+      required: [summary]
+      properties:
+        summary:
+          anyOf:
+            - $ref: "#/components/schemas/SalaryRecord"
+            - type: "null"
+    LiveVideoAuthorization:
+      type: object
+      required: [id, collaboratorId, meetingTitle, meetingUrl, startsAt, expiresAt, isRevoked, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        collaboratorId: { type: integer }
+        meetingTitle: { type: string }
+        meetingUrl: { type: string, format: uri }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        isRevoked: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    LiveVideoAuthorizationInput:
+      type: object
+      additionalProperties: false
+      required: [meetingTitle, meetingUrl, startsAt, expiresAt, collaboratorIds]
+      properties:
+        meetingTitle: { type: string, minLength: 1, maxLength: 300 }
+        meetingUrl: { type: string, format: uri, maxLength: 2000 }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        collaboratorIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { type: integer, minimum: 1 }
+    AdminVideoAuthorizationAssignment:
+      type: object
+      required: [authorization, collaborator]
+      properties:
+        authorization: { $ref: "#/components/schemas/LiveVideoAuthorization" }
+        collaborator:
+          type: object
+          required: [id, fullName, email, role, isActive]
+          properties:
+            id: { type: integer }
+            fullName: { type: string }
+            email: { type: string, format: email }
+            role: { type: string }
+            isActive: { type: boolean }
+    AdminVideoAuthorizationList:
+      type: object
+      required: [assignments]
+      properties:
+        assignments:
+          type: array
+          items: { $ref: "#/components/schemas/AdminVideoAuthorizationAssignment" }
+    AssignedVideoAuthorizations:
+      type: object
+      required: [assignments]
+      properties:
+        assignments:
+          type: array
+          items: { $ref: "#/components/schemas/LiveVideoAuthorization" }
+    VideoAuthorizationRevocation:
+      type: object
+      required: [authorization, alreadyRevoked]
+      properties:
+        authorization: { $ref: "#/components/schemas/LiveVideoAuthorization" }
+        alreadyRevoked: { type: boolean }
+    WorkspaceVideoMeeting:
+      type: object
+      required: [id, title, url, startsAt, expiresAt]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        url: { type: string, format: uri }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    WorkspaceVideoAccess:
+      type: object
+      required: [authorized, allowed, meeting, meetings]
+      properties:
+        authorized: { type: boolean }
+        allowed: { type: boolean }
+        meeting:
+          anyOf:
+            - $ref: "#/components/schemas/WorkspaceVideoMeeting"
+            - type: "null"
+        meetings:
+          type: array
+          items: { $ref: "#/components/schemas/WorkspaceVideoMeeting" }
+        reason: { type: string }
+    WorkspaceVideoJoinInput:
+      type: object
+      additionalProperties: false
+      required: [authorizationId]
+      properties:
+        authorizationId: { type: integer, minimum: 1 }
+    WorkspaceVideoJoinResult:
+      type: object
+      required: [meetingUrl, authorizationId, expiresAt]
+      properties:
+        meetingUrl: { type: string, format: uri }
+        authorizationId: { type: integer }
+        expiresAt: { type: string, format: date-time }
+    UnreadMessageCount:
+      type: object
+      required: [count]
+      properties:
+        count: { type: integer, minimum: 0 }
+    ConversationReadInput:
+      type: object
+      additionalProperties: false
+      required: [lastReadMessageId]
+      properties:
+        lastReadMessageId: { type: integer, minimum: 1 }
+    ConversationReadResult:
+      type: object
+      required: [updated, lastReadMessageId]
+      properties:
+        updated: { type: boolean, enum: [true] }
+        lastReadMessageId: { type: integer, minimum: 1 }
     DocumentAssignmentInput:
       type: object
       additionalProperties: false

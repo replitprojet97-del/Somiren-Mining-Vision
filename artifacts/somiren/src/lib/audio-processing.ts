@@ -1,3 +1,6 @@
+import { getActiveLanguage } from "@/lib/workspace-locale";
+import { localizeApiMessage } from "@/i18n/api-error-translations";
+
 export type AudioDraft = {
   file: File | Blob;
   fileName: string;
@@ -19,6 +22,62 @@ export type AudioProcessingResult = {
 };
 
 export type AudioLanguage = "fr" | "es";
+
+const audioMessagePairs: readonly (readonly [french: string, english: string])[] = [
+  ["Le fichier audio est vide.", "The audio file is empty."],
+  ["Le fichier audio dépasse la limite de 20 Mo.", "The audio file exceeds the 20 MB limit."],
+  ["Sélectionnez un fichier audio reconnu.", "Select a supported audio file."],
+  ["L’enregistrement audio n’est pas pris en charge par ce navigateur. Vous pouvez choisir un autre navigateur ou saisir les textes manuellement après avoir sélectionné un fichier.", "Audio recording is not supported by this browser. Try another browser or select a file and enter the text manually."],
+  ["L’enregistrement du microphone a échoué. Vérifiez les autorisations du navigateur puis réessayez.", "Microphone recording failed. Check your browser permissions and try again."],
+  ["L’accès au microphone a été refusé. Autorisez le microphone puis réessayez, ou saisissez les textes manuellement.", "Microphone access was denied. Allow microphone access and try again, or enter the text manually."],
+  ["Impossible de démarrer le microphone. Vérifiez les autorisations du navigateur puis réessayez, ou saisissez les textes manuellement.", "Unable to start the microphone. Check your browser permissions and try again, or enter the text manually."],
+  ["Le traitement audio local a échoué. Vous pouvez saisir les textes manuellement.", "Local audio processing failed. You can enter the text manually."],
+  ["Le traitement audio local a échoué. Vérifiez le fichier ou réessayez, ou saisissez les textes manuellement.", "Local audio processing failed. Check the file or try again, or enter the text manually."],
+  ["Le traitement audio IA local a échoué. Vérifiez votre connexion pour télécharger les modèles, puis réessayez ou saisissez les textes manuellement.", "Local AI audio processing failed. Check your connection to download the models, then try again or enter the text manually."],
+  ["Traitement audio annulé.", "Audio processing was cancelled."],
+  ["Traitement annulé.", "Processing cancelled."],
+  ["Un autre traitement audio est déjà en cours dans cette page.", "Another audio process is already running on this page."],
+  ["Ce navigateur ne prend pas en charge le traitement audio local. Vous pouvez saisir les textes manuellement.", "This browser does not support local audio processing. You can enter the text manually."],
+  ["Le moteur audio local n’a pas pu démarrer.", "The local audio engine could not start."],
+  ["Ce navigateur ne peut pas décoder l’audio localement. Vous pouvez saisir les textes manuellement.", "This browser cannot decode audio locally. You can enter the text manually."],
+  ["Ce navigateur ne prend pas en charge le moteur audio local. Vous pouvez saisir les textes manuellement.", "This browser does not support the local audio engine. You can enter the text manually."],
+  ["La mémoire disponible sur cet appareil est trop faible pour les modèles audio locaux. Vous pouvez saisir les textes manuellement.", "This device does not have enough memory for the local audio models. You can enter the text manually."],
+  ["Le traitement local a dépassé son délai de 15 minutes. Vous pouvez saisir les textes manuellement.", "Local processing exceeded 15 minutes. You can enter the text manually."],
+  ["Ce format audio n’est pas pris en charge ou le fichier est endommagé. Choisissez un autre fichier ou saisissez les textes manuellement.", "This audio format is unsupported or the file is damaged. Choose another file or enter the text manually."],
+  ["Le fichier ne contient pas de durée audio exploitable.", "The file does not contain a usable audio duration."],
+  ["La transcription locale n’a produit aucun texte. Vous pouvez saisir le texte manuellement.", "Local transcription did not produce any text. You can enter the text manually."],
+  ["La traduction locale n’a produit aucun texte. Vous pouvez saisir la traduction manuellement.", "Local translation did not produce any text. You can enter the translation manually."],
+  ["Le moteur WASM ONNX n’est pas disponible dans ce navigateur. Vous pouvez saisir les textes manuellement.", "The ONNX WASM engine is not available in this browser. You can enter the text manually."],
+  ["Préparation de l’audio dans ce navigateur…", "Preparing audio in this browser…"],
+  ["Transcription locale…", "Transcribing locally…"],
+  ["Transcription du segment en cours…", "Transcribing audio segment…"],
+  ["Transcription et traduction terminées dans ce navigateur.", "Transcription and translation completed in this browser."],
+];
+
+/** Re-localize cached audio errors/progress when the collaborator changes language. */
+export function localizeAudioMessage(message: string, lang: "fr" | "en"): string {
+  const localizedApiMessage = localizeApiMessage(message, lang);
+  if (localizedApiMessage !== message) return localizedApiMessage;
+
+  const pair = audioMessagePairs.find(([french, english]) => message === french || message === english);
+  if (pair) return pair[lang === "en" ? 1 : 0];
+
+  const dynamicPairs: ReadonlyArray<readonly [RegExp, (match: RegExpExecArray) => string]> = [
+    [/^Transcription locale du segment (\d+) sur (\d+)…$/u, ([, current, total]) => lang === "en" ? `Local transcription, segment ${current} of ${total}…` : `Transcription locale du segment ${current} sur ${total}…`],
+    [/^Local transcription, segment (\d+) of (\d+)…$/u, ([, current, total]) => lang === "en" ? `Local transcription, segment ${current} of ${total}…` : `Transcription locale du segment ${current} sur ${total}…`],
+    [/^Traduction locale \((\d+) sur (\d+)\)…$/u, ([, current, total]) => lang === "en" ? `Translating locally (${current} of ${total})…` : `Traduction locale (${current} sur ${total})…`],
+    [/^Translating locally \((\d+) of (\d+)\)…$/u, ([, current, total]) => lang === "en" ? `Translating locally (${current} of ${total})…` : `Traduction locale (${current} sur ${total})…`],
+    [/^Téléchargement du modèle de transcription(.*)$/u, ([, suffix]) => `${lang === "en" ? "Downloading transcription model" : "Téléchargement du modèle de transcription"}${suffix}`],
+    [/^Downloading transcription model(.*)$/u, ([, suffix]) => `${lang === "en" ? "Downloading transcription model" : "Téléchargement du modèle de transcription"}${suffix}`],
+    [/^Téléchargement du modèle de traduction(.*)$/u, ([, suffix]) => `${lang === "en" ? "Downloading translation model" : "Téléchargement du modèle de traduction"}${suffix}`],
+    [/^Downloading translation model(.*)$/u, ([, suffix]) => `${lang === "en" ? "Downloading translation model" : "Téléchargement du modèle de traduction"}${suffix}`],
+  ];
+  for (const [pattern, localize] of dynamicPairs) {
+    const match = pattern.exec(message);
+    if (match) return localize(match);
+  }
+  return message;
+}
 
 /**
  * Model licenses checked against the upstream model cards:
@@ -54,6 +113,7 @@ type AudioWorkerRequest = {
   audio: ArrayBuffer;
   sourceLanguage: AudioLanguage;
   targetLanguage: AudioLanguage;
+  uiLanguage: "fr" | "en";
 };
 
 let worker: Worker | null = null;
@@ -67,14 +127,30 @@ let activeController: AbortController | null = null;
 let processing = false;
 
 function readableError(error: unknown): Error {
-  if (error instanceof Error) return error;
-  return new Error(typeof error === "string" ? error : "Le traitement audio local a échoué.");
+  if (error instanceof Error && error.name === "AudioProcessingError") return error;
+  if (error instanceof Error && error.name === "AbortError") {
+    return localizedError("Traitement audio annulé.", "Audio processing was cancelled.");
+  }
+  return localizedError(
+    "Le traitement audio local a échoué. Vérifiez le fichier ou réessayez, ou saisissez les textes manuellement.",
+    "Local audio processing failed. Check the file or try again, or enter the text manually.",
+  );
+}
+
+function localizedError(french: string, english: string, lang = getActiveLanguage()): Error {
+  const error = new Error(lang === "en" ? english : french);
+  error.name = "AudioProcessingError";
+  return error;
+}
+
+function localizedText(french: string, english: string, lang = getActiveLanguage()): string {
+  return lang === "en" ? english : french;
 }
 
 function makeWorker(): Worker {
   if (worker) return worker;
   if (typeof Worker === "undefined") {
-    throw new Error("Ce navigateur ne prend pas en charge le traitement audio local. Vous pouvez saisir les textes manuellement.");
+    throw localizedError("Ce navigateur ne prend pas en charge le traitement audio local. Vous pouvez saisir les textes manuellement.", "This browser does not support local audio processing. You can enter the text manually.");
   }
 
   const instance = new Worker(new URL("./audio.worker.ts", import.meta.url), { type: "module" });
@@ -103,7 +179,9 @@ function makeWorker(): Worker {
     if (message.type === "RESULT") {
       resolve?.({ transcript: message.transcript, translation: message.translation });
     } else {
-      reject?.(new Error(message.message));
+      const workerError = new Error(message.message);
+      workerError.name = "AudioProcessingError";
+      reject?.(workerError);
     }
   });
   instance.addEventListener("error", (event) => {
@@ -116,7 +194,7 @@ function makeWorker(): Worker {
     activeProgress = null;
     worker?.terminate();
     worker = null;
-    reject?.(new Error(event.message || "Le moteur audio local n’a pas pu démarrer."));
+    reject?.(localizedError("Le moteur audio local n’a pas pu démarrer.", "The local audio engine could not start."));
   });
   worker = instance;
   return instance;
@@ -139,6 +217,7 @@ function requestWorker(
   audio: Float32Array,
   sourceLanguage: AudioLanguage,
   targetLanguage: AudioLanguage,
+  uiLanguage: "fr" | "en",
   onProgress: (progress: AudioProcessingProgress) => void,
   signal: AbortSignal,
 ): Promise<AudioProcessingResult> {
@@ -151,6 +230,7 @@ function requestWorker(
     audio: audio.buffer as ArrayBuffer,
     sourceLanguage,
     targetLanguage,
+    uiLanguage,
   };
 
   return new Promise((resolve, reject) => {
@@ -182,14 +262,14 @@ function requestWorker(
 
 function checkBrowserSupport(): void {
   if (typeof window === "undefined" || typeof window.AudioContext === "undefined") {
-    throw new Error("Ce navigateur ne peut pas décoder l’audio localement. Vous pouvez saisir les textes manuellement.");
+    throw localizedError("Ce navigateur ne peut pas décoder l’audio localement. Vous pouvez saisir les textes manuellement.", "This browser cannot decode audio locally. You can enter the text manually.");
   }
   if (typeof Worker === "undefined") {
-    throw new Error("Ce navigateur ne prend pas en charge le moteur audio local. Vous pouvez saisir les textes manuellement.");
+    throw localizedError("Ce navigateur ne prend pas en charge le moteur audio local. Vous pouvez saisir les textes manuellement.", "This browser does not support the local audio engine. You can enter the text manually.");
   }
   const memoryGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
   if (typeof memoryGb === "number" && memoryGb < 2) {
-    throw new Error("La mémoire disponible sur cet appareil est trop faible pour les modèles audio locaux. Vous pouvez saisir les textes manuellement.");
+    throw localizedError("La mémoire disponible sur cet appareil est trop faible pour les modèles audio locaux. Vous pouvez saisir les textes manuellement.", "This device does not have enough memory for the local audio models. You can enter the text manually.");
   }
 }
 
@@ -247,33 +327,40 @@ export async function processAudioLocally(
   onProgress: (progress: AudioProcessingProgress) => void,
   externalSignal?: AbortSignal,
 ): Promise<AudioProcessingResult> {
-  if (processing) throw new Error("Un autre traitement audio est déjà en cours dans cette page.");
-  if (file.size > MAX_FILE_BYTES) throw new Error("Le fichier audio dépasse la limite de 20 Mo.");
+  const uiLanguage = getActiveLanguage();
+  if (processing) throw localizedError("Un autre traitement audio est déjà en cours dans cette page.", "Another audio process is already running on this page.", uiLanguage);
+  if (file.size > MAX_FILE_BYTES) throw localizedError("Le fichier audio dépasse la limite de 20 Mo.", "The audio file exceeds the 20 MB limit.", uiLanguage);
   checkBrowserSupport();
 
   processing = true;
   const controller = new AbortController();
   activeController = controller;
-  const externalAbort = () => controller.abort(externalSignal?.reason ?? new Error("Traitement annulé."));
+  const externalAbort = () => controller.abort(externalSignal?.reason ?? localizedError("Traitement annulé.", "Processing cancelled.", uiLanguage));
   externalSignal?.addEventListener("abort", externalAbort, { once: true });
   if (externalSignal?.aborted) externalAbort();
   const timeout = window.setTimeout(() => {
-    controller.abort(new Error("Le traitement local a dépassé son délai de 15 minutes. Vous pouvez saisir les textes manuellement."));
+    controller.abort(localizedError("Le traitement local a dépassé son délai de 15 minutes. Vous pouvez saisir les textes manuellement.", "Local processing exceeded 15 minutes. You can enter the text manually.", uiLanguage));
     terminateWorker(readableError(controller.signal.reason));
   }, PROCESSING_TIMEOUT_MS);
   let audioContext: AudioContext | null = null;
 
   try {
     throwIfAborted(controller.signal);
-    onProgress({ stage: "transcribe", message: "Préparation de l’audio dans ce navigateur…" });
+    onProgress({ stage: "transcribe", message: localizedText("Préparation de l’audio dans ce navigateur…", "Preparing audio in this browser…", uiLanguage) });
     audioContext = new AudioContext();
     const audioData = await waitForAbort(file.arrayBuffer(), controller.signal);
-    const decoded = await waitForAbort(audioContext.decodeAudioData(audioData), controller.signal);
+    let decoded: AudioBuffer;
+    try {
+      decoded = await waitForAbort(audioContext.decodeAudioData(audioData), controller.signal);
+    } catch (error) {
+      if (controller.signal.aborted) throw readableError(error);
+      throw localizedError("Ce format audio n’est pas pris en charge ou le fichier est endommagé. Choisissez un autre fichier ou saisissez les textes manuellement.", "This audio format is unsupported or the file is damaged. Choose another file or enter the text manually.", uiLanguage);
+    }
     throwIfAborted(controller.signal);
 
     const duration = decoded.duration;
     if (!Number.isFinite(duration) || duration <= 0) {
-      throw new Error("Le fichier ne contient pas de durée audio exploitable.");
+      throw localizedError("Le fichier ne contient pas de durée audio exploitable.", "The file does not contain a usable audio duration.", uiLanguage);
     }
 
     const chunkCount = Math.ceil(duration / MAX_CHUNK_SECONDS);
@@ -288,11 +375,11 @@ export async function processAudioLocally(
       onProgress({
         stage: "transcribe",
         message: chunkCount > 1
-          ? `Transcription locale du segment ${chunkIndex + 1} sur ${chunkCount}…`
-          : "Transcription locale…",
+          ? localizedText(`Transcription locale du segment ${chunkIndex + 1} sur ${chunkCount}…`, `Local transcription, segment ${chunkIndex + 1} of ${chunkCount}…`, uiLanguage)
+          : localizedText("Transcription locale…", "Transcribing locally…", uiLanguage),
         progress: Math.round((chunkIndex / chunkCount) * 100),
       });
-      const result = await requestWorker(chunk, sourceLanguage, targetLanguage, onProgress, controller.signal);
+      const result = await requestWorker(chunk, sourceLanguage, targetLanguage, uiLanguage, onProgress, controller.signal);
       if (result.transcript.trim()) transcriptParts.push(result.transcript.trim());
       if (result.translation.trim()) translationParts.push(result.translation.trim());
     }
@@ -300,12 +387,12 @@ export async function processAudioLocally(
     const transcript = transcriptParts.join(" ").trim();
     const translation = translationParts.join(" ").trim();
     if (!transcript) {
-      throw new Error("La transcription locale n’a produit aucun texte. Vous pouvez saisir le texte manuellement.");
+      throw localizedError("La transcription locale n’a produit aucun texte. Vous pouvez saisir le texte manuellement.", "Local transcription did not produce any text. You can enter the text manually.", uiLanguage);
     }
     if (!translation) {
-      throw new Error("La traduction locale n’a produit aucun texte. Vous pouvez saisir la traduction manuellement.");
+      throw localizedError("La traduction locale n’a produit aucun texte. Vous pouvez saisir la traduction manuellement.", "Local translation did not produce any text. You can enter the translation manually.", uiLanguage);
     }
-    onProgress({ stage: "translate", message: "Transcription et traduction terminées dans ce navigateur.", progress: 100 });
+    onProgress({ stage: "translate", message: localizedText("Transcription et traduction terminées dans ce navigateur.", "Transcription and translation completed in this browser.", uiLanguage), progress: 100 });
     return { transcript, translation };
   } catch (error) {
     const readable = readableError(error);
@@ -324,7 +411,7 @@ export async function processAudioLocally(
 
 /** Terminate the local model worker and release its ONNX/WASM memory. */
 export function cancelAudioProcessing(): void {
-  const error = new Error("Traitement audio annulé.");
+  const error = localizedError("Traitement audio annulé.", "Audio processing cancelled.");
   activeController?.abort(error);
   terminateWorker(error);
 }

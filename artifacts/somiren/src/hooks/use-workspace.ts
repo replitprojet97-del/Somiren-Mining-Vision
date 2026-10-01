@@ -294,6 +294,7 @@ export const useFinanceSummary = (enabled = true) => {
     queryKey: ["workspace", "finance", "summary"],
     queryFn: async () => (await api("/workspace/me/financial-summary")).summary,
     enabled,
+    refetchInterval: POLL,
   });
 };
 
@@ -312,6 +313,19 @@ export const useArrears = (enabled = true) => {
     queryKey: ["workspace", "finance", "arrears"],
     queryFn: async () => (await api("/workspace/me/arrears")).arrears,
     enabled,
+    refetchInterval: POLL,
+  });
+};
+
+export const useRequestArrearTransfer = () => {
+  const api = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => api(`/workspace/me/arrears/${id}/transfer-request`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace", "finance", "arrears"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+    },
   });
 };
 

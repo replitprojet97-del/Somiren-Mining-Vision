@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, numeric, pgTable, serial, text, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -30,6 +30,34 @@ export const collaboratorSessionsTable = pgTable("collaborator_sessions", {
   tokenHash: text("token_hash").notNull().unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),
+  browserName: text("browser_name"),
+  osName: text("os_name"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const collaboratorTwoFactorTable = pgTable("collaborator_two_factor", {
+  id: serial("id").primaryKey(),
+  collaboratorId: integer("collaborator_id").notNull().unique().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  secretCiphertext: text("secret_ciphertext"),
+  pendingSecretCiphertext: text("pending_secret_ciphertext"),
+  pendingExpiresAt: timestamp("pending_expires_at", { withTimezone: true }),
+  recoveryCodeHashes: jsonb("recovery_code_hashes").$type<string[]>().notNull().default([]),
+  lastAcceptedStep: integer("last_accepted_step"),
+  factorVersion: integer("factor_version").notNull().default(0),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  enrollmentAttempts: integer("enrollment_attempts").notNull().default(0),
+  enrollmentWindowStartedAt: timestamp("enrollment_window_started_at", { withTimezone: true }),
+  ...timestamps,
+});
+
+export const collaboratorLoginChallengesTable = pgTable("collaborator_login_challenges", {
+  id: serial("id").primaryKey(),
+  collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  factorVersion: integer("factor_version").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -156,6 +184,11 @@ export const paymentsTable = pgTable("workspace_payments", {
 export const arrearsTable = pgTable("workspace_arrears", {
   id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   periodLabel: text("period_label").notNull(), status: text("status").notNull(), communicatedReason: text("communicated_reason"), ...timestamps,
+  amount: numeric("amount", { precision: 14, scale: 2 }),
+  currency: text("currency"),
+  transferInstructions: text("transfer_instructions"),
+  transferRequestedAt: timestamp("transfer_requested_at", { withTimezone: true }),
+  transferRequestStatus: text("transfer_request_status"),
 });
 export const paymentRequirementsTable = pgTable("workspace_payment_requirements", {
   id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),

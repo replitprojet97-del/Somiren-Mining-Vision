@@ -88,6 +88,36 @@ async function migrate() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       ALTER TABLE collaborator_sessions ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      ALTER TABLE collaborator_sessions ADD COLUMN IF NOT EXISTS browser_name TEXT;
+      ALTER TABLE collaborator_sessions ADD COLUMN IF NOT EXISTS os_name TEXT;
+
+      CREATE TABLE IF NOT EXISTS collaborator_two_factor (
+        id SERIAL PRIMARY KEY,
+        collaborator_id INTEGER NOT NULL UNIQUE REFERENCES collaborators(id) ON DELETE CASCADE,
+        secret_ciphertext TEXT,
+        pending_secret_ciphertext TEXT,
+        pending_expires_at TIMESTAMPTZ,
+        recovery_code_hashes JSONB NOT NULL DEFAULT '[]'::jsonb,
+        last_accepted_step INTEGER,
+        factor_version INTEGER NOT NULL DEFAULT 0,
+        failed_attempts INTEGER NOT NULL DEFAULT 0,
+        locked_until TIMESTAMPTZ,
+        enrollment_attempts INTEGER NOT NULL DEFAULT 0,
+        enrollment_window_started_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS collaborator_login_challenges (
+        id SERIAL PRIMARY KEY,
+        collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        factor_version INTEGER NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS collaborator_login_challenges_collaborator_id_idx
+        ON collaborator_login_challenges(collaborator_id);
 
       CREATE TABLE IF NOT EXISTS workspace_roles (
         id SERIAL PRIMARY KEY,
@@ -234,6 +264,14 @@ async function migrate() {
       ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS translation TEXT;
       ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS source_language TEXT;
       ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS target_language TEXT;
+      CREATE TABLE IF NOT EXISTS workspace_message_read_cursors (
+        id SERIAL PRIMARY KEY,
+        conversation_id INTEGER NOT NULL REFERENCES workspace_conversations(id) ON DELETE CASCADE,
+        collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
+        last_read_message_id INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(conversation_id, collaborator_id)
+      );
       CREATE TABLE IF NOT EXISTS workspace_strategic_notes (
         id SERIAL PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', is_shared BOOLEAN NOT NULL DEFAULT FALSE,
         collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
@@ -257,8 +295,21 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS workspace_arrears (
         id SERIAL PRIMARY KEY, collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
         period_label TEXT NOT NULL, status TEXT NOT NULL, communicated_reason TEXT,
+        amount NUMERIC(14, 2), currency TEXT, transfer_instructions TEXT,
+        transfer_requested_at TIMESTAMPTZ, transfer_request_status TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS amount NUMERIC(14, 2);
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS currency TEXT;
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS transfer_instructions TEXT;
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS transfer_requested_at TIMESTAMPTZ;
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS transfer_request_status TEXT;
+      UPDATE workspace_arrears SET status = CASE
+        WHEN lower(status) IN ('settled', 'paid', 'completed') THEN 'settled'
+        WHEN lower(status) = 'archived' THEN 'archived'
+        ELSE 'open'
+      END
+      WHERE status NOT IN ('open', 'settled', 'archived');
       CREATE TABLE IF NOT EXISTS workspace_payment_requirements (
         id SERIAL PRIMARY KEY, collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
         title TEXT NOT NULL, details TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending',

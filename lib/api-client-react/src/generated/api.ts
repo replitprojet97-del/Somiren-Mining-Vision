@@ -22,13 +22,26 @@ import type {
 import type {
   AdminConversationInput,
   AdminConversationList,
+  AdminVideoAuthorizationList,
+  ArrearInput,
+  ArrearResult,
+  ArrearUpdate,
+  ArrearsList,
   AssignPrivateDocument201,
+  AssignedVideoAuthorizations,
+  CollaboratorLoginChallenge,
+  CollaboratorLoginInput,
+  CollaboratorLoginSuccess,
+  ConversationReadInput,
+  ConversationReadResult,
   ConversationResponse,
   CreateMeetingWithPrivateVideo201,
   DocumentAssignmentInput,
+  FinancialSummaryResponse,
   HealthStatus,
   ListPrivateDocumentAssignments200,
   ListWorkspaceConversations200,
+  LiveVideoAuthorizationInput,
   MarkAdminNotificationRead200,
   MarkAllAdminNotificationsRead200,
   MarkAllWorkspaceNotificationsRead200,
@@ -42,10 +55,29 @@ import type {
   PrivateUploadRequest,
   PrivateUploadUrl,
   RemoveWorkspaceProfilePhoto200,
+  SalaryRecordInput,
+  SalaryRecordResult,
+  SalaryRecordUpdate,
+  SalaryRecordsList,
   SetWorkspaceProfilePhoto200,
   SetWorkspaceProfilePhotoInput,
+  TwoFactorCodeInput,
+  TwoFactorDisableInput,
+  TwoFactorDisabled,
+  TwoFactorEnabled,
+  TwoFactorRecoveryCodes,
+  TwoFactorSetup,
+  TwoFactorSetupInput,
+  TwoFactorStatus,
+  TwoFactorUnavailable,
+  UnreadMessageCount,
+  VideoAuthorizationRevocation,
   WorkspaceConversationInput,
-  WorkspaceProfilePhoto
+  WorkspaceProfilePhoto,
+  WorkspaceSessionList,
+  WorkspaceVideoAccess,
+  WorkspaceVideoJoinInput,
+  WorkspaceVideoJoinResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -74,6 +106,788 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getLoginCollaboratorUrl = () => {
+
+
+
+
+  return `/api/auth/login`
+}
+
+/**
+ * @summary Sign in with a collaborator password, optionally starting a second-factor challenge
+ */
+export const loginCollaborator = async (collaboratorLoginInput: CollaboratorLoginInput, options?: Parameters<typeof customFetch>[1]): Promise<CollaboratorLoginSuccess | CollaboratorLoginChallenge> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<CollaboratorLoginSuccess | CollaboratorLoginChallenge>(getLoginCollaboratorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(collaboratorLoginInput)
+  }
+);}
+
+
+
+
+
+export const getLoginCollaboratorMutationKey = () => ['loginCollaborator'] as const;
+
+export const getLoginCollaboratorMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginCollaborator>>, TError,LoginCollaboratorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof loginCollaborator>>, TError,LoginCollaboratorMutationVariables, TContext> => {
+
+const mutationKey = getLoginCollaboratorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof loginCollaborator>>, LoginCollaboratorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  loginCollaborator(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LoginCollaboratorMutationResult = NonNullable<Awaited<ReturnType<typeof loginCollaborator>>>
+    export type LoginCollaboratorMutationBody = BodyType<CollaboratorLoginInput>
+    export type LoginCollaboratorMutationError = ErrorType<void>
+    export type LoginCollaboratorMutationVariables = {data: BodyType<CollaboratorLoginInput>}
+
+    /**
+ * @summary Sign in with a collaborator password, optionally starting a second-factor challenge
+ */
+export const useLoginCollaborator = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginCollaborator>>, TError,LoginCollaboratorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof loginCollaborator>>,
+        TError,
+        LoginCollaboratorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLoginCollaboratorMutationOptions(options));
+    }
+
+export const getVerifyCollaboratorTwoFactorUrl = () => {
+
+
+
+
+  return `/api/auth/2fa/verify`
+}
+
+/**
+ * @summary Complete a pending collaborator login using a TOTP or unused recovery code
+ */
+export const verifyCollaboratorTwoFactor = async (twoFactorCodeInput: TwoFactorCodeInput, options?: Parameters<typeof customFetch>[1]): Promise<CollaboratorLoginSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<CollaboratorLoginSuccess>(getVerifyCollaboratorTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(twoFactorCodeInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyCollaboratorTwoFactorMutationKey = () => ['verifyCollaboratorTwoFactor'] as const;
+
+export const getVerifyCollaboratorTwoFactorMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyCollaboratorTwoFactor>>, TError,VerifyCollaboratorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyCollaboratorTwoFactor>>, TError,VerifyCollaboratorTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getVerifyCollaboratorTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyCollaboratorTwoFactor>>, VerifyCollaboratorTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyCollaboratorTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyCollaboratorTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof verifyCollaboratorTwoFactor>>>
+    export type VerifyCollaboratorTwoFactorMutationBody = BodyType<TwoFactorCodeInput>
+    export type VerifyCollaboratorTwoFactorMutationError = ErrorType<void>
+    export type VerifyCollaboratorTwoFactorMutationVariables = {data: BodyType<TwoFactorCodeInput>}
+
+    /**
+ * @summary Complete a pending collaborator login using a TOTP or unused recovery code
+ */
+export const useVerifyCollaboratorTwoFactor = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyCollaboratorTwoFactor>>, TError,VerifyCollaboratorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyCollaboratorTwoFactor>>,
+        TError,
+        VerifyCollaboratorTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getVerifyCollaboratorTwoFactorMutationOptions(options));
+    }
+
+export const getCancelCollaboratorTwoFactorUrl = () => {
+
+
+
+
+  return `/api/auth/2fa/cancel`
+}
+
+/**
+ * @summary Cancel a pending second-factor login challenge
+ */
+export const cancelCollaboratorTwoFactor = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getCancelCollaboratorTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelCollaboratorTwoFactorMutationKey = () => ['cancelCollaboratorTwoFactor'] as const;
+
+export const getCancelCollaboratorTwoFactorMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelCollaboratorTwoFactor>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelCollaboratorTwoFactor>>, TError,void, TContext> => {
+
+const mutationKey = getCancelCollaboratorTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelCollaboratorTwoFactor>>, void> = () => {
+
+
+          return  cancelCollaboratorTwoFactor(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelCollaboratorTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof cancelCollaboratorTwoFactor>>>
+
+    export type CancelCollaboratorTwoFactorMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Cancel a pending second-factor login challenge
+ */
+export const useCancelCollaboratorTwoFactor = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelCollaboratorTwoFactor>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelCollaboratorTwoFactor>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCancelCollaboratorTwoFactorMutationOptions(options));
+    }
+
+export const getLogoutCollaboratorUrl = () => {
+
+
+
+
+  return `/api/auth/logout`
+}
+
+/**
+ * @summary Revoke the current collaborator session and clear any pending login challenge
+ */
+export const logoutCollaborator = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getLogoutCollaboratorUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLogoutCollaboratorMutationKey = () => ['logoutCollaborator'] as const;
+
+export const getLogoutCollaboratorMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutCollaborator>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logoutCollaborator>>, TError,void, TContext> => {
+
+const mutationKey = getLogoutCollaboratorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutCollaborator>>, void> = () => {
+
+
+          return  logoutCollaborator(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogoutCollaboratorMutationResult = NonNullable<Awaited<ReturnType<typeof logoutCollaborator>>>
+
+    export type LogoutCollaboratorMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Revoke the current collaborator session and clear any pending login challenge
+ */
+export const useLogoutCollaborator = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutCollaborator>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logoutCollaborator>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLogoutCollaboratorMutationOptions(options));
+    }
+
+export const getGetWorkspaceTwoFactorStatusUrl = () => {
+
+
+
+
+  return `/api/workspace/security/2fa`
+}
+
+/**
+ * @summary Get second-factor enrollment status for the authenticated collaborator
+ */
+export const getWorkspaceTwoFactorStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<TwoFactorStatus> => {
+
+  return customFetch<TwoFactorStatus>(getGetWorkspaceTwoFactorStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceTwoFactorStatusQueryKey = () => {
+    return [
+    `/api/workspace/security/2fa`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceTwoFactorStatusQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceTwoFactorStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>> = ({ signal }) => getWorkspaceTwoFactorStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceTwoFactorStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>>
+export type GetWorkspaceTwoFactorStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get second-factor enrollment status for the authenticated collaborator
+ */
+
+export function useGetWorkspaceTwoFactorStatus<TData = Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceTwoFactorStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceTwoFactorStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetupWorkspaceTwoFactorUrl = () => {
+
+
+
+
+  return `/api/workspace/security/2fa/setup`
+}
+
+/**
+ * @summary Begin password-verified TOTP enrollment
+ */
+export const setupWorkspaceTwoFactor = async (twoFactorSetupInput: TwoFactorSetupInput, options?: Parameters<typeof customFetch>[1]): Promise<TwoFactorSetup> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<TwoFactorSetup>(getSetupWorkspaceTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(twoFactorSetupInput)
+  }
+);}
+
+
+
+
+
+export const getSetupWorkspaceTwoFactorMutationKey = () => ['setupWorkspaceTwoFactor'] as const;
+
+export const getSetupWorkspaceTwoFactorMutationOptions = <TError = ErrorType<void | TwoFactorUnavailable>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setupWorkspaceTwoFactor>>, TError,SetupWorkspaceTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setupWorkspaceTwoFactor>>, TError,SetupWorkspaceTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getSetupWorkspaceTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setupWorkspaceTwoFactor>>, SetupWorkspaceTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  setupWorkspaceTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetupWorkspaceTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof setupWorkspaceTwoFactor>>>
+    export type SetupWorkspaceTwoFactorMutationBody = BodyType<TwoFactorSetupInput>
+    export type SetupWorkspaceTwoFactorMutationError = ErrorType<void | TwoFactorUnavailable>
+    export type SetupWorkspaceTwoFactorMutationVariables = {data: BodyType<TwoFactorSetupInput>}
+
+    /**
+ * @summary Begin password-verified TOTP enrollment
+ */
+export const useSetupWorkspaceTwoFactor = <TError = ErrorType<void | TwoFactorUnavailable>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setupWorkspaceTwoFactor>>, TError,SetupWorkspaceTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setupWorkspaceTwoFactor>>,
+        TError,
+        SetupWorkspaceTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetupWorkspaceTwoFactorMutationOptions(options));
+    }
+
+export const getEnableWorkspaceTwoFactorUrl = () => {
+
+
+
+
+  return `/api/workspace/security/2fa/enable`
+}
+
+/**
+ * @summary Confirm pending TOTP enrollment and receive one-time recovery codes
+ */
+export const enableWorkspaceTwoFactor = async (twoFactorCodeInput: TwoFactorCodeInput, options?: Parameters<typeof customFetch>[1]): Promise<TwoFactorEnabled> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<TwoFactorEnabled>(getEnableWorkspaceTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(twoFactorCodeInput)
+  }
+);}
+
+
+
+
+
+export const getEnableWorkspaceTwoFactorMutationKey = () => ['enableWorkspaceTwoFactor'] as const;
+
+export const getEnableWorkspaceTwoFactorMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enableWorkspaceTwoFactor>>, TError,EnableWorkspaceTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enableWorkspaceTwoFactor>>, TError,EnableWorkspaceTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getEnableWorkspaceTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enableWorkspaceTwoFactor>>, EnableWorkspaceTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  enableWorkspaceTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnableWorkspaceTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof enableWorkspaceTwoFactor>>>
+    export type EnableWorkspaceTwoFactorMutationBody = BodyType<TwoFactorCodeInput>
+    export type EnableWorkspaceTwoFactorMutationError = ErrorType<void>
+    export type EnableWorkspaceTwoFactorMutationVariables = {data: BodyType<TwoFactorCodeInput>}
+
+    /**
+ * @summary Confirm pending TOTP enrollment and receive one-time recovery codes
+ */
+export const useEnableWorkspaceTwoFactor = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enableWorkspaceTwoFactor>>, TError,EnableWorkspaceTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof enableWorkspaceTwoFactor>>,
+        TError,
+        EnableWorkspaceTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getEnableWorkspaceTwoFactorMutationOptions(options));
+    }
+
+export const getDisableWorkspaceTwoFactorUrl = () => {
+
+
+
+
+  return `/api/workspace/security/2fa/disable`
+}
+
+/**
+ * @summary Disable second factor after password and second-factor verification
+ */
+export const disableWorkspaceTwoFactor = async (twoFactorDisableInput: TwoFactorDisableInput, options?: Parameters<typeof customFetch>[1]): Promise<TwoFactorDisabled> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<TwoFactorDisabled>(getDisableWorkspaceTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(twoFactorDisableInput)
+  }
+);}
+
+
+
+
+
+export const getDisableWorkspaceTwoFactorMutationKey = () => ['disableWorkspaceTwoFactor'] as const;
+
+export const getDisableWorkspaceTwoFactorMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disableWorkspaceTwoFactor>>, TError,DisableWorkspaceTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disableWorkspaceTwoFactor>>, TError,DisableWorkspaceTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getDisableWorkspaceTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disableWorkspaceTwoFactor>>, DisableWorkspaceTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  disableWorkspaceTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisableWorkspaceTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof disableWorkspaceTwoFactor>>>
+    export type DisableWorkspaceTwoFactorMutationBody = BodyType<TwoFactorDisableInput>
+    export type DisableWorkspaceTwoFactorMutationError = ErrorType<void>
+    export type DisableWorkspaceTwoFactorMutationVariables = {data: BodyType<TwoFactorDisableInput>}
+
+    /**
+ * @summary Disable second factor after password and second-factor verification
+ */
+export const useDisableWorkspaceTwoFactor = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disableWorkspaceTwoFactor>>, TError,DisableWorkspaceTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disableWorkspaceTwoFactor>>,
+        TError,
+        DisableWorkspaceTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDisableWorkspaceTwoFactorMutationOptions(options));
+    }
+
+export const getRegenerateWorkspaceTwoFactorRecoveryCodesUrl = () => {
+
+
+
+
+  return `/api/workspace/security/2fa/recovery-codes`
+}
+
+/**
+ * @summary Regenerate recovery codes after password and existing second-factor verification
+ */
+export const regenerateWorkspaceTwoFactorRecoveryCodes = async (twoFactorDisableInput: TwoFactorDisableInput, options?: Parameters<typeof customFetch>[1]): Promise<TwoFactorRecoveryCodes> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<TwoFactorRecoveryCodes>(getRegenerateWorkspaceTwoFactorRecoveryCodesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(twoFactorDisableInput)
+  }
+);}
+
+
+
+
+
+export const getRegenerateWorkspaceTwoFactorRecoveryCodesMutationKey = () => ['regenerateWorkspaceTwoFactorRecoveryCodes'] as const;
+
+export const getRegenerateWorkspaceTwoFactorRecoveryCodesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateWorkspaceTwoFactorRecoveryCodes>>, TError,RegenerateWorkspaceTwoFactorRecoveryCodesMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof regenerateWorkspaceTwoFactorRecoveryCodes>>, TError,RegenerateWorkspaceTwoFactorRecoveryCodesMutationVariables, TContext> => {
+
+const mutationKey = getRegenerateWorkspaceTwoFactorRecoveryCodesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof regenerateWorkspaceTwoFactorRecoveryCodes>>, RegenerateWorkspaceTwoFactorRecoveryCodesMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  regenerateWorkspaceTwoFactorRecoveryCodes(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegenerateWorkspaceTwoFactorRecoveryCodesMutationResult = NonNullable<Awaited<ReturnType<typeof regenerateWorkspaceTwoFactorRecoveryCodes>>>
+    export type RegenerateWorkspaceTwoFactorRecoveryCodesMutationBody = BodyType<TwoFactorDisableInput>
+    export type RegenerateWorkspaceTwoFactorRecoveryCodesMutationError = ErrorType<void>
+    export type RegenerateWorkspaceTwoFactorRecoveryCodesMutationVariables = {data: BodyType<TwoFactorDisableInput>}
+
+    /**
+ * @summary Regenerate recovery codes after password and existing second-factor verification
+ */
+export const useRegenerateWorkspaceTwoFactorRecoveryCodes = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateWorkspaceTwoFactorRecoveryCodes>>, TError,RegenerateWorkspaceTwoFactorRecoveryCodesMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof regenerateWorkspaceTwoFactorRecoveryCodes>>,
+        TError,
+        RegenerateWorkspaceTwoFactorRecoveryCodesMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRegenerateWorkspaceTwoFactorRecoveryCodesMutationOptions(options));
+    }
+
+export const getListWorkspaceSessionsUrl = () => {
+
+
+
+
+  return `/api/workspace/sessions`
+}
+
+/**
+ * @summary List authenticated collaborator sessions with available browser and operating-system names
+ */
+export const listWorkspaceSessions = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceSessionList> => {
+
+  return customFetch<WorkspaceSessionList>(getListWorkspaceSessionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWorkspaceSessionsQueryKey = () => {
+    return [
+    `/api/workspace/sessions`
+    ] as const;
+    }
+
+
+export const getListWorkspaceSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listWorkspaceSessions>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWorkspaceSessionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkspaceSessions>>> = ({ signal }) => listWorkspaceSessions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceSessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWorkspaceSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listWorkspaceSessions>>>
+export type ListWorkspaceSessionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List authenticated collaborator sessions with available browser and operating-system names
+ */
+
+export function useListWorkspaceSessions<TData = Awaited<ReturnType<typeof listWorkspaceSessions>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWorkspaceSessionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getHealthCheckUrl = () => {
 
@@ -2182,4 +2996,1163 @@ export function useGetWorkspaceMeetingVideo<TData = Awaited<ReturnType<typeof ge
 
 
 
+
+export const getListAdminVideoAuthorizationsUrl = () => {
+
+
+
+
+  return `/api/admin/video-authorizations`
+}
+
+export const listAdminVideoAuthorizations = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminVideoAuthorizationList> => {
+
+  return customFetch<AdminVideoAuthorizationList>(getListAdminVideoAuthorizationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminVideoAuthorizationsQueryKey = () => {
+    return [
+    `/api/admin/video-authorizations`
+    ] as const;
+    }
+
+
+export const getListAdminVideoAuthorizationsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVideoAuthorizations>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideoAuthorizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminVideoAuthorizationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVideoAuthorizations>>> = ({ signal }) => listAdminVideoAuthorizations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminVideoAuthorizations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminVideoAuthorizationsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminVideoAuthorizations>>>
+export type ListAdminVideoAuthorizationsQueryError = ErrorType<void>
+
+
+
+export function useListAdminVideoAuthorizations<TData = Awaited<ReturnType<typeof listAdminVideoAuthorizations>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideoAuthorizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminVideoAuthorizationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAssignAdminVideoAuthorizationsUrl = () => {
+
+
+
+
+  return `/api/admin/video-authorizations`
+}
+
+export const assignAdminVideoAuthorizations = async (liveVideoAuthorizationInput: LiveVideoAuthorizationInput, options?: Parameters<typeof customFetch>[1]): Promise<AssignedVideoAuthorizations> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<AssignedVideoAuthorizations>(getAssignAdminVideoAuthorizationsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(liveVideoAuthorizationInput)
+  }
+);}
+
+
+
+
+
+export const getAssignAdminVideoAuthorizationsMutationKey = () => ['assignAdminVideoAuthorizations'] as const;
+
+export const getAssignAdminVideoAuthorizationsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignAdminVideoAuthorizations>>, TError,AssignAdminVideoAuthorizationsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignAdminVideoAuthorizations>>, TError,AssignAdminVideoAuthorizationsMutationVariables, TContext> => {
+
+const mutationKey = getAssignAdminVideoAuthorizationsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignAdminVideoAuthorizations>>, AssignAdminVideoAuthorizationsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  assignAdminVideoAuthorizations(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignAdminVideoAuthorizationsMutationResult = NonNullable<Awaited<ReturnType<typeof assignAdminVideoAuthorizations>>>
+    export type AssignAdminVideoAuthorizationsMutationBody = BodyType<LiveVideoAuthorizationInput>
+    export type AssignAdminVideoAuthorizationsMutationError = ErrorType<void>
+    export type AssignAdminVideoAuthorizationsMutationVariables = {data: BodyType<LiveVideoAuthorizationInput>}
+
+    export const useAssignAdminVideoAuthorizations = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignAdminVideoAuthorizations>>, TError,AssignAdminVideoAuthorizationsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignAdminVideoAuthorizations>>,
+        TError,
+        AssignAdminVideoAuthorizationsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssignAdminVideoAuthorizationsMutationOptions(options));
+    }
+
+export const getRevokeAdminVideoAuthorizationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/video-authorizations/${id}`
+}
+
+export const revokeAdminVideoAuthorization = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<VideoAuthorizationRevocation> => {
+
+  return customFetch<VideoAuthorizationRevocation>(getRevokeAdminVideoAuthorizationUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeAdminVideoAuthorizationMutationKey = () => ['revokeAdminVideoAuthorization'] as const;
+
+export const getRevokeAdminVideoAuthorizationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAdminVideoAuthorization>>, TError,RevokeAdminVideoAuthorizationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAdminVideoAuthorization>>, TError,RevokeAdminVideoAuthorizationMutationVariables, TContext> => {
+
+const mutationKey = getRevokeAdminVideoAuthorizationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAdminVideoAuthorization>>, RevokeAdminVideoAuthorizationMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeAdminVideoAuthorization(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAdminVideoAuthorizationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAdminVideoAuthorization>>>
+
+    export type RevokeAdminVideoAuthorizationMutationError = ErrorType<void>
+    export type RevokeAdminVideoAuthorizationMutationVariables = {id: number}
+
+    export const useRevokeAdminVideoAuthorization = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAdminVideoAuthorization>>, TError,RevokeAdminVideoAuthorizationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAdminVideoAuthorization>>,
+        TError,
+        RevokeAdminVideoAuthorizationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeAdminVideoAuthorizationMutationOptions(options));
+    }
+
+export const getGetWorkspaceVideoAccessUrl = () => {
+
+
+
+
+  return `/api/workspace/video-access`
+}
+
+export const getWorkspaceVideoAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceVideoAccess> => {
+
+  return customFetch<WorkspaceVideoAccess>(getGetWorkspaceVideoAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceVideoAccessQueryKey = () => {
+    return [
+    `/api/workspace/video-access`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceVideoAccessQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceVideoAccess>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceVideoAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceVideoAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceVideoAccess>>> = ({ signal }) => getWorkspaceVideoAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceVideoAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceVideoAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceVideoAccess>>>
+export type GetWorkspaceVideoAccessQueryError = ErrorType<void>
+
+
+
+export function useGetWorkspaceVideoAccess<TData = Awaited<ReturnType<typeof getWorkspaceVideoAccess>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceVideoAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceVideoAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getJoinWorkspaceVideoMeetingUrl = () => {
+
+
+
+
+  return `/api/workspace/video/join`
+}
+
+export const joinWorkspaceVideoMeeting = async (workspaceVideoJoinInput: WorkspaceVideoJoinInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceVideoJoinResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<WorkspaceVideoJoinResult>(getJoinWorkspaceVideoMeetingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workspaceVideoJoinInput)
+  }
+);}
+
+
+
+
+
+export const getJoinWorkspaceVideoMeetingMutationKey = () => ['joinWorkspaceVideoMeeting'] as const;
+
+export const getJoinWorkspaceVideoMeetingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinWorkspaceVideoMeeting>>, TError,JoinWorkspaceVideoMeetingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof joinWorkspaceVideoMeeting>>, TError,JoinWorkspaceVideoMeetingMutationVariables, TContext> => {
+
+const mutationKey = getJoinWorkspaceVideoMeetingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof joinWorkspaceVideoMeeting>>, JoinWorkspaceVideoMeetingMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  joinWorkspaceVideoMeeting(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JoinWorkspaceVideoMeetingMutationResult = NonNullable<Awaited<ReturnType<typeof joinWorkspaceVideoMeeting>>>
+    export type JoinWorkspaceVideoMeetingMutationBody = BodyType<WorkspaceVideoJoinInput>
+    export type JoinWorkspaceVideoMeetingMutationError = ErrorType<void>
+    export type JoinWorkspaceVideoMeetingMutationVariables = {data: BodyType<WorkspaceVideoJoinInput>}
+
+    export const useJoinWorkspaceVideoMeeting = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinWorkspaceVideoMeeting>>, TError,JoinWorkspaceVideoMeetingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof joinWorkspaceVideoMeeting>>,
+        TError,
+        JoinWorkspaceVideoMeetingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getJoinWorkspaceVideoMeetingMutationOptions(options));
+    }
+
+export const getGetWorkspaceUnreadMessageCountUrl = () => {
+
+
+
+
+  return `/api/workspace/messages/unread-count`
+}
+
+export const getWorkspaceUnreadMessageCount = async ( options?: Parameters<typeof customFetch>[1]): Promise<UnreadMessageCount> => {
+
+  return customFetch<UnreadMessageCount>(getGetWorkspaceUnreadMessageCountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceUnreadMessageCountQueryKey = () => {
+    return [
+    `/api/workspace/messages/unread-count`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceUnreadMessageCountQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceUnreadMessageCountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>> = ({ signal }) => getWorkspaceUnreadMessageCount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceUnreadMessageCountQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>>
+export type GetWorkspaceUnreadMessageCountQueryError = ErrorType<void>
+
+
+
+export function useGetWorkspaceUnreadMessageCount<TData = Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceUnreadMessageCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceUnreadMessageCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkWorkspaceConversationReadUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/conversations/${id}/read`
+}
+
+export const markWorkspaceConversationRead = async (id: number,
+    conversationReadInput: ConversationReadInput, options?: Parameters<typeof customFetch>[1]): Promise<ConversationReadResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<ConversationReadResult>(getMarkWorkspaceConversationReadUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(conversationReadInput)
+  }
+);}
+
+
+
+
+
+export const getMarkWorkspaceConversationReadMutationKey = () => ['markWorkspaceConversationRead'] as const;
+
+export const getMarkWorkspaceConversationReadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markWorkspaceConversationRead>>, TError,MarkWorkspaceConversationReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markWorkspaceConversationRead>>, TError,MarkWorkspaceConversationReadMutationVariables, TContext> => {
+
+const mutationKey = getMarkWorkspaceConversationReadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markWorkspaceConversationRead>>, MarkWorkspaceConversationReadMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  markWorkspaceConversationRead(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkWorkspaceConversationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markWorkspaceConversationRead>>>
+    export type MarkWorkspaceConversationReadMutationBody = BodyType<ConversationReadInput>
+    export type MarkWorkspaceConversationReadMutationError = ErrorType<void>
+    export type MarkWorkspaceConversationReadMutationVariables = {id: number;data: BodyType<ConversationReadInput>}
+
+    export const useMarkWorkspaceConversationRead = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markWorkspaceConversationRead>>, TError,MarkWorkspaceConversationReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markWorkspaceConversationRead>>,
+        TError,
+        MarkWorkspaceConversationReadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkWorkspaceConversationReadMutationOptions(options));
+    }
+
+export const getListCollaboratorArrearsUrl = (collaboratorId: number,) => {
+
+
+
+
+  return `/api/admin/collaborators/${collaboratorId}/arrears`
+}
+
+export const listCollaboratorArrears = async (collaboratorId: number, options?: Parameters<typeof customFetch>[1]): Promise<ArrearsList> => {
+
+  return customFetch<ArrearsList>(getListCollaboratorArrearsUrl(collaboratorId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCollaboratorArrearsQueryKey = (collaboratorId: number,) => {
+    return [
+    `/api/admin/collaborators/${collaboratorId}/arrears`
+    ] as const;
+    }
+
+
+export const getListCollaboratorArrearsQueryOptions = <TData = Awaited<ReturnType<typeof listCollaboratorArrears>>, TError = ErrorType<void>>(collaboratorId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCollaboratorArrears>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCollaboratorArrearsQueryKey(collaboratorId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCollaboratorArrears>>> = ({ signal }) => listCollaboratorArrears(collaboratorId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: collaboratorId !== null && collaboratorId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCollaboratorArrears>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCollaboratorArrearsQueryResult = NonNullable<Awaited<ReturnType<typeof listCollaboratorArrears>>>
+export type ListCollaboratorArrearsQueryError = ErrorType<void>
+
+
+
+export function useListCollaboratorArrears<TData = Awaited<ReturnType<typeof listCollaboratorArrears>>, TError = ErrorType<void>>(
+ collaboratorId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCollaboratorArrears>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCollaboratorArrearsQueryOptions(collaboratorId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCollaboratorArrearUrl = (collaboratorId: number,) => {
+
+
+
+
+  return `/api/admin/collaborators/${collaboratorId}/arrears`
+}
+
+export const createCollaboratorArrear = async (collaboratorId: number,
+    arrearInput: ArrearInput, options?: Parameters<typeof customFetch>[1]): Promise<ArrearResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<ArrearResult>(getCreateCollaboratorArrearUrl(collaboratorId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(arrearInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCollaboratorArrearMutationKey = () => ['createCollaboratorArrear'] as const;
+
+export const getCreateCollaboratorArrearMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCollaboratorArrear>>, TError,CreateCollaboratorArrearMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCollaboratorArrear>>, TError,CreateCollaboratorArrearMutationVariables, TContext> => {
+
+const mutationKey = getCreateCollaboratorArrearMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCollaboratorArrear>>, CreateCollaboratorArrearMutationVariables> = (props) => {
+          const {collaboratorId,data} = props ?? {};
+
+          return  createCollaboratorArrear(collaboratorId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCollaboratorArrearMutationResult = NonNullable<Awaited<ReturnType<typeof createCollaboratorArrear>>>
+    export type CreateCollaboratorArrearMutationBody = BodyType<ArrearInput>
+    export type CreateCollaboratorArrearMutationError = ErrorType<void>
+    export type CreateCollaboratorArrearMutationVariables = {collaboratorId: number;data: BodyType<ArrearInput>}
+
+    export const useCreateCollaboratorArrear = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCollaboratorArrear>>, TError,CreateCollaboratorArrearMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCollaboratorArrear>>,
+        TError,
+        CreateCollaboratorArrearMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCollaboratorArrearMutationOptions(options));
+    }
+
+export const getListCollaboratorSalaryRecordsUrl = (collaboratorId: number,) => {
+
+
+
+
+  return `/api/admin/collaborators/${collaboratorId}/salary-records`
+}
+
+export const listCollaboratorSalaryRecords = async (collaboratorId: number, options?: Parameters<typeof customFetch>[1]): Promise<SalaryRecordsList> => {
+
+  return customFetch<SalaryRecordsList>(getListCollaboratorSalaryRecordsUrl(collaboratorId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCollaboratorSalaryRecordsQueryKey = (collaboratorId: number,) => {
+    return [
+    `/api/admin/collaborators/${collaboratorId}/salary-records`
+    ] as const;
+    }
+
+
+export const getListCollaboratorSalaryRecordsQueryOptions = <TData = Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>, TError = ErrorType<void>>(collaboratorId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCollaboratorSalaryRecordsQueryKey(collaboratorId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>> = ({ signal }) => listCollaboratorSalaryRecords(collaboratorId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: collaboratorId !== null && collaboratorId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCollaboratorSalaryRecordsQueryResult = NonNullable<Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>>
+export type ListCollaboratorSalaryRecordsQueryError = ErrorType<void>
+
+
+
+export function useListCollaboratorSalaryRecords<TData = Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>, TError = ErrorType<void>>(
+ collaboratorId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCollaboratorSalaryRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCollaboratorSalaryRecordsQueryOptions(collaboratorId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAssignCollaboratorSalaryRecordUrl = (collaboratorId: number,) => {
+
+
+
+
+  return `/api/admin/collaborators/${collaboratorId}/salary-records`
+}
+
+export const assignCollaboratorSalaryRecord = async (collaboratorId: number,
+    salaryRecordInput: SalaryRecordInput, options?: Parameters<typeof customFetch>[1]): Promise<SalaryRecordResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<SalaryRecordResult>(getAssignCollaboratorSalaryRecordUrl(collaboratorId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(salaryRecordInput)
+  }
+);}
+
+
+
+
+
+export const getAssignCollaboratorSalaryRecordMutationKey = () => ['assignCollaboratorSalaryRecord'] as const;
+
+export const getAssignCollaboratorSalaryRecordMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignCollaboratorSalaryRecord>>, TError,AssignCollaboratorSalaryRecordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignCollaboratorSalaryRecord>>, TError,AssignCollaboratorSalaryRecordMutationVariables, TContext> => {
+
+const mutationKey = getAssignCollaboratorSalaryRecordMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignCollaboratorSalaryRecord>>, AssignCollaboratorSalaryRecordMutationVariables> = (props) => {
+          const {collaboratorId,data} = props ?? {};
+
+          return  assignCollaboratorSalaryRecord(collaboratorId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignCollaboratorSalaryRecordMutationResult = NonNullable<Awaited<ReturnType<typeof assignCollaboratorSalaryRecord>>>
+    export type AssignCollaboratorSalaryRecordMutationBody = BodyType<SalaryRecordInput>
+    export type AssignCollaboratorSalaryRecordMutationError = ErrorType<void>
+    export type AssignCollaboratorSalaryRecordMutationVariables = {collaboratorId: number;data: BodyType<SalaryRecordInput>}
+
+    export const useAssignCollaboratorSalaryRecord = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignCollaboratorSalaryRecord>>, TError,AssignCollaboratorSalaryRecordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignCollaboratorSalaryRecord>>,
+        TError,
+        AssignCollaboratorSalaryRecordMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssignCollaboratorSalaryRecordMutationOptions(options));
+    }
+
+export const getUpdateSalaryRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/salary-records/${id}`
+}
+
+export const updateSalaryRecord = async (id: number,
+    salaryRecordUpdate: SalaryRecordUpdate, options?: Parameters<typeof customFetch>[1]): Promise<SalaryRecordResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<SalaryRecordResult>(getUpdateSalaryRecordUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(salaryRecordUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateSalaryRecordMutationKey = () => ['updateSalaryRecord'] as const;
+
+export const getUpdateSalaryRecordMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSalaryRecord>>, TError,UpdateSalaryRecordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSalaryRecord>>, TError,UpdateSalaryRecordMutationVariables, TContext> => {
+
+const mutationKey = getUpdateSalaryRecordMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSalaryRecord>>, UpdateSalaryRecordMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSalaryRecord(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSalaryRecordMutationResult = NonNullable<Awaited<ReturnType<typeof updateSalaryRecord>>>
+    export type UpdateSalaryRecordMutationBody = BodyType<SalaryRecordUpdate>
+    export type UpdateSalaryRecordMutationError = ErrorType<void>
+    export type UpdateSalaryRecordMutationVariables = {id: number;data: BodyType<SalaryRecordUpdate>}
+
+    export const useUpdateSalaryRecord = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSalaryRecord>>, TError,UpdateSalaryRecordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSalaryRecord>>,
+        TError,
+        UpdateSalaryRecordMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateSalaryRecordMutationOptions(options));
+    }
+
+export const getGetWorkspaceFinancialSummaryUrl = () => {
+
+
+
+
+  return `/api/workspace/me/financial-summary`
+}
+
+/**
+ * @summary Get the current collaborator's latest salary record
+ */
+export const getWorkspaceFinancialSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<FinancialSummaryResponse> => {
+
+  return customFetch<FinancialSummaryResponse>(getGetWorkspaceFinancialSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceFinancialSummaryQueryKey = () => {
+    return [
+    `/api/workspace/me/financial-summary`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceFinancialSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceFinancialSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>> = ({ signal }) => getWorkspaceFinancialSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceFinancialSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>>
+export type GetWorkspaceFinancialSummaryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the current collaborator's latest salary record
+ */
+
+export function useGetWorkspaceFinancialSummary<TData = Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceFinancialSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceFinancialSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateArrearUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/arrears/${id}`
+}
+
+export const updateArrear = async (id: number,
+    arrearUpdate: ArrearUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ArrearResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<ArrearResult>(getUpdateArrearUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(arrearUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateArrearMutationKey = () => ['updateArrear'] as const;
+
+export const getUpdateArrearMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateArrear>>, TError,UpdateArrearMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateArrear>>, TError,UpdateArrearMutationVariables, TContext> => {
+
+const mutationKey = getUpdateArrearMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateArrear>>, UpdateArrearMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateArrear(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateArrearMutationResult = NonNullable<Awaited<ReturnType<typeof updateArrear>>>
+    export type UpdateArrearMutationBody = BodyType<ArrearUpdate>
+    export type UpdateArrearMutationError = ErrorType<void>
+    export type UpdateArrearMutationVariables = {id: number;data: BodyType<ArrearUpdate>}
+
+    export const useUpdateArrear = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateArrear>>, TError,UpdateArrearMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateArrear>>,
+        TError,
+        UpdateArrearMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateArrearMutationOptions(options));
+    }
+
+export const getDeleteArrearUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/arrears/${id}`
+}
+
+export const deleteArrear = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteArrearUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteArrearMutationKey = () => ['deleteArrear'] as const;
+
+export const getDeleteArrearMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteArrear>>, TError,DeleteArrearMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteArrear>>, TError,DeleteArrearMutationVariables, TContext> => {
+
+const mutationKey = getDeleteArrearMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteArrear>>, DeleteArrearMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteArrear(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteArrearMutationResult = NonNullable<Awaited<ReturnType<typeof deleteArrear>>>
+
+    export type DeleteArrearMutationError = ErrorType<void>
+    export type DeleteArrearMutationVariables = {id: number}
+
+    export const useDeleteArrear = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteArrear>>, TError,DeleteArrearMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteArrear>>,
+        TError,
+        DeleteArrearMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteArrearMutationOptions(options));
+    }
+
+export const getRequestArrearTransferUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/me/arrears/${id}/transfer-request`
+}
+
+export const requestArrearTransfer = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ArrearResult> => {
+
+  return customFetch<ArrearResult>(getRequestArrearTransferUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestArrearTransferMutationKey = () => ['requestArrearTransfer'] as const;
+
+export const getRequestArrearTransferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestArrearTransfer>>, TError,RequestArrearTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestArrearTransfer>>, TError,RequestArrearTransferMutationVariables, TContext> => {
+
+const mutationKey = getRequestArrearTransferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestArrearTransfer>>, RequestArrearTransferMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  requestArrearTransfer(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestArrearTransferMutationResult = NonNullable<Awaited<ReturnType<typeof requestArrearTransfer>>>
+
+    export type RequestArrearTransferMutationError = ErrorType<void>
+    export type RequestArrearTransferMutationVariables = {id: number}
+
+    export const useRequestArrearTransfer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestArrearTransfer>>, TError,RequestArrearTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestArrearTransfer>>,
+        TError,
+        RequestArrearTransferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestArrearTransferMutationOptions(options));
+    }
 

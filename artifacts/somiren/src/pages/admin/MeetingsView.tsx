@@ -16,14 +16,13 @@ export default function MeetingsView() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", startsAt: "", durationMinutes: 60, participantIds: [] as string[] });
   const [video, setVideo] = useState<File | null>(null);
-  const [authorize, setAuthorize] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const load = () => {
     setLoading(true);
     Promise.all([
       api.get("/admin/meetings").catch(err => { setError(err.error || "Erreur réunions"); return { meetings: [] }; }),
-      api.get("/admin/collaborators").catch(() => { return { collaborators: [] }; })
+      api.get("/admin/collaborators").catch(() => ({ collaborators: [] }))
     ]).then(([mRes, uRes]) => {
       setMeetings(mRes.meetings || []);
       setUsers(uRes.collaborators || []);
@@ -41,16 +40,16 @@ export default function MeetingsView() {
       const videoAssetId = video ? await uploadPrivateFile(video, "video", video.name) : undefined;
       await api.post("/admin/meetings", {
         videoAssetId,
-        authorizeVideoParticipants: video ? authorize : undefined,
+        authorizeVideoParticipants: video ? true : undefined,
         title: form.title,
         description: form.description,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
         participantIds: form.participantIds,
       });
-      setSuccess("Réunion planifiée.");
+      setSuccess("Visioconférence planifiée.");
       setShowCreate(false);
-      setVideo(null); setAuthorize(false);
+      setVideo(null);
       setForm({ title: "", description: "", startsAt: "", durationMinutes: 60, participantIds: [] });
       load();
     } catch (err: any) {
@@ -70,26 +69,20 @@ export default function MeetingsView() {
   return (
     <div className="space-y-4">
       <Feedback error={error} success={success} />
-      <SectionCard title="Réunions" action={<PrimaryBtn icon={Plus} onClick={() => setShowCreate(!showCreate)}>Planifier une réunion</PrimaryBtn>}>
+      <SectionCard title="Visioconférences" action={<PrimaryBtn icon={Plus} onClick={() => setShowCreate(!showCreate)}>Planifier une visioconférence</PrimaryBtn>}>
         
         {showCreate && (
           <div className="mb-6 p-4 bg-gray-50 rounded-md border space-y-4" style={{ borderColor: C.line }}>
-            <h4 className="font-medium text-sm" style={{ color: C.ink }}>Nouvelle réunion</h4>
+            <h4 className="font-medium text-sm" style={{ color: C.ink }}>Nouvelle visioconférence</h4>
             <div className="grid sm:grid-cols-2 gap-4">
               <Field label="Titre *"><Input value={form.title} onChange={(e:any)=>setForm(f=>({...f, title: e.target.value}))} /></Field>
               <Field label="Date & Heure de début *"><Input type="datetime-local" value={form.startsAt} onChange={(e:any)=>setForm(f=>({...f, startsAt: e.target.value}))} /></Field>
               <Field label="Durée (minutes)"><Input type="number" min="15" step="15" value={form.durationMinutes} onChange={(e:any)=>setForm(f=>({...f, durationMinutes: parseInt(e.target.value, 10)}))} /></Field>
               <Field label="Description"><Textarea rows={2} value={form.description} onChange={(e:any)=>setForm(f=>({...f, description: e.target.value}))} /></Field>
-              <Field label="Vidéo préenregistrée (facultative, 50 Mo max)" full>
+              <Field label="Fichier vidéo (facultatif, 50 Mo max)" full>
                 <input type="file" accept="video/*" onChange={(e) => { const x = e.target.files?.[0] || null; if (x && x.size > MAX_VIDEO_BYTES) { setError("Vidéo trop volumineuse (50 Mo maximum)."); e.target.value = ""; return; } setError(null); setVideo(x); }} />
-                <p className="text-xs mt-1" style={{ color: C.inkSoft }}>Mode vidéo préenregistrée : les participants regardent le fichier pendant le créneau programmé. Ce n'est pas une visioconférence en direct.</p>
+                <p className="text-xs mt-1" style={{ color: C.inkSoft }}>Le fichier est téléversé de façon privée et partagé avec les participants sélectionnés.</p>
               </Field>
-              {video && (
-                <label className="sm:col-span-2 flex items-start gap-2 text-[13px]" style={{ color: C.inkSoft }}>
-                  <input type="checkbox" className="mt-1" checked={authorize} onChange={(e) => setAuthorize(e.target.checked)} data-testid="checkbox-authorize-video" />
-                  <span>Accorder aux participants sélectionnés la permission « visioconférence » (CAN_USE_VIDEO_CONFERENCE). Sans cette autorisation explicite, seuls les collaborateurs qui la possèdent déjà pourront voir la vidéo.</span>
-                </label>
-              )}
               <Field label="Participants *" full>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {users.map(u => (
@@ -117,7 +110,7 @@ export default function MeetingsView() {
                 </div>
                 {m.videoAssetId && (
                   <button type="button" className="flex items-center gap-1.5 text-[12.5px] mt-1 underline" style={{ color: C.accent }} onClick={() => openSigned(`/admin/meetings/${m.id}/video`).catch((e) => setError(errMsg(e, "Lien vidéo indisponible.")))}>
-                    <Video size={13} /> Vidéo préenregistrée{m.videoFileName ? ` : ${m.videoFileName}` : ""}
+                    <Video size={13} /> Fichier vidéo{m.videoFileName ? ` : ${m.videoFileName}` : ""}
                   </button>
                 )}
                 <p className="text-[12.5px] mt-1" style={{ color: C.inkSoft }}>
@@ -128,6 +121,7 @@ export default function MeetingsView() {
           </div>
         )}
       </SectionCard>
+
     </div>
   );
 }

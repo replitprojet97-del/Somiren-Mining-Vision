@@ -6,6 +6,7 @@ import { useLang } from "@/contexts/LanguageContext";
 import type { Lang } from "@/i18n/translations";
 import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 import { toast } from "sonner";
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: "fr", label: "FR" },
@@ -73,6 +74,7 @@ function LangDropdown({ compact = false }: { compact?: boolean }) {
 }
 
 export default function Header() {
+  const { w } = useWorkspaceLocale();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
@@ -86,7 +88,7 @@ export default function Header() {
       setMobileMenuOpen(false);
       setLocation("/");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Déconnexion impossible.");
+      toast.error(error instanceof Error ? error.message : w("Déconnexion impossible.", "Unable to sign out."));
     }
   };
 
@@ -186,14 +188,14 @@ export default function Header() {
                   className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none w-full uppercase tracking-wider font-semibold"
                 >
                   <Lock className="w-4 h-4" />
-                  Espace
+                  {w("Espace", "Workspace")}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => void handleLogout()}
                   className="w-full rounded-none border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-semibold"
                 >
-                  Déconnexion
+                  {w("Déconnexion", "Sign out")}
                 </Button>
               </div>
             ) : (
@@ -218,14 +220,14 @@ export default function Header() {
                 className="flex gap-2 bg-primary text-black hover:bg-primary/90 rounded-none px-4 uppercase tracking-wider font-semibold"
               >
                 <Lock className="w-4 h-4" />
-                Espace
+                {w("Espace", "Workspace")}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => void handleLogout()}
                 className="rounded-none border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-semibold px-4"
               >
-                Déconnexion
+                {w("Déconnexion", "Sign out")}
               </Button>
             </div>
           ) : (
