@@ -6,6 +6,8 @@ import * as z from "zod";
 import { Form } from "@/components/ui/form";
 import { C, SectionCard, PrimaryBtn, GhostBtn, Pill, Input, Select, Feedback } from "./shared";
 import { useAdminApi } from "./api";
+import ArrearsEditor from "./ArrearsEditor";
+import SalaryEditor from "./SalaryEditor";
 
 const SUPPORTED_ROLES = [
   { value: "ADMIN", label: "Administrateur" },
@@ -208,14 +210,44 @@ export default function UsersView() {
       )}
 
       {selected && (
-        <UserEditPanel 
-          key={selected.id}
-          user={selected} 
-          availablePermissions={availablePermissions}
-          isSaving={pendingUserIds.includes(selected.id)}
-          onClose={() => setSelected(null)}
-          onSave={(payload: any) => handleUpdateUser(selected.id, payload)}
-        />
+        <>
+          <UserEditPanel
+            key={selected.id}
+            user={selected}
+            availablePermissions={availablePermissions}
+            isSaving={pendingUserIds.includes(selected.id)}
+            onClose={() => setSelected(null)}
+            onSave={(payload: any) => handleUpdateUser(selected.id, payload)}
+          />
+          <ArrearsEditor
+            key={`arrears-${selected.id}`}
+            user={selected}
+            onPermissionsGranted={() => {
+              const financePermissions = ["VIEW_OWN_ARREARS", "VIEW_OWN_FINANCIAL_INFORMATION"];
+              setSelected((current: any) => current && current.id === selected.id
+                ? { ...current, permissions: [...new Set([...(current.permissions || []), ...financePermissions])] }
+                : current);
+              setUsers(current => current.map(user => user.id === selected.id
+                ? { ...user, permissions: [...new Set([...(user.permissions || []), ...financePermissions])] }
+                : user));
+            }}
+          />
+          {selected.role !== "ADMIN" && (
+            <SalaryEditor
+              key={`salary-${selected.id}`}
+              user={selected}
+              onFinanceVisibilityGranted={() => {
+                const financePermission = "VIEW_OWN_FINANCIAL_INFORMATION";
+                setSelected((current: any) => current && current.id === selected.id
+                  ? { ...current, permissions: [...new Set([...(current.permissions || []), financePermission])] }
+                  : current);
+                setUsers(current => current.map(user => user.id === selected.id
+                  ? { ...user, permissions: [...new Set([...(user.permissions || []), financePermission])] }
+                  : user));
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -274,6 +306,12 @@ function UserEditPanel({ user, availablePermissions, isSaving, onClose, onSave }
   const [isActive, setIsActive] = useState(user.isActive !== false);
   const [perms, setPerms] = useState<string[]>(user.permissions || []);
   const [newPassword, setNewPassword] = useState("");
+
+  useEffect(() => {
+    setRole(user.role || "");
+    setIsActive(user.isActive !== false);
+    setPerms(user.permissions || []);
+  }, [user.role, user.isActive, user.permissions]);
 
   const submit = async () => {
     if (isSaving) return;

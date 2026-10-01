@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addsUserManagementPermissions,
+  canManageConfidentialFinance,
+  canReceiveArrears,
+  mergeArrearsVisibilityPermissions,
   canAssignCollaboratorAccess,
   deriveRolePermissions,
   hasSupportedRolePermissions,
@@ -46,6 +49,23 @@ test("role permissions are preserved and workspace read is guaranteed without du
     "VIEW_ASSIGNED_CASES",
     "workspace:read",
   ]);
+});
+
+test("arrears management is reserved to confidential ADMIN role, not delegated user managers", () => {
+  assert.equal(canManageConfidentialFinance("ADMIN"), true);
+  assert.equal(canManageConfidentialFinance("COLLABORATOR"), false);
+  assert.equal(canManageConfidentialFinance("EXECUTIVE_ASSISTANT_STRATEGIC_ADVISOR"), false);
+});
+
+test("granting arrears visibility preserves existing rights without granting admin rights", () => {
+  assert.deepEqual(mergeArrearsVisibilityPermissions(["workspace:read", "MANAGE_ASSIGNED_CASES", "VIEW_OWN_ARREARS"]), [
+    "workspace:read",
+    "MANAGE_ASSIGNED_CASES",
+    "VIEW_OWN_ARREARS",
+    "VIEW_OWN_FINANCIAL_INFORMATION",
+  ]);
+  assert.equal(canReceiveArrears("ADMIN"), false);
+  assert.equal(canReceiveArrears("COLLABORATOR"), true);
 });
 
 test("non-admin user managers cannot assign ADMIN or either user-management permission", () => {

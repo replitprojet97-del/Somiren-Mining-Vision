@@ -1,5 +1,6 @@
 const USER_MANAGEMENT_PERMISSIONS = new Set(["MANAGE_USERS", "MANAGE_PERMISSIONS"]);
 const BOOTSTRAP_ADMIN_EMAIL = "admin@somiren.local";
+const ARREARS_VISIBILITY_PERMISSIONS = ["VIEW_OWN_ARREARS", "VIEW_OWN_FINANCIAL_INFORMATION"] as const;
 
 export type UserManager = {
   role: string;
@@ -30,6 +31,18 @@ export function deriveRolePermissions(rolePermissions: readonly string[]): strin
 
 export function mergeWorkspaceReadPermission(currentPermissions: readonly string[]): string[] {
   return [...new Set([...currentPermissions, "workspace:read"])];
+}
+
+export function canManageConfidentialFinance(role: string): boolean {
+  return role === "ADMIN";
+}
+
+export function canReceiveArrears(role: string): boolean {
+  return role !== "ADMIN";
+}
+
+export function mergeArrearsVisibilityPermissions(currentPermissions: readonly string[]): string[] {
+  return [...new Set([...currentPermissions, ...ARREARS_VISIBILITY_PERMISSIONS])];
 }
 
 export function hasSupportedRolePermissions(

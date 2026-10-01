@@ -1,10 +1,17 @@
 import {
-  activityLogsTable, casesTable, collaboratorSessionsTable, collaboratorsTable, db,
+  activityLogsTable, casesTable, collaboratorLoginChallengesTable, collaboratorSessionsTable,
+  collaboratorTwoFactorTable, collaboratorsTable, db,
   documentAssignmentsTable, documentsTable, executiveRequestsTable, meetingParticipantsTable,
   meetingsTable, shipmentsTable, workspaceRolesTable, notificationsTable, conversationsTable,
   messagesTable, privateUploadsTable,
+  videoAuthorizationsTable,
 } from "@workspace/db";
-import { and, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
+import {
+  AssignAdminVideoAuthorizationsBody, AssignAdminVideoAuthorizationsResponse,
+  ListAdminVideoAuthorizationsResponse, RevokeAdminVideoAuthorizationParams,
+  RevokeAdminVideoAuthorizationResponse,
+} from "@workspace/api-zod";
+import { and, asc, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -209,6 +216,15 @@ router.post("/admin/collaborators/:id/restore-access", requireUserManager, async
       lockedUntil: null,
       updatedAt: new Date(),
     }).where(eq(collaboratorsTable.id, target.id)).returning();
+    await tx.delete(collaboratorSessionsTable)
+      .where(eq(collaboratorSessionsTable.collaboratorId, target.id));
+    await tx.delete(collaboratorLoginChallengesTable)
+      .where(eq(collaboratorLoginChallengesTable.collaboratorId, target.id));
+    await tx.update(collaboratorTwoFactorTable).set({
+      pendingSecretCiphertext: null,
+      pendingExpiresAt: null,
+      updatedAt: new Date(),
+    }).where(eq(collaboratorTwoFactorTable.collaboratorId, target.id));
     await tx.insert(activityLogsTable).values({
       collaboratorId: current.id,
       entityType: "collaborator",
@@ -250,8 +266,17 @@ router.patch("/admin/collaborators/:id", requireUserManager, async (req, res): P
     if (passwordHash) { changes.passwordHash = passwordHash; changes.mustChangePassword = true; }
     const [collaborator] = await tx.update(collaboratorsTable).set(changes as any)
       .where(eq(collaboratorsTable.id, target.id)).returning();
-    if (body.data.isActive === false || body.data.newPassword) {
+    const accessStateChanged = body.data.isActive === false ||
+      (body.data.isActive === true && !target.isActive);
+    if (accessStateChanged || body.data.newPassword) {
       await tx.delete(collaboratorSessionsTable).where(eq(collaboratorSessionsTable.collaboratorId, target.id));
+      await tx.delete(collaboratorLoginChallengesTable)
+        .where(eq(collaboratorLoginChallengesTable.collaboratorId, target.id));
+      await tx.update(collaboratorTwoFactorTable).set({
+        pendingSecretCiphertext: null,
+        pendingExpiresAt: null,
+        updatedAt: new Date(),
+      }).where(eq(collaboratorTwoFactorTable.collaboratorId, target.id));
     }
     await tx.insert(activityLogsTable).values({
       collaboratorId: current.id,
@@ -417,7 +442,8 @@ router.post("/admin/meetings", requireConfidentialAdmin, async (req, res): Promi
   const current = actor(res);
   const created = await db.transaction(async tx => {
     const people = await tx.select().from(collaboratorsTable)
-      .where(and(inArray(collaboratorsTable.id, body.data.participantIds), eq(collaboratorsTable.isActive, true)));
+      .where(and(inArray(collaboratorsTable.id, body.data.participantIds), eq(collaboratorsTable.isActive, true)))
+      .orderBy(asc(collaboratorsTable.id)).for("update");
     if (people.length !== body.data.participantIds.length) return { error: "All participants must be active collaborators" };
     let videoAsset: Awaited<ReturnType<typeof consumeUpload>>;
     if (body.data.videoAssetId) {
@@ -431,7 +457,7 @@ router.post("/admin/meetings", requireConfidentialAdmin, async (req, res): Promi
     await tx.insert(meetingParticipantsTable).values(body.data.participantIds.map(collaboratorId => ({ meetingId: meeting.id, collaboratorId })));
     if (body.data.authorizeVideoParticipants) {
       await Promise.all(people.map(person => tx.update(collaboratorsTable).set({
-        permissions: [...new Set([...person.permissions, "CAN_USE_VIDEO_CONFERENCE"])],
+        permissions: [...new Set([...person.permissions, "CAN_USE_VIDEO_CONFERENCE", "PARTICIPATE_IN_MEETINGS"])],
         updatedAt: new Date(),
       }).where(eq(collaboratorsTable.id, person.id))));
     }
@@ -455,6 +481,124 @@ router.get("/admin/meetings/:id/video", requireConfidentialAdmin, async (req, re
   if (!url) { req.log.warn("Private meeting video signing failed"); res.status(502).json({ error: "Could not create a file download URL" }); return; }
   res.json({ url, fileName: asset.fileName, contentType: asset.contentType, expiresIn: 300 });
 });
+
+const liveVideoAssignmentSchema = z.object({
+  meetingTitle: z.string().trim().min(1).max(300),
+  meetingUrl: z.string().url().max(2000).refine(value => new URL(value).protocol === "https:"),
+  startsAt: z.coerce.date(),
+  expiresAt: z.coerce.date(),
+  collaboratorIds: z.array(idSchema).min(1).max(100).transform(ids => [...new Set(ids)]),
+}).strict().refine(value => value.expiresAt > value.startsAt, "Meeting end must follow start");
+
+router.get("/admin/video-authorizations", requireConfidentialAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select({
+    authorization: videoAuthorizationsTable,
+    collaborator: {
+      id: collaboratorsTable.id,
+      fullName: collaboratorsTable.fullName,
+      email: collaboratorsTable.email,
+      role: collaboratorsTable.role,
+      isActive: collaboratorsTable.isActive,
+    },
+  }).from(videoAuthorizationsTable)
+    .innerJoin(collaboratorsTable, eq(videoAuthorizationsTable.collaboratorId, collaboratorsTable.id))
+    .orderBy(desc(videoAuthorizationsTable.startsAt));
+  res.json(ListAdminVideoAuthorizationsResponse.parse({ assignments: rows }));
+});
+
+router.post("/admin/video-authorizations", requireConfidentialAdmin, async (req, res): Promise<void> => {
+  const body = liveVideoAssignmentSchema.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid live video assignment" }); return; }
+  const contractBody = AssignAdminVideoAuthorizationsBody.strict().safeParse(body.data);
+  if (!contractBody.success) { res.status(400).json({ error: "Invalid live video assignment" }); return; }
+  const current = actor(res);
+  const result = await db.transaction(async tx => {
+    const people = await tx.select().from(collaboratorsTable).where(and(
+      inArray(collaboratorsTable.id, body.data.collaboratorIds),
+      eq(collaboratorsTable.isActive, true),
+      ne(collaboratorsTable.role, "ADMIN"),
+      ne(collaboratorsTable.email, BOOTSTRAP_ADMIN_EMAIL),
+    )).for("update");
+    if (people.length !== body.data.collaboratorIds.length) {
+      return { error: "All participants must be active non-administrator collaborators" };
+    }
+
+    const authorizations = await tx.insert(videoAuthorizationsTable).values(people.map(person => ({
+      collaboratorId: person.id,
+      meetingTitle: body.data.meetingTitle,
+      meetingUrl: body.data.meetingUrl,
+      startsAt: body.data.startsAt,
+      expiresAt: body.data.expiresAt,
+    }))).returning();
+
+    for (const person of people) {
+      if (!person.permissions.includes("CAN_USE_VIDEO_CONFERENCE")) {
+        await tx.update(collaboratorsTable).set({
+          permissions: [...new Set([...person.permissions, "CAN_USE_VIDEO_CONFERENCE"])],
+          updatedAt: new Date(),
+        }).where(eq(collaboratorsTable.id, person.id));
+      }
+    }
+
+    await tx.insert(notificationsTable).values(people.map(person => ({
+      collaboratorId: person.id,
+      title: "Visioconférence planifiée",
+      body: `Vous êtes invité(e) à la visioconférence « ${body.data.meetingTitle} ».`,
+    })));
+    await tx.insert(activityLogsTable).values(authorizations.map(authorization => ({
+      collaboratorId: current.id,
+      entityType: "video_authorization",
+      entityId: authorization.id,
+      action: "assigned",
+      details: {
+        collaboratorId: authorization.collaboratorId,
+        meetingTitle: authorization.meetingTitle,
+        startsAt: authorization.startsAt.toISOString(),
+        expiresAt: authorization.expiresAt.toISOString(),
+      },
+    })));
+    return { authorizations };
+  });
+  if ("error" in result) { res.status(400).json({ error: result.error }); return; }
+  res.status(201).json(AssignAdminVideoAuthorizationsResponse.parse({ assignments: result.authorizations }));
+});
+
+router.delete("/admin/video-authorizations/:id", requireConfidentialAdmin, async (req, res): Promise<void> => {
+  const id = RevokeAdminVideoAuthorizationParams.safeParse(req.params);
+  if (!id.success) { res.status(400).json({ error: "Invalid video authorization id" }); return; }
+  const current = actor(res);
+  const result = await db.transaction(async tx => {
+    const [authorization] = await tx.select().from(videoAuthorizationsTable)
+      .where(eq(videoAuthorizationsTable.id, id.data.id)).for("update").limit(1);
+    if (!authorization) return { error: "Video authorization not found", status: 404 };
+    if (authorization.isRevoked) return { authorization, alreadyRevoked: true };
+
+    const [revoked] = await tx.update(videoAuthorizationsTable)
+      .set({ isRevoked: true, updatedAt: new Date() })
+      .where(and(eq(videoAuthorizationsTable.id, id.data.id), eq(videoAuthorizationsTable.isRevoked, false)))
+      .returning();
+    if (!revoked) return { error: "Video authorization could not be revoked", status: 409 };
+    await tx.insert(activityLogsTable).values({
+      collaboratorId: current.id,
+      entityType: "video_authorization",
+      entityId: revoked.id,
+      action: "revoked",
+      details: { collaboratorId: revoked.collaboratorId, meetingTitle: revoked.meetingTitle },
+    });
+    await tx.insert(notificationsTable).values({
+      collaboratorId: revoked.collaboratorId,
+      title: "Visioconférence annulée",
+      body: `Votre accès à la visioconférence « ${revoked.meetingTitle} » a été révoqué.`,
+    });
+    return { authorization: revoked, alreadyRevoked: false };
+  });
+  if ("error" in result) { res.status(result.status ?? 400).json({ error: result.error }); return; }
+  res.json(RevokeAdminVideoAuthorizationResponse.parse({
+    authorization: result.authorization,
+    alreadyRevoked: result.alreadyRevoked,
+  }));
+});
+
 const conversationCreateSchema = z.object({
   collaboratorId: idSchema,
   subject: z.string().trim().min(1).max(300),
@@ -518,7 +662,8 @@ router.post("/admin/conversations/:id/messages", requireConfidentialAdmin, requi
   if (!id.success || !body.success) { res.status(400).json({ error: "Invalid message" }); return; }
   const current = actor(res);
   const result = await db.transaction(async tx => {
-    const [conversation] = await tx.select().from(conversationsTable).where(eq(conversationsTable.id, id.data)).limit(1);
+    const [conversation] = await tx.select().from(conversationsTable)
+      .where(eq(conversationsTable.id, id.data)).for("update").limit(1);
     if (!conversation) return { error: "Conversation not found" };
     let audio: Awaited<ReturnType<typeof consumeUpload>> = undefined;
     if (body.data.audioAssetId) {

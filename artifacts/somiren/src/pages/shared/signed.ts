@@ -1,4 +1,6 @@
 import { mediaRequest, openPrivateMedia } from "@/lib/private-media";
+import { localizeApiMessage } from "@/i18n/api-error-translations";
+import { getActiveLanguage } from "@/lib/workspace-locale";
 
 export async function fetchSignedUrl(path: string): Promise<string> {
   const r = await mediaRequest<any>(path);
@@ -12,5 +14,6 @@ export async function openSigned(path: string) {
 }
 
 export function errMsg(e: any, fb = "Une erreur est survenue."): string {
-  return (typeof e?.error === "string" && e.error) || (typeof e?.message === "string" && e.message) || fb;
+  const message = (typeof e?.error === "string" && e.error) || (typeof e?.message === "string" && e.message) || fb;
+  return localizeApiMessage(message, getActiveLanguage());
 }

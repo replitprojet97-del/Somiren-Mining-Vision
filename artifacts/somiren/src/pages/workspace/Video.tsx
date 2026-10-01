@@ -1,111 +1,146 @@
-import { useState } from "react";
-import { Video, Calendar, ArrowRight, Shield, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Video, ArrowRight, RefreshCw, LogOut } from "lucide-react";
 import { C } from "@/lib/theme";
-import { useVideoAccess, useMeetings, useMe } from "@/hooks/use-workspace";
+import { conferenceWindow, type ConferenceMeeting } from "@/lib/conference-window";
+import { useMeetings } from "@/hooks/use-workspace";
+import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 import { LocalCameraPreview } from "@/components/media/LocalCameraPreview";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { fetchSignedUrl, errMsg } from "../shared/signed";
-import { format } from "date-fns";
-
-function windowState(m: any, now = Date.now()) {
-  const start = new Date(m.startsAt).getTime();
-  const end = m.endsAt ? new Date(m.endsAt).getTime() : start + 24 * 3600_000;
-  return now < start ? "soon" : now > end ? "over" : "open";
-}
-
-function Prerecorded({ m }: { m: any }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const load = async () => {
-    setBusy(true); setErr(null);
-    try { setUrl(await fetchSignedUrl(`/workspace/meetings/${m.id}/video`)); }
-    catch (e) { setUrl(null); setErr(errMsg(e, "Vidéo indisponible ou accès refusé.")); }
-    finally { setBusy(false); }
-  };
-  const st = windowState(m);
-  return (
-    <div className="bg-white rounded-lg p-5 space-y-3" style={{ border: `1px solid ${C.line}` }} data-testid={`video-meeting-${m.id}`}>
-      <div className="flex flex-wrap justify-between gap-2">
-        <div>
-          <h2 className="font-semibold" style={{ color: C.ink }}>{m.title}</h2>
-          <p className="text-xs" style={{ color: C.inkSoft }}>Vidéo préenregistrée · {format(new Date(m.startsAt), "dd/MM/yyyy HH:mm")}</p>
-        </div>
-      </div>
-      {st === "soon" && <p className="text-sm" style={{ color: C.inkSoft }}>Pas encore disponible. La vidéo s'ouvrira à l'heure programmée.</p>}
-      {st === "over" && <p className="text-sm" style={{ color: C.inkSoft }}>Le créneau de visionnage est terminé.</p>}
-      {st === "open" && (
-        <>
-          {url ? (
-            <video src={url} controls controlsList="nodownload" className="w-full rounded-md bg-black max-h-[420px]" onError={load} />
-          ) : (
-            <button onClick={load} disabled={busy} className="px-4 py-2 rounded-md text-sm font-semibold text-white disabled:opacity-50" style={{ background: C.copper }}>{busy ? "Chargement..." : "Lire la vidéo"}</button>
-          )}
-          {url && <button onClick={load} className="flex items-center gap-1.5 text-xs underline" style={{ color: C.copper }}><RefreshCw size={12} /> Actualiser le lien sécurisé</button>}
-          {err && <p className="text-sm text-red-600" role="alert">{err}</p>}
-        </>
-      )}
-    </div>
-  );
-}
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
+import { localizeApiMessage } from "@/i18n/api-error-translations";
 
 export default function VideoView() {
-  const { data: videoAccess, isLoading, isError } = useVideoAccess();
-  const meetings = useMeetings();
+  const { w, lang, formatDateTime } = useWorkspaceLocale();
+  const { profile, isLoading: profileLoading } = useWorkspaceAuth();
+  const permissions = profile?.permissions ?? [];
+  const permitted = permissions.includes("CAN_USE_VIDEO_CONFERENCE") && permissions.includes("PARTICIPATE_IN_MEETINGS");
+  const meetings = useMeetings(permitted);
+  const [now, setNow] = useState(Date.now);
+  const [selected, setSelected] = useState<ConferenceMeeting | null>(null);
+  const [session, setSession] = useState<{ meeting: ConferenceMeeting; url: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState(false);
+  const requestId = useRef(0);
+  const mounted = useRef(false);
+  const authorizedMeetings = permitted && !meetings.isError ? (meetings.data ?? []) as ConferenceMeeting[] : [];
+  const available = authorizedMeetings.filter(meeting => meeting.videoAssetId && conferenceWindow(meeting, now) !== "ended");
+  const sessionMeeting = session && available.find(meeting => meeting.id === session.meeting.id && conferenceWindow(meeting, now) === "active");
 
-  const me = useMe();
-  const perms: any = me.data?.permissions;
-  const has = (k: string) => Array.isArray(perms) ? perms.includes(k) : perms && typeof perms === "object" ? !!perms[k] : undefined;
-  const missing = ["PARTICIPATE_IN_MEETINGS", "CAN_USE_VIDEO_CONFERENCE"].filter(k => has(k) === false);
-  const legacyEnabled = !isError && !!(videoAccess?.authorized ?? videoAccess?.allowed);
-  const permitted = missing.length === 0;
+  useEffect(() => {
+    mounted.current = true;
+    const interval = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => {
+      mounted.current = false;
+      requestId.current += 1;
+      window.clearInterval(interval);
+    };
+  }, []);
 
-  const vids = !permitted ? [] : (meetings.data || []).filter((m: any) => m.videoAssetId && windowState(m) !== "over");
-  const anyOpen = vids.some((m: any) => windowState(m) === "open");
+  useEffect(() => {
+    if ((session && !sessionMeeting) || (selected && !available.some(meeting => meeting.id === selected.id && conferenceWindow(meeting, now) === "active"))) {
+      requestId.current += 1;
+      setSession(null);
+      setSelected(null);
+      setBusy(false);
+    }
+  }, [permitted, meetings.data, meetings.isError, now, selected, session, sessionMeeting]);
+
+  async function join(meeting: ConferenceMeeting) {
+    const id = ++requestId.current;
+    setBusy(true);
+    setError(null);
+    try {
+      // This existing endpoint rechecks the assigned participant, camera permission and time window.
+      const url = await fetchSignedUrl(`/workspace/meetings/${meeting.id}/video`);
+      if (!mounted.current || id !== requestId.current || conferenceWindow(meeting) !== "active") return;
+      setSession({ meeting, url });
+      setSelected(null);
+      setMediaError(false);
+    } catch (err) {
+      if (mounted.current && id === requestId.current) {
+        setSession(null);
+        const fallback = w("Impossible de rejoindre cette visioconférence. L’accès a peut-être expiré.", "Unable to join this video conference. Access may have expired.");
+        setError(err instanceof TypeError ? fallback : errMsg(err, fallback));
+      }
+    } finally {
+      if (mounted.current && id === requestId.current) setBusy(false);
+    }
+  }
+
+  function leave() {
+    requestId.current += 1;
+    setSession(null);
+    setBusy(false);
+    setError(null);
+  }
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold" style={{ color: C.ink }}>Visioconférences</h1>
-
-      <section className="space-y-3" aria-label="Vidéos programmées">
-        <h2 className="text-sm font-semibold" style={{ color: C.inkSoft }}>Vidéos préenregistrées assignées</h2>
-        {!permitted ? (
-          <div className="bg-white rounded-lg p-6 flex items-center gap-4" style={{ border: `1px solid ${C.line}` }}>
-            <Shield size={22} color={C.red} />
-            <p className="text-sm" style={{ color: C.inkSoft }}>Accès non autorisé : permissions requises {missing.join(" et ")}. Contactez la Direction.</p>
+      <h1 className="text-xl font-semibold" style={{ color: C.ink }}>{w("Visioconférences", "Video conferences")}</h1>
+      {error && !selected && <p className="text-sm text-red-600" role="alert">{localizeVideoError(error, lang)}</p>}
+      {profileLoading || (permitted && meetings.isLoading) ? <p className="text-sm" style={{ color: C.inkSoft }}>{w("Chargement des visioconférences…", "Loading video conferences…")}</p>
+        : permitted && meetings.isError ? <p className="text-sm text-red-600" role="alert">{w("Les visioconférences sont momentanément indisponibles.", "Video conferences are temporarily unavailable.")}</p>
+        : session && sessionMeeting ? (
+          <section className="space-y-4 rounded-lg bg-white p-5" style={{ border: `1px solid ${C.line}` }} aria-label={w("Visioconférence en cours", "Video conference in progress")}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold" style={{ color: C.ink }}>{sessionMeeting.title}</h2>
+               <button type="button" onClick={leave} className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm" style={{ borderColor: C.line, color: C.ink }}><LogOut size={16} /> {w("Quitter la visioconférence", "Leave the video conference")}</button>
+            </div>
+            <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+              <div className="min-w-0 space-y-3">
+               <video key={session.url} src={session.url} autoPlay playsInline controls controlsList="nodownload" aria-label={w("Visioconférence", "Video conference")} className="aspect-video w-full rounded-md bg-black object-contain" onError={() => setMediaError(true)} />
+                 {mediaError && <p role="alert" className="text-sm text-red-600">{w("La lecture est momentanément indisponible. Réessayez avec le bouton ci-dessous.", "Playback is temporarily unavailable. Try again using the button below.")}</p>}
+                 <button type="button" onClick={() => void join(sessionMeeting)} disabled={busy} className="inline-flex items-center gap-1.5 text-xs underline disabled:opacity-50" style={{ color: C.blue }}><RefreshCw size={12} /> {busy ? w("Vérification de l’accès…", "Checking access…") : w("Actualiser la visioconférence", "Refresh video conference")}</button>
+              </div>
+              <LocalCameraPreview key={session.meeting.id} autoStart />
+            </div>
+          </section>
+        ) : available.length ? available.map(meeting => {
+          const active = conferenceWindow(meeting, now) === "active";
+          return (
+            <section key={meeting.id} className="flex flex-col items-center rounded-lg bg-white p-6 text-center" style={{ border: `1px solid ${C.line}` }} data-testid={`video-meeting-${meeting.id}`}>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: C.blueBg }}><Video size={28} color={C.blue} /></div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide" style={{ color: C.blue }}>{active ? w("Une visioconférence en cours", "Video conference in progress") : w("Visioconférence programmée", "Scheduled video conference")}</p>
+              <h2 className="mb-2 text-lg font-semibold" style={{ color: C.ink }}>{meeting.title}</h2>
+              <p className="mb-4 text-sm" style={{ color: C.inkSoft }}>{formatDateTime(meeting.startsAt)}{meeting.endsAt ? ` – ${formatDateTime(meeting.endsAt)}` : ""}</p>
+              {active ? <button type="button" onClick={() => { setSelected(meeting); setError(null); }} className="flex items-center gap-2 rounded-md px-6 py-2.5 text-sm font-semibold text-white" style={{ background: C.blue }}>{w("Rejoindre", "Join")} <ArrowRight size={16} /></button>
+                : <p className="text-sm" style={{ color: C.inkSoft }}>{w("Vous pourrez rejoindre à l’heure programmée.", "You can join at the scheduled time.")}</p>}
+            </section>
+          );
+        }) : (
+          <div className="flex items-center gap-4 rounded-lg bg-white p-6" style={{ border: `1px solid ${C.line}` }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full" style={{ background: C.blueBg }}><Video size={24} color={C.blue} /></div>
+            <p className="text-sm font-medium" style={{ color: C.ink }}>{w("Aucune visioconférence en cours", "No video conferences at this time")}</p>
           </div>
-        ) : meetings.isLoading ? <p className="text-sm" style={{ color: C.inkSoft }}>Chargement...</p>
-          : meetings.isError ? <p className="text-sm text-red-600">Réunions indisponibles.</p>
-          : vids.length ? vids.map((m: any) => <Prerecorded key={m.id} m={m} />)
-          : <p className="text-sm" style={{ color: C.inkSoft }}>Aucune vidéo programmée pour vous.</p>}
-      </section>
-
-      {permitted && anyOpen && (
-        <section className="bg-white rounded-lg p-5" style={{ border: `1px solid ${C.line}` }}>
-          <h2 className="text-sm font-semibold mb-1" style={{ color: C.ink }}>Aperçu de votre caméra</h2>
-          <p className="text-xs mb-3" style={{ color: C.inkSoft }}>Aperçu local uniquement : aucune image n'est transmise ni enregistrée.</p>
-          <LocalCameraPreview />
-        </section>
-      )}
-
-      {isLoading ? null : legacyEnabled && videoAccess?.meeting ? (
-        <div className="bg-white rounded-lg p-6 flex flex-col items-center justify-center text-center" style={{ border: `1px solid ${C.line}` }}>
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: C.copperSoft }}>
-            <Video size={28} color={C.copper} />
-          </div>
-          <h2 className="text-lg font-semibold mb-1" style={{ color: C.ink }}>{videoAccess.meeting.title}</h2>
-          <p className="text-sm mb-6" style={{ color: C.inkSoft }}>
-            Lien externe autorisé · jusqu'à {format(new Date(videoAccess.meeting.expiresAt), "HH:mm")}
-          </p>
-          <a href={videoAccess.meeting.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ background: C.copper }}>
-            Rejoindre la réunion <ArrowRight size={16} />
-          </a>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg p-6 flex items-center gap-4" style={{ border: `1px solid ${C.line}` }}>
-          <Calendar size={22} color={C.inkSoft} />
-          <p className="text-sm" style={{ color: C.inkSoft }}>Aucun lien externe de réunion en cours (accès externe distinct des vidéos préenregistrées).</p>
-        </div>
-      )}
+        )}
+      <Dialog open={Boolean(selected)} onOpenChange={open => {
+        if (!open) { requestId.current += 1; setSelected(null); setBusy(false); }
+      }}>
+        <DialogContent className="bg-white">
+          <DialogTitle style={{ color: C.ink }}>{w("Confirmer la participation", "Confirm participation")}</DialogTitle>
+          <DialogDescription style={{ color: C.inkSoft }}>
+            {w("Rejoindre « ", "Join “")}{selected?.title}{w(" » ? Votre caméra sera activée automatiquement pour que vous puissiez vous voir pendant la visioconférence. Autorisez son utilisation si votre navigateur le demande. Votre aperçu reste sur votre appareil, sans enregistrement ni transmission.", "”? Your camera will turn on automatically so you can see yourself during the video conference. Allow access if your browser asks. Your preview stays on your device and is not recorded or transmitted.")}
+          </DialogDescription>
+          {error && <p className="text-sm text-red-600" role="alert">{localizeVideoError(error, lang)}</p>}
+          <DialogFooter>
+            <button type="button" onClick={() => { requestId.current += 1; setSelected(null); setBusy(false); }} className="rounded-md px-4 py-2 text-sm" style={{ color: C.inkSoft }}>{w("Annuler", "Cancel")}</button>
+            <button type="button" onClick={() => selected && void join(selected)} disabled={busy} className="rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" style={{ background: C.blue }}>{busy ? w("Connexion…", "Connecting…") : w("Confirmer et rejoindre", "Confirm and join")}</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function localizeVideoError(message: string, lang: "fr" | "en"): string {
+  const apiMessage = localizeApiMessage(message, lang);
+  if (apiMessage !== message) return apiMessage;
+  const pairs: readonly (readonly [string, string])[] = [
+    ["Impossible de rejoindre cette visioconférence. L’accès a peut-être expiré.", "Unable to join this video conference. Access may have expired."],
+    ["Lien sécurisé indisponible.", "Secure link unavailable."],
+  ];
+  const pair = pairs.find(([french, english]) => message === french || message === english);
+  return pair ? pair[lang === "en" ? 1 : 0] : message;
 }

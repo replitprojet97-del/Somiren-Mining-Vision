@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WorkspaceProfilePhoto } from "@workspace/api-client-react";
 import { mediaRequest, uploadPrivateFile } from "@/lib/private-media";
+import { getActiveLanguage } from "@/lib/workspace-locale";
 
 export const workspaceProfilePhotoQueryKey = ["workspace", "me", "photo"] as const;
 
@@ -8,11 +9,16 @@ const MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024;
 const PROFILE_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function validateProfilePhoto(file: File): void {
+  const english = getActiveLanguage() === "en";
   if (!PROFILE_PHOTO_TYPES.has(file.type.toLowerCase())) {
-    throw new Error("Choisissez une image JPEG, PNG ou WebP. Les fichiers SVG ne sont pas acceptés.");
+    throw new Error(english
+      ? "Choose a JPEG, PNG or WebP image. SVG files are not accepted."
+      : "Choisissez une image JPEG, PNG ou WebP. Les fichiers SVG ne sont pas acceptés.");
   }
-  if (file.size <= 0) throw new Error("Le fichier image est vide.");
-  if (file.size > MAX_PROFILE_PHOTO_SIZE) throw new Error("La photo doit peser 5 Mo maximum.");
+  if (file.size <= 0) throw new Error(english ? "The image file is empty." : "Le fichier image est vide.");
+  if (file.size > MAX_PROFILE_PHOTO_SIZE) {
+    throw new Error(english ? "The photo must be no larger than 5 MB." : "La photo doit peser 5 Mo maximum.");
+  }
 }
 
 export function useProfilePhoto() {

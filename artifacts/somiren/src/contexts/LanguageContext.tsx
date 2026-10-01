@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import translations, { type Lang, type Translations } from "@/i18n/translations";
 
 type LanguageContextType = {
@@ -23,6 +23,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("somiren:lang", l);
     setLangState(l);
   };
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   return (
     <LanguageContext.Provider value={{ lang, t: translations[lang] as unknown as Translations, setLang }}>

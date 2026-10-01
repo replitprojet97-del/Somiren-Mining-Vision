@@ -114,6 +114,16 @@ const contactLimiter = rateLimit({
 });
 app.use("/api/contact", contactLimiter);
 
+app.use([
+  "/api/auth/login",
+  "/api/auth/2fa",
+  "/api/auth/logout",
+  "/api/workspace/security/2fa",
+], (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
+  next();
+});
 app.use(["/api/auth/session", "/api/admin/session"], sessionLimiter);
 app.use("/api/auth/logout", logoutLimiter);
 app.use("/api", apiLimiter);

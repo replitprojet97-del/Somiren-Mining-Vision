@@ -11,6 +11,12 @@ import { z } from "zod";
 import { getWorkspaceActor } from "./collaboratorAuth";
 import { cleanupReplacedProfilePhoto, consumeUpload, createDownloadUrl, getConsumedAsset } from "./privateMedia";
 import { isReferencePortraitEligible, isValidAudioMessage, videoSigningExpirySeconds } from "./privateMediaValidation";
+import { readableSessionDevice } from "../lib/session-device";
+import {
+  GetWorkspaceFinancialSummaryResponse, ListCollaboratorArrearsResponse,
+  GetWorkspaceVideoAccessResponse, JoinWorkspaceVideoMeetingBody, JoinWorkspaceVideoMeetingResponse,
+  ListWorkspaceSessionsResponse, RequestArrearTransferParams, RequestArrearTransferResponse,
+} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 const idSchema = z.coerce.number().int().positive();
@@ -313,10 +319,32 @@ router.patch("/workspace/notifications/read-all", requireWorkspaceWrite, async (
 router.get("/workspace/activity", async (_req, res): Promise<void> => { const current = actor(res); res.json({ activity: await db.select().from(activityLogsTable).where(eq(activityLogsTable.collaboratorId, current.id)).orderBy(desc(activityLogsTable.createdAt)).limit(100) }); });
 router.get("/workspace/video-access", async (_req, res): Promise<void> => {
   const current = actor(res); const now = new Date();
-  if (!current.permissions.includes("CAN_USE_VIDEO_CONFERENCE")) { res.json({ authorized: false, allowed: false, reason: "Permission CAN_USE_VIDEO_CONFERENCE requise." }); return; }
-  const [authorization] = await db.select().from(videoAuthorizationsTable).where(and(eq(videoAuthorizationsTable.collaboratorId, current.id), eq(videoAuthorizationsTable.isRevoked, false), lte(videoAuthorizationsTable.startsAt, now), gte(videoAuthorizationsTable.expiresAt, now))).limit(1);
-  if (!authorization) { res.json({ authorized: false, allowed: false, reason: "No active video authorization for this account." }); return; }
-  res.json({ authorized: true, allowed: true, meeting: { title: authorization.meetingTitle, url: authorization.meetingUrl, startsAt: authorization.startsAt, expiresAt: authorization.expiresAt } });
+  if (!current.permissions.includes("CAN_USE_VIDEO_CONFERENCE")) {
+    res.json(GetWorkspaceVideoAccessResponse.parse({
+      authorized: false, allowed: false, meetings: [], meeting: null, reason: "Permission CAN_USE_VIDEO_CONFERENCE requise.",
+    }));
+    return;
+  }
+  const authorizations = await db.select().from(videoAuthorizationsTable).where(and(
+    eq(videoAuthorizationsTable.collaboratorId, current.id),
+    eq(videoAuthorizationsTable.isRevoked, false),
+    lte(videoAuthorizationsTable.startsAt, now),
+    gte(videoAuthorizationsTable.expiresAt, now),
+  )).orderBy(asc(videoAuthorizationsTable.startsAt));
+  const meetings = authorizations.map(authorization => ({
+    id: authorization.id,
+    title: authorization.meetingTitle,
+    url: authorization.meetingUrl,
+    startsAt: authorization.startsAt,
+    expiresAt: authorization.expiresAt,
+  }));
+  res.json(GetWorkspaceVideoAccessResponse.parse({
+    authorized: meetings.length > 0,
+    allowed: meetings.length > 0,
+    meetings,
+    meeting: meetings[0] ?? null,
+    ...(meetings.length ? {} : { reason: "No active video authorization for this account." }),
+  }));
 });
 router.get("/workspace/me/permissions", (_req, res): void => {
   const permissions = actor(res).permissions;
@@ -421,7 +449,8 @@ router.post("/workspace/conversations/:id/messages", requirePermission("USE_INTE
   const current = actor(res);
   const result = await db.transaction(async tx => {
     const [conversation] = await tx.select().from(conversationsTable)
-      .where(and(eq(conversationsTable.id, id.data), eq(conversationsTable.collaboratorId, current.id))).limit(1);
+      .where(and(eq(conversationsTable.id, id.data), eq(conversationsTable.collaboratorId, current.id)))
+      .for("update").limit(1);
     if (!conversation) return { error: "Conversation not found" as const };
     let audio: Awaited<ReturnType<typeof consumeUpload>> = undefined;
     if (body.data.audioAssetId) {
@@ -464,18 +493,120 @@ router.get("/workspace/notes", async (_req, res): Promise<void> => { const curre
 router.post("/workspace/notes", requireWorkspaceWrite, async (req, res): Promise<void> => { const body = noteSchema.safeParse(req.body); if (!body.success) { res.status(400).json({ error: "Invalid note" }); return; } const current = actor(res); const [note] = await db.insert(strategicNotesTable).values({ ...body.data, collaboratorId: current.id }).returning(); res.status(201).json({ note }); });
 router.patch("/workspace/notes/:id", requireWorkspaceWrite, async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id), body = noteSchema.partial().refine(v => Object.keys(v).length > 0).safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid note update" }); return; } const current = actor(res); const [note] = await db.update(strategicNotesTable).set({ ...body.data, updatedAt: new Date() }).where(and(eq(strategicNotesTable.id, id.data), eq(strategicNotesTable.collaboratorId, current.id))).returning(); if (!note) { res.status(404).json({ error: "Note not found" }); return; } res.json({ note }); });
 router.get("/workspace/contacts", async (_req, res): Promise<void> => { const current = actor(res); res.json({ contacts: await db.select().from(contactsTable).where(or(eq(contactsTable.collaboratorId, current.id), sql`${contactsTable.collaboratorId} IS NULL`)).orderBy(asc(contactsTable.fullName)) }); });
-router.get("/workspace/me/financial-summary", requirePermission("VIEW_OWN_FINANCIAL_INFORMATION"), async (_req, res): Promise<void> => { const current = actor(res); const [summary] = await db.select().from(financialRecordsTable).where(eq(financialRecordsTable.collaboratorId, current.id)).orderBy(desc(financialRecordsTable.updatedAt)).limit(1); res.json({ summary: summary ?? null }); });
+router.get("/workspace/me/financial-summary", requirePermission("VIEW_OWN_FINANCIAL_INFORMATION"), async (_req, res): Promise<void> => { const current = actor(res); const [summary] = await db.select().from(financialRecordsTable).where(eq(financialRecordsTable.collaboratorId, current.id)).orderBy(desc(financialRecordsTable.updatedAt)).limit(1); res.json(GetWorkspaceFinancialSummaryResponse.parse({ summary: summary ?? null })); });
 router.get("/workspace/me/payments", requirePermission("VIEW_OWN_PAYMENT_HISTORY"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ payments: await db.select().from(paymentsTable).where(eq(paymentsTable.collaboratorId, current.id)).orderBy(desc(paymentsTable.createdAt)) }); });
-router.get("/workspace/me/arrears", requirePermission("VIEW_OWN_ARREARS"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ arrears: await db.select().from(arrearsTable).where(eq(arrearsTable.collaboratorId, current.id)).orderBy(desc(arrearsTable.createdAt)) }); });
+router.get("/workspace/me/arrears", requirePermission("VIEW_OWN_ARREARS"), async (_req, res): Promise<void> => {
+  const current = actor(res);
+  const arrears = await db.select().from(arrearsTable)
+    .where(eq(arrearsTable.collaboratorId, current.id)).orderBy(desc(arrearsTable.createdAt));
+  res.json(ListCollaboratorArrearsResponse.parse({ arrears }));
+});
+router.post("/workspace/me/arrears/:id/transfer-request", requirePermission("VIEW_OWN_ARREARS"), async (req, res): Promise<void> => {
+  const params = RequestArrearTransferParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid arrear id" }); return; }
+  const current = actor(res);
+  const result = await db.transaction(async tx => {
+    const [arrear] = await tx.select().from(arrearsTable).where(and(
+      eq(arrearsTable.id, params.data.id),
+      eq(arrearsTable.collaboratorId, current.id),
+    )).for("update").limit(1);
+    if (!arrear) return { error: "Arrear not found", status: 404 };
+    if (arrear.status === "settled" || arrear.status === "archived") {
+      return { error: "A resolved arrear cannot receive a transfer request", status: 409 };
+    }
+    if (arrear.transferRequestedAt || arrear.transferRequestStatus) {
+      return { error: "A transfer request already exists for this arrear", status: 409 };
+    }
+    const now = new Date();
+    const [updated] = await tx.update(arrearsTable).set({
+      transferRequestedAt: now,
+      transferRequestStatus: "pending",
+      updatedAt: now,
+    }).where(and(
+      eq(arrearsTable.id, arrear.id),
+      eq(arrearsTable.collaboratorId, current.id),
+    )).returning();
+    const admins = await tx.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.role, "ADMIN"), eq(collaboratorsTable.isActive, true)));
+    if (admins.length) {
+      await tx.insert(notificationsTable).values(admins.map(admin => ({
+        collaboratorId: admin.id,
+        title: "Demande de régularisation reçue",
+        body: `${current.fullName} a demandé une régularisation pour la période ${arrear.periodLabel}.`,
+      })));
+    }
+    await tx.insert(activityLogsTable).values({
+      collaboratorId: current.id,
+      entityType: "arrear",
+      entityId: arrear.id,
+      action: "transfer_requested",
+      details: { periodLabel: arrear.periodLabel },
+    });
+    return { arrear: updated };
+  });
+  if ("error" in result) { res.status(result.status ?? 400).json({ error: result.error }); return; }
+  res.status(201).json(RequestArrearTransferResponse.parse({ arrear: result.arrear }));
+});
 const requirementSchema = z.object({ title: textSchema.max(300), details: z.string().max(5000).optional(), status: z.enum(["pending", "submitted", "accepted", "rejected"]).optional() });
 router.get("/workspace/me/payment-requirements", requirePermission("VIEW_OWN_PAYMENT_REQUIREMENTS"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ requirements: await db.select().from(paymentRequirementsTable).where(eq(paymentRequirementsTable.collaboratorId, current.id)).orderBy(desc(paymentRequirementsTable.updatedAt)) }); });
 router.post("/workspace/me/payment-requirements", requirePermission("SUBMIT_PAYMENT_DOCUMENTS"), async (req, res): Promise<void> => { const body = requirementSchema.safeParse(req.body); if (!body.success) { res.status(400).json({ error: "Invalid payment requirement" }); return; } const current = actor(res); const [requirement] = await db.insert(paymentRequirementsTable).values({ ...body.data, collaboratorId: current.id }).returning(); res.status(201).json({ requirement }); });
 router.patch("/workspace/me/payment-requirements/:id", requirePermission("SUBMIT_PAYMENT_DOCUMENTS"), async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id), body = requirementSchema.partial().refine(v => Object.keys(v).length > 0).safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid payment requirement update" }); return; } const current = actor(res); const [requirement] = await db.update(paymentRequirementsTable).set({ ...body.data, updatedAt: new Date() }).where(and(eq(paymentRequirementsTable.id, id.data), eq(paymentRequirementsTable.collaboratorId, current.id))).returning(); if (!requirement) { res.status(404).json({ error: "Requirement not found" }); return; } res.json({ requirement }); });
 router.post("/workspace/me/payment-requirements/:id/documents", requirePermission("SUBMIT_PAYMENT_DOCUMENTS"), async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id), body = z.object({ title: textSchema.max(300), contentType: z.string().max(255).optional(), objectPath: z.string().max(2000).optional() }).safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid document metadata" }); return; } const current = actor(res); const [requirement] = await db.select().from(paymentRequirementsTable).where(and(eq(paymentRequirementsTable.id, id.data), eq(paymentRequirementsTable.collaboratorId, current.id))); if (!requirement) { res.status(404).json({ error: "Requirement not found" }); return; } if (!body.data.objectPath) { res.status(501).json({ error: "Private document byte uploads are not enabled; no document was submitted." }); return; } const [document] = await db.insert(paymentRequirementDocumentsTable).values({ ...body.data, requirementId: requirement.id, submittedById: current.id }).returning(); res.status(201).json({ document }); });
-router.get("/workspace/sessions", async (req, res): Promise<void> => { const current = actor(res); const token = req.cookies?.somiren_collaborator_session; const crypto = await import("node:crypto"); const currentHash = typeof token === "string" ? crypto.createHash("sha256").update(token).digest("hex") : ""; const sessions = await db.select({ id: collaboratorSessionsTable.id, expiresAt: collaboratorSessionsTable.expiresAt, lastActiveAt: collaboratorSessionsTable.lastActiveAt, createdAt: collaboratorSessionsTable.createdAt, tokenHash: collaboratorSessionsTable.tokenHash }).from(collaboratorSessionsTable).where(eq(collaboratorSessionsTable.collaboratorId, current.id)); res.json({ sessions: sessions.map(({ tokenHash, ...session }) => ({ ...session, current: tokenHash === currentHash })) }); });
+router.get("/workspace/sessions", async (req, res): Promise<void> => {
+  const current = actor(res);
+  const token = req.cookies?.somiren_collaborator_session;
+  const crypto = await import("node:crypto");
+  const currentHash = typeof token === "string" ? crypto.createHash("sha256").update(token).digest("hex") : "";
+  const sessions = await db.select({
+    id: collaboratorSessionsTable.id,
+    expiresAt: collaboratorSessionsTable.expiresAt,
+    lastActiveAt: collaboratorSessionsTable.lastActiveAt,
+    createdAt: collaboratorSessionsTable.createdAt,
+    browserName: collaboratorSessionsTable.browserName,
+    osName: collaboratorSessionsTable.osName,
+    current: sql<boolean>`${collaboratorSessionsTable.tokenHash} = ${currentHash}`,
+  }).from(collaboratorSessionsTable).where(eq(collaboratorSessionsTable.collaboratorId, current.id));
+  res.json(ListWorkspaceSessionsResponse.parse({
+    sessions: sessions.map((session) => ({
+      ...session,
+      device: readableSessionDevice(session.browserName, session.osName),
+    })),
+  }));
+});
 router.delete("/workspace/sessions/:id", async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id); if (!id.success) { res.status(400).json({ error: "Invalid session id" }); return; } const current = actor(res); const deleted = await db.delete(collaboratorSessionsTable).where(and(eq(collaboratorSessionsTable.id, id.data), eq(collaboratorSessionsTable.collaboratorId, current.id))).returning({ id: collaboratorSessionsTable.id }); if (!deleted.length) { res.status(404).json({ error: "Session not found" }); return; } res.status(204).end(); });
 router.get("/workspace/activity-log", async (_req, res): Promise<void> => { const current = actor(res); res.json({ activity: await db.select().from(activityLogsTable).where(eq(activityLogsTable.collaboratorId, current.id)).orderBy(desc(activityLogsTable.createdAt)).limit(100) }); });
 router.post("/workspace/video/create", requirePermission("CAN_CREATE_VIDEO_CONFERENCE"), requirePermission("CAN_USE_VIDEO_CONFERENCE"), (_req, res): void => { res.status(501).json({ error: "Video conference provisioning is not configured." }); });
-router.post("/workspace/video/join", requirePermission("CAN_USE_VIDEO_CONFERENCE"), async (_req, res): Promise<void> => { const current = actor(res); const now = new Date(); const [authorization] = await db.select().from(videoAuthorizationsTable).where(and(eq(videoAuthorizationsTable.collaboratorId, current.id), eq(videoAuthorizationsTable.isRevoked, false), lte(videoAuthorizationsTable.startsAt, now), gte(videoAuthorizationsTable.expiresAt, now))).limit(1); if (!authorization) { res.status(403).json({ error: "No active video authorization." }); return; } res.json({ meetingUrl: authorization.meetingUrl, expiresAt: authorization.expiresAt }); });
+router.post("/workspace/video/join", requirePermission("CAN_USE_VIDEO_CONFERENCE"), async (req, res): Promise<void> => {
+  const body = z.object({ authorizationId: idSchema }).strict().safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "A valid video authorization id is required" }); return; }
+  const contractBody = JoinWorkspaceVideoMeetingBody.strict().safeParse(body.data);
+  if (!contractBody.success) { res.status(400).json({ error: "A valid video authorization id is required" }); return; }
+  const current = actor(res);
+  const now = new Date();
+  const authorization = await db.transaction(async tx => {
+    const [active] = await tx.select().from(videoAuthorizationsTable).where(and(
+      eq(videoAuthorizationsTable.id, body.data.authorizationId),
+      eq(videoAuthorizationsTable.collaboratorId, current.id),
+      eq(videoAuthorizationsTable.isRevoked, false),
+      lte(videoAuthorizationsTable.startsAt, now),
+      gte(videoAuthorizationsTable.expiresAt, now),
+    )).for("update").limit(1);
+    if (!active) return null;
+    await tx.insert(activityLogsTable).values({
+      collaboratorId: current.id,
+      entityType: "video_authorization",
+      entityId: active.id,
+      action: "joined",
+      details: { meetingTitle: active.meetingTitle },
+    });
+    return active;
+  });
+  if (!authorization) { res.status(403).json({ error: "This video authorization is expired, revoked, or not assigned to this account." }); return; }
+  res.json(JoinWorkspaceVideoMeetingResponse.parse({
+    meetingUrl: authorization.meetingUrl,
+    authorizationId: authorization.id,
+    expiresAt: authorization.expiresAt,
+  }));
+});
 
 export default router;

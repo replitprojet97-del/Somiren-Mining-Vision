@@ -1,7 +1,93 @@
 import { ArrowRight } from "lucide-react";
 import { C } from "@/lib/theme";
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
+
+const PILL_LABELS: Record<string, readonly [string, string]> = {
+  "Haute": ["Haute", "High"],
+  "High": ["Haute", "High"],
+  "Urgente": ["Urgente", "Urgent"],
+  "Moyenne": ["Moyenne", "Medium"],
+  "Medium": ["Moyenne", "Medium"],
+  "Normale": ["Normale", "Normal"],
+  "Basse": ["Basse", "Low"],
+  "Low": ["Basse", "Low"],
+  "Urgent": ["Urgent", "Urgent"],
+  "Normal": ["Normal", "Normal"],
+  "Activée": ["Activée", "Enabled"],
+  "Non configurée": ["Non configurée", "Not configured"],
+  "Session actuelle": ["Session actuelle", "Current session"],
+  "Current session": ["Session actuelle", "Current session"],
+  "Partagée": ["Partagée", "Shared"],
+  "Shared": ["Partagée", "Shared"],
+  "Privée": ["Privée", "Private"],
+  "Private": ["Privée", "Private"],
+  "Terminée": ["Terminée", "Completed"],
+  "Completed": ["Terminée", "Completed"],
+  "À faire": ["À faire", "To do"],
+  "To do": ["À faire", "To do"],
+  "En cours": ["En cours", "In progress"],
+  "In progress": ["En cours", "In progress"],
+  "À traiter": ["À traiter", "To review"],
+  "To review": ["À traiter", "To review"],
+  "Nouveau": ["Nouveau", "New"],
+  "New": ["Nouveau", "New"],
+  "Nouvelle": ["Nouvelle", "New"],
+  "Transmis": ["Transmis", "Submitted"],
+  "Submitted": ["Transmis", "Submitted"],
+  "Terminé": ["Terminé", "Completed"],
+  "Acceptée": ["Acceptée", "Accepted"],
+  "Accepted": ["Acceptée", "Accepted"],
+  "Refusée": ["Refusée", "Declined"],
+  "Declined": ["Refusée", "Declined"],
+  "Acknowledged": ["Prise en compte", "Acknowledged"],
+  "En attente": ["En attente", "Pending"],
+  "Réglé": ["Réglé", "Settled"],
+  "Ouvert": ["Ouvert", "Open"],
+  "Open": ["Ouvert", "Open"],
+  "Archivé": ["Archivé", "Archived"],
+  "Suspendu": ["Suspendu", "On hold"],
+  "En retard": ["En retard", "Overdue"],
+  "Versé": ["Versé", "Paid"],
+  "Non versé": ["Non versé", "Unpaid"],
+  "Non communiqué": ["Non communiqué", "Not provided"],
+  "Programmée": ["Programmée", "Scheduled"],
+  "Scheduled": ["Programmée", "Scheduled"],
+  "Visioconférence (voir Visioconférences)": ["Visioconférence (voir Visioconférences)", "Video conference (see Video conferences)"],
+  "Standard": ["Standard", "Standard"],
+  "Autorisé": ["Autorisé", "Authorized"],
+  "Authorized": ["Autorisé", "Authorized"],
+  "Non autorisé": ["Non autorisé", "Not authorized"],
+  "COMPLETED": ["Terminé", "Completed"],
+  "ACTIVE": ["En cours", "In progress"],
+  "WAITING": ["À traiter", "To review"],
+  "received": ["Nouveau", "New"],
+  "new": ["Nouveau", "New"],
+  "in_progress": ["En cours", "In progress"],
+  "active": ["En cours", "In progress"],
+  "waiting": ["À traiter", "To review"],
+  "submitted": ["Transmis", "Submitted"],
+  "completed": ["Terminé", "Completed"],
+  "on_hold": ["Suspendu", "On hold"],
+  "pending": ["En attente", "Pending"],
+  "paid": ["Versé", "Paid"],
+  "sent": ["Versé", "Paid"],
+  "overdue": ["En retard", "Overdue"],
+  "accepted": ["Acceptée", "Accepted"],
+  "rejected": ["Refusée", "Declined"],
+  "declined": ["Refusée", "Declined"],
+  "acknowledged": ["Prise en compte", "Acknowledged"],
+  "validated": ["Validée", "Validated"],
+  "revision_required": ["Révision requise", "Revision required"],
+  "DONE": ["Terminée", "Completed"],
+  "todo": ["À faire", "To do"],
+  "done": ["Terminée", "Completed"],
+  "open": ["Ouvert", "Open"],
+  "settled": ["Réglé", "Settled"],
+  "archived": ["Archivé", "Archived"],
+};
 
 export function Pill({ tone = "neutral", children }: { tone?: string, children: React.ReactNode }) {
+  const { lang } = useWorkspaceLocale();
   const tones: Record<string, { bg: string, fg: string }> = {
     neutral: { bg: "#EEF1F3", fg: C.inkSoft },
     haute: { bg: C.redBg, fg: C.red },
@@ -10,20 +96,25 @@ export function Pill({ tone = "neutral", children }: { tone?: string, children: 
     info: { bg: C.blueBg, fg: C.blue },
   };
   const t = tones[tone] || tones.neutral;
+  const pillLabel = typeof children === "string"
+    ? PILL_LABELS[children] ?? Object.entries(PILL_LABELS).find(([key]) => key.toLocaleLowerCase() === children.toLocaleLowerCase())?.[1]
+    : undefined;
+  const label = pillLabel ? pillLabel[lang === "en" ? 1 : 0] : children;
   return (
     <span
       style={{ background: t.bg, color: t.fg }}
       className="text-xs font-medium px-2 py-0.5 rounded-md whitespace-nowrap"
     >
-      {children}
+      {label}
     </span>
   );
 }
 
 export function priorityTone(p: string) {
-  if (p === "Haute" || p === "urgent" || p === "high") return "haute";
-  if (p === "Moyenne" || p === "normal") return "moyenne";
-  if (p === "Basse" || p === "low") return "basse";
+  const priority = p.trim().toLowerCase();
+  if (["haute", "urgent", "high"].includes(priority)) return "haute";
+  if (["moyenne", "medium", "normal"].includes(priority)) return "moyenne";
+  if (["basse", "low"].includes(priority)) return "basse";
   return "neutral";
 }
 
