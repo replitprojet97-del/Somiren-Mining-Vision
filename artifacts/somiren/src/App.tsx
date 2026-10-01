@@ -15,8 +15,16 @@ import { useProtection } from "@/hooks/useProtection";
 import WorkspaceLayout from "@/pages/workspace/WorkspaceLayout";
 import CollaboratorLogin from "@/pages/workspace/CollaboratorLogin";
 import { WorkspaceAuthProvider, useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
+import { shouldRetryApiRequest } from "@/lib/api-error";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: shouldRetryApiRequest,
+    },
+  },
+});
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 

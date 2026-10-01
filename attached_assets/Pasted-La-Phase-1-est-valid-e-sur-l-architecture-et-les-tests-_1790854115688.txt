@@ -1,0 +1,68 @@
+La Phase 1 est validée sur l'architecture et les tests automatisés.
+
+Cependant, je ne veux PAS commencer la Phase 2 tant que l'appel réel à Mistral ne fonctionne pas.
+
+Le test réel retourne :
+
+HTTP 429 — RATE_LIMITED
+
+avec "mistral-small-2603".
+
+Objectif
+
+Diagnostiquer précisément la cause du 429 et faire fonctionner UNE génération réelle avec Mistral.
+
+À vérifier
+
+1. Vérifie que "AI_API_KEY" est bien la clé Mistral attendue par l'API.
+2. Vérifie que la clé possède bien les droits nécessaires pour l'API de génération de texte.
+3. Vérifie que le compte/workspace Mistral utilisé est bien celui associé à cette clé.
+4. Vérifie le statut réel de l'offre gratuite et les éventuelles limites applicables au compte.
+5. Vérifie que "mistral-small-2603" est actuellement disponible et utilisable avec cette clé.
+6. Vérifie si le 429 provient :
+   - d'une limite de requêtes ;
+   - d'une limite de tokens ;
+   - d'une limite liée au modèle ;
+   - du compte ;
+   - de la clé ;
+   - ou d'une autre restriction Mistral.
+7. Si l'API fournit des informations supplémentaires dans les headers ou le corps de l'erreur, analyse-les.
+8. Vérifie également que notre code ne provoque pas plusieurs appels involontaires.
+
+IMPORTANT
+
+Ne change pas de fournisseur.
+
+Ne passe pas à Gemini.
+
+Ne lance aucune autre phase.
+
+Ne crée aucune table.
+
+Ne crée aucune interface.
+
+Ne modifie pas l'architecture AIProvider / AIService sauf si le diagnostic montre un problème réel.
+
+Ne désactive pas le garde-fou "AI_FREE_TIER_CONFIRMED".
+
+Ne mets aucun mécanisme de paiement automatique.
+
+Test final demandé
+
+Après diagnostic, si aucune modification payante ou configuration externe supplémentaire n'est nécessaire, effectue UNE seule requête réelle avec un texte fictif très court, par exemple :
+
+"Rédige une courte lettre professionnelle de demande de rendez-vous."
+
+Ne transmet aucune donnée réelle d'utilisateur.
+
+Si la génération fonctionne, indique-moi :
+
+- le modèle utilisé ;
+- le résultat du test ;
+- le statut HTTP ;
+- la cause du 429 initial ;
+- les éventuelles modifications effectuées.
+
+Si la génération ne fonctionne toujours pas, arrête-toi et indique-moi précisément ce qui bloque.
+
+N'avance pas vers la Phase 2 tant que je ne t'ai pas donné mon accord.

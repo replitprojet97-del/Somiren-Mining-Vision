@@ -232,6 +232,7 @@ export default function ShipmentsView() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const load = useCallback(() => {
+    setError(null);
     setLoading(true);
     api.get("/admin/shipments").then(r => setShipments(r.shipments || [])).catch(err => setError(err.error || "Erreur de chargement")).finally(()=>setLoading(false));
   }, [api]);

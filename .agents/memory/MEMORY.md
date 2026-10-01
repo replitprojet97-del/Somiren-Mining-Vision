@@ -1,0 +1,7 @@
+- [Imported workspace dependency restoration](workspace-dependency-restoration.md) — package installation callbacks cannot express a locked pnpm workspace restore.
+- [Navigation throttling incident](navigation-throttling.md) — normal collaborator browsing previously exhausted a shared quota and blocked sign-in and logout.
+- [Reference image fidelity](reference-image-fidelity.md) — reference photo crops were chosen over different imported images; live account data must stay real.
+- [Mistral quota diagnosis](mistral-quota-diagnosis.md) — advertised limits and unused allowances do not prove effective generation access; inspect sanitized response headers.
+- [Render verification and publishing](render-verification.md) — duplicate API services can mislead; verify domain ownership and live API routing before acting. GitHub pushes can auto-deploy.
+- [Orval generation compatibility](orval-generation-compatibility.md) — the generator's default Zod version can conflict with this workspace's dependencies; worker bundles need ESM output.
+- [Supabase private storage REST](supabase-private-storage-rest.md) — signed upload and file-info payloads differ from legacy SDK assumptions; verify against the live REST response.

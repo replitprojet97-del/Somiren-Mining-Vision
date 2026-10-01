@@ -5,6 +5,7 @@ import { useLocation, Link } from "wouter";
 import { useLang } from "@/contexts/LanguageContext";
 import type { Lang } from "@/i18n/translations";
 import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
+import { toast } from "sonner";
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: "fr", label: "FR" },
@@ -80,9 +81,13 @@ export default function Header() {
   const isSignedIn = Boolean(profile);
 
   const handleLogout = async () => {
-    await logout();
-    setMobileMenuOpen(false);
-    setLocation("/");
+    try {
+      await logout();
+      setMobileMenuOpen(false);
+      setLocation("/");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Déconnexion impossible.");
+    }
   };
 
   useEffect(() => {

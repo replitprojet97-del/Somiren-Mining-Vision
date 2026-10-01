@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiBase } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 type WorkspaceProfile = {
   id: number;
@@ -31,10 +32,7 @@ async function authRequest(path: string, options?: RequestInit) {
     },
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    const error = new Error(body.error || "Une erreur est survenue.") as Error & { status: number };
-    error.status = response.status;
-    throw error;
+    throw await readApiError(response);
   }
   return response.status === 204 ? null : response.json();
 }
@@ -78,12 +76,9 @@ export function WorkspaceAuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const logout = useCallback(async () => {
-    try {
-      await authRequest("/auth/logout", { method: "POST" });
-    } finally {
-      queryClient.clear();
-      setProfile(null);
-    }
+    await authRequest("/auth/logout", { method: "POST" });
+    queryClient.clear();
+    setProfile(null);
   }, [queryClient]);
 
   const value = useMemo(

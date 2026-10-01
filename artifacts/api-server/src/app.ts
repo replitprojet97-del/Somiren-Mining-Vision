@@ -6,6 +6,7 @@ import { rateLimit } from "express-rate-limit";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { apiLimiter, sessionLimiter, logoutLimiter } from "./lib/requestLimits";
 
 const app: Express = express();
 app.set("trust proxy", 1);
@@ -86,7 +87,7 @@ app.use("/api", (req, res, next) => {
   }
   const origin = req.get("origin");
   if (!origin) {
-    if (req.path.startsWith("/auth/") || req.path.startsWith("/workspace/") || req.path.startsWith("/admin/")) {
+    if (req.path.startsWith("/auth/") || req.path.startsWith("/workspace/") || req.path.startsWith("/admin/") || req.path.startsWith("/storage/") || req.path.startsWith("/conversations")) {
       res.status(403).json({ error: "Origine requise." });
       return;
     }
@@ -113,13 +114,9 @@ const contactLimiter = rateLimit({
 });
 app.use("/api/contact", contactLimiter);
 
-// Global API rate limit: 100 req / 15 min per IP
-app.use("/api", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-}));
+app.use(["/api/auth/session", "/api/admin/session"], sessionLimiter);
+app.use("/api/auth/logout", logoutLimiter);
+app.use("/api", apiLimiter);
 
 app.use("/api", router);
 

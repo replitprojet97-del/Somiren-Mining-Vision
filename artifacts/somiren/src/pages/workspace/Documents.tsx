@@ -8,7 +8,9 @@ import { fr } from "date-fns/locale";
 
 export default function Documents() {
   const [tab, setTab] = useState("Tous les documents");
-  const { data: documents, isLoading } = useDocuments();
+  const { data: documents, isLoading, isError, refetch } = useDocuments();
+  const [search, setSearch] = useState("");
+  const filtered = (documents || []).filter((d: any) => (!search || String(d.title || "").toLocaleLowerCase("fr").includes(search.toLocaleLowerCase("fr"))) && (tab === "Tous les documents" || d.category === tab));
 
   if (isLoading) return <div className="p-8 flex justify-center">Chargement...</div>;
 
@@ -22,12 +24,17 @@ export default function Documents() {
             <input
               type="text"
               placeholder="Rechercher un document..."
+              aria-label="Rechercher dans la bibliothèque des dossiers"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm rounded-md w-full md:w-64"
               style={{ border: `1px solid ${C.line}`, background: "white" }}
             />
           </div>
         </div>
       </div>
+
+      {isError && <p role="alert" className="text-sm text-red-600">Bibliothèque indisponible. <button className="underline" onClick={() => refetch()}>Réessayer</button></p>}
 
       <Tabs tabs={["Tous les documents", "Rapports", "Contrats", "Stratégie", "Procédures"]} active={tab} setActive={setTab} />
 
@@ -44,14 +51,14 @@ export default function Documents() {
               </tr>
             </thead>
             <tbody>
-              {!documents?.length ? (
+              {!filtered.length ? (
                 <tr>
                   <td colSpan={5} className="py-8">
                     <EmptyState icon={FileText} text="Aucun document dans la bibliothèque." />
                   </td>
                 </tr>
               ) : (
-                documents.map((d: any) => (
+                filtered.map((d: any) => (
                   <tr key={d.id} className="hover:bg-gray-50 transition-colors" style={{ borderBottom: `1px solid ${C.line}` }}>
                     <td className="px-5 py-4 min-w-[250px]">
                       <p className="font-medium" style={{ color: C.ink }}>{d.title}</p>

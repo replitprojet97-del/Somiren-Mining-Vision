@@ -1,12 +1,14 @@
 import { Bell, CheckCircle2 } from "lucide-react";
 import { C } from "@/lib/theme";
 import { Pill, EmptyState } from "./components/UI";
-import { useNotifications, useMarkNotificationRead } from "@/hooks/use-workspace";
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/hooks/use-workspace";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function Notifications() {
-  const { data: notifications, isLoading } = useNotifications();
+  const { data: notifications, isLoading, dataUpdatedAt } = useNotifications();
+  const markAll = useMarkAllNotificationsRead();
+  const unread = (notifications || []).filter((n: any) => !n.isRead).length;
   const markRead = useMarkNotificationRead();
 
   if (isLoading) return <div className="p-8 flex justify-center">Chargement...</div>;
@@ -15,9 +17,12 @@ export default function Notifications() {
     <div className="space-y-5">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-xl font-semibold" style={{ color: C.ink }}>Notifications</h1>
-        <button disabled className="text-sm font-medium opacity-50 cursor-not-allowed" style={{ color: C.copper }}>
+        <div className="flex items-center gap-4">
+        {dataUpdatedAt > 0 && <span className="text-[11px]" style={{ color: C.inkFaint }}>Actualisé à {new Date(dataUpdatedAt).toLocaleTimeString("fr-FR")}</span>}
+        <button onClick={() => markAll.mutate()} disabled={!unread || markAll.isPending} className="text-sm font-medium disabled:opacity-50" style={{ color: C.copper }} data-testid="button-read-all">
           Tout marquer comme lu
         </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg overflow-hidden" style={{ border: `1px solid ${C.line}` }}>

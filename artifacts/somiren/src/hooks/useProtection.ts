@@ -14,6 +14,9 @@ export function useProtection() {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (typeof e.key !== "string") {
+        return;
+      }
       const ctrl = e.ctrlKey || e.metaKey;
       const key = e.key.toUpperCase();
 

@@ -1,0 +1,69 @@
+Ton analyse est validée.
+
+Tu peux commencer l'implémentation, mais UNIQUEMENT avec cette première étape :
+
+PHASE 1 — AIProvider + AIService + Mistral
+
+Objectif : mettre en place la couche IA côté backend, sans encore créer l'interface documentaire complète.
+
+À faire
+
+1. Créer l'abstraction "AIProvider".
+2. Créer "AIService".
+3. Créer l'adaptateur Mistral.
+4. Utiliser "AI_API_KEY" côté serveur uniquement.
+5. Utiliser "AI_MODEL" pour choisir le modèle.
+6. Faire passer tous les appels IA par "AIService".
+7. Prévoir une architecture permettant de remplacer Mistral plus tard.
+8. Ajouter uniquement les dépendances réellement nécessaires.
+9. Ajouter les variables d'environnement nécessaires, sans jamais inscrire de clé réelle dans le code.
+10. Ajouter un test simple permettant de vérifier que le service peut générer un court texte professionnel en français.
+
+IMPORTANT
+
+Pour cette phase :
+
+- Ne crée pas encore les tables "ai_document_*".
+- Ne crée pas encore l'interface ADMIN.
+- Ne crée pas encore le système de conversation.
+- Ne crée pas encore les PDF/DOCX.
+- Ne crée pas encore le stockage.
+- Ne crée pas encore l'envoi aux utilisateurs.
+- Ne modifie pas l'espace utilisateur.
+- Ne modifie pas l'authentification existante.
+
+Le backend doit simplement disposer d'un service IA propre et isolé.
+
+Sécurité
+
+- La clé API doit rester exclusivement côté serveur.
+- Ne jamais exposer la clé au frontend.
+- Ne jamais écrire de clé réelle dans le dépôt.
+- Ne jamais envoyer de données utilisateur à l'IA pendant ce test.
+- L'IA ne doit disposer d'aucun outil permettant d'agir sur l'application ou la base de données.
+
+Coût
+
+Nous voulons utiliser l'offre gratuite de Mistral.
+
+Il ne doit y avoir aucun basculement automatique vers une offre payante.
+
+Si la limite gratuite est atteinte, le service doit retourner une erreur claire plutôt que générer automatiquement une dépense.
+
+APRÈS L'IMPLÉMENTATION
+
+Ne continue pas vers les autres phases.
+
+Fais uniquement cette Phase 1.
+
+Puis présente-moi brièvement :
+
+- les fichiers créés/modifiés ;
+- les dépendances ajoutées ;
+- les variables d'environnement nécessaires ;
+- le modèle Mistral configuré ;
+- le fonctionnement de "AIProvider" et "AIService" ;
+- le résultat du test ;
+- les éventuels problèmes rencontrés.
+
+Ensuite, ATTENDS MON ACCORD avant de poursuivre.

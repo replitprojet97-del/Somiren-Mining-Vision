@@ -27,6 +27,7 @@ export function Sidebar({ nav, active, setActive, collapsed, setCollapsed, mobil
               <button key={item.id} onClick={() => { setActive(item.id); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors" style={{ background: isActive ? C.navySoft : "transparent", color: isActive ? "white" : "#A9BAC7", borderLeft: isActive ? `3px solid ${C.accent}` : "3px solid transparent" }} title={collapsed ? item.label : undefined}>
                 <Icon size={17} className="shrink-0" />
                 {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+                {item.badge > 0 && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ background: C.red }} aria-label={`${item.badge} non lues`} data-testid={`badge-${item.id}`}>{item.badge > 99 ? "99+" : item.badge}</span>}
               </button>
             );
           })}

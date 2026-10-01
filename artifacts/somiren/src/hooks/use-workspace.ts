@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { getApiBase } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
+import { mediaRequest } from "@/lib/private-media";
+
+const POLL = 20_000;
 
 const fetchWithAuth = async (url: string, token: string | null, options?: RequestInit) => {
   const res = await fetch(`${getApiBase()}${url}`, {
@@ -13,9 +17,7 @@ const fetchWithAuth = async (url: string, token: string | null, options?: Reques
     credentials: "include",
   });
   if (!res.ok) {
-    const payload = await res.json().catch(() => ({}));
-    const error = new Error(payload.error || `API Error: ${res.statusText}`) as Error & { status: number };
-    error.status = res.status;
+    const error = await readApiError(res, `API Error: ${res.statusText}`);
     if (res.status === 401) window.dispatchEvent(new Event("workspace:unauthorized"));
     throw error;
   }
@@ -40,19 +42,21 @@ export const useMe = () => {
   });
 };
 
-export const useDashboard = () => {
+export const useDashboard = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "dashboard"],
     queryFn: async () => api("/workspace/dashboard"),
+    enabled,
   });
 };
 
-export const useCases = () => {
+export const useCases = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "cases"],
     queryFn: async () => (await api("/workspace/cases")).cases,
+    enabled,
   });
 };
 
@@ -82,11 +86,12 @@ export const useUpdateCase = () => {
   });
 };
 
-export const useTasks = () => {
+export const useTasks = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "tasks"],
     queryFn: async () => (await api("/workspace/tasks")).tasks,
+    enabled,
   });
 };
 
@@ -114,11 +119,13 @@ export const useDocuments = () => {
   });
 };
 
-export const useNotifications = () => {
+export const useNotifications = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "notifications"],
     queryFn: async () => (await api("/workspace/notifications")).notifications,
+    enabled,
+    refetchInterval: POLL,
   });
 };
 
@@ -145,20 +152,24 @@ export const useActivity = () => {
   });
 };
 
-export const useVideoAccess = () => {
+export const useVideoAccess = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "video-access"],
     queryFn: async () => api("/workspace/video-access"),
+    enabled,
+    refetchInterval: POLL,
   });
 };
 
 // New Hooks
-export const useReceivedDocuments = () => {
+export const useReceivedDocuments = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "documents", "received"],
     queryFn: async () => (await api("/workspace/documents/received")).documents,
+    enabled,
+    refetchInterval: POLL,
   });
 };
 
@@ -171,15 +182,20 @@ export const useUpdateReceivedDocument = () => {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "documents", "received"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace", "documents"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace", "notifications"] });
+    },
   });
 };
 
-export const useRequests = () => {
+export const useRequests = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "requests"],
     queryFn: async () => (await api("/workspace/requests")).requests,
+    enabled,
   });
 };
 
@@ -196,19 +212,23 @@ export const useUpdateRequest = () => {
   });
 };
 
-export const useMeetings = () => {
+export const useMeetings = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "meetings"],
     queryFn: async () => (await api("/workspace/meetings")).meetings,
+    enabled,
+    refetchInterval: POLL,
   });
 };
 
-export const useConversations = () => {
+export const useConversations = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "conversations"],
     queryFn: async () => (await api("/workspace/conversations")).conversations,
+    enabled,
+    refetchInterval: POLL,
   });
 };
 
@@ -225,11 +245,12 @@ export const useCreateConversation = () => {
   });
 };
 
-export const useNotes = () => {
+export const useNotes = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "notes"],
     queryFn: async () => (await api("/workspace/notes")).notes,
+    enabled,
   });
 };
 
@@ -267,35 +288,39 @@ export const useContacts = () => {
   });
 };
 
-export const useFinanceSummary = () => {
+export const useFinanceSummary = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "finance", "summary"],
     queryFn: async () => (await api("/workspace/me/financial-summary")).summary,
+    enabled,
   });
 };
 
-export const usePayments = () => {
+export const usePayments = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "finance", "payments"],
     queryFn: async () => (await api("/workspace/me/payments")).payments,
+    enabled,
   });
 };
 
-export const useArrears = () => {
+export const useArrears = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "finance", "arrears"],
     queryFn: async () => (await api("/workspace/me/arrears")).arrears,
+    enabled,
   });
 };
 
-export const usePaymentRequirements = () => {
+export const usePaymentRequirements = (enabled = true) => {
   const api = useApiClient();
   return useQuery({
     queryKey: ["workspace", "finance", "requirements"],
     queryFn: async () => (await api("/workspace/me/payment-requirements")).requirements,
+    enabled,
   });
 };
 
@@ -316,5 +341,101 @@ export const useRevokeSession = () => {
         method: "DELETE",
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace", "sessions"] }),
+  });
+};
+
+const json = (data: unknown): RequestInit => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(data),
+});
+
+export const useMarkAllNotificationsRead = () => {
+  const api = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api("/workspace/notifications/read-all", { method: "PATCH" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspace", "notifications"] });
+      qc.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+    },
+  });
+};
+
+export const useConversationMessages = (id?: string | null) =>
+  useQuery({
+    queryKey: ["workspace", "conversations", id, "messages"],
+    queryFn: async () => (await mediaRequest<any>(`/workspace/conversations/${id}/messages`)).messages as any[],
+    enabled: !!id,
+    refetchInterval: POLL,
+  });
+
+export const useSendConversationMessage = (id?: string | null) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => mediaRequest<any>(`/workspace/conversations/${id}/messages`, json(data)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspace", "conversations"] });
+      qc.invalidateQueries({ queryKey: ["workspace", "notifications"] });
+      qc.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+    },
+  });
+};
+
+// Admin
+export const useAdminConversations = () =>
+  useQuery({
+    queryKey: ["admin", "conversations"],
+    queryFn: async () => (await mediaRequest<any>("/admin/conversations")).conversations as any[],
+    refetchInterval: POLL,
+  });
+
+export const useAdminCreateConversation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => mediaRequest<any>("/admin/conversations", json(data)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "conversations"] }),
+  });
+};
+
+export const useAdminMessages = (id?: string | null) =>
+  useQuery({
+    queryKey: ["admin", "conversations", id, "messages"],
+    queryFn: async () => (await mediaRequest<any>(`/admin/conversations/${id}/messages`)).messages as any[],
+    enabled: !!id,
+    refetchInterval: POLL,
+  });
+
+export const useAdminSendMessage = (id?: string | null) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => mediaRequest<any>(`/admin/conversations/${id}/messages`, json(data)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "conversations"] });
+      qc.invalidateQueries({ queryKey: ["admin", "notifications"] });
+    },
+  });
+};
+
+export const useAdminNotifications = () =>
+  useQuery({
+    queryKey: ["admin", "notifications"],
+    queryFn: async () => (await mediaRequest<any>("/admin/notifications")).notifications as any[],
+    refetchInterval: POLL,
+  });
+
+export const useAdminMarkNotificationRead = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => mediaRequest<any>(`/admin/notifications/${id}/read`, { method: "PATCH" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "notifications"] }),
+  });
+};
+
+export const useAdminMarkAllNotificationsRead = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => mediaRequest<any>("/admin/notifications/read-all", { method: "PATCH" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "notifications"] }),
   });
 };

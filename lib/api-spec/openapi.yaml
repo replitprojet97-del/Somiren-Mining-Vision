@@ -24,6 +24,428 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storage/uploads/request-url:
+    post:
+      operationId: requestPrivateUploadUrl
+      tags: [private-media]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivateUploadRequest"
+      responses:
+        "201":
+          description: Signed private upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivateUploadUrl"
+  /storage/uploads/{assetId}/complete:
+    post:
+      operationId: completePrivateUpload
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: assetId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Verified uploaded file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivateUpload"
+  /workspace/me/photo:
+    get:
+      operationId: getWorkspaceProfilePhoto
+      tags: [workspace-profile]
+      summary: Get the signed private profile photo for the current collaborator
+      responses:
+        "200":
+          description: Current collaborator photo and explicit removal state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceProfilePhoto" }
+        "401":
+          description: Authentication required
+    put:
+      operationId: setWorkspaceProfilePhoto
+      tags: [workspace-profile]
+      summary: Set the current collaborator's own profile photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetWorkspaceProfilePhotoInput" }
+      responses:
+        "200":
+          description: Own profile photo was updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [updated]
+                properties:
+                  updated: { type: boolean, const: true }
+        "400":
+          description: Upload is invalid, incomplete, or belongs to another collaborator
+        "401":
+          description: Authentication required
+    delete:
+      operationId: removeWorkspaceProfilePhoto
+      tags: [workspace-profile]
+      summary: Remove the current collaborator's own profile photo
+      responses:
+        "200":
+          description: Own profile photo was removed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [removed]
+                properties:
+                  removed: { type: boolean, const: true }
+        "401":
+          description: Authentication required
+  /admin/document-assignments:
+    post:
+      operationId: assignPrivateDocument
+      tags: [private-media]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentAssignmentInput"
+      responses:
+        "201":
+          description: Created assignment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  document: { $ref: "#/components/schemas/AssignedDocument" }
+                  assignment: { $ref: "#/components/schemas/DocumentAssignment" }
+    get:
+      operationId: listPrivateDocumentAssignments
+      tags: [private-media]
+      responses:
+        "200":
+          description: Assignment list with attachment metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assignments:
+                    type: array
+                    items: { type: object }
+  /admin/document-assignments/{id}/file:
+    get:
+      operationId: getAdminAssignedDocumentFile
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Short-lived signed download URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /workspace/documents/received/{id}/file:
+    get:
+      operationId: getReceivedDocumentFile
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Short-lived signed download URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /admin/conversations:
+    get:
+      operationId: listAdminConversations
+      tags: [private-messaging]
+      responses:
+        "200":
+          description: Conversations and collaborators
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminConversationList" }
+    post:
+      operationId: createAdminConversation
+      tags: [private-messaging]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminConversationInput" }
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversationResponse" }
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [private-messaging]
+      responses:
+        "200":
+          description: Conversations and collaborators
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminConversationList" }
+    post:
+      operationId: createConversation
+      tags: [private-messaging]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminConversationInput" }
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversationResponse" }
+  /admin/conversations/{id}/messages:
+    get:
+      operationId: listAdminConversationMessages
+      tags: [private-messaging]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Thread messages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageList" }
+    post:
+      operationId: sendAdminConversationMessage
+      tags: [private-messaging]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+  /admin/conversations/{id}/messages/{messageId}/file:
+    get:
+      operationId: getAdminMessageAudioFile
+      tags: [private-messaging]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: messageId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Short-lived audio download URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /workspace/conversations:
+    get:
+      operationId: listWorkspaceConversations
+      tags: [private-messaging]
+      responses:
+        "200":
+          description: Collaborator conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items: { type: object }
+    post:
+      operationId: createWorkspaceConversation
+      tags: [private-messaging]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceConversationInput" }
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversationResponse" }
+  /workspace/conversations/{id}/messages:
+    get:
+      operationId: listWorkspaceConversationMessages
+      tags: [private-messaging]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Thread messages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageList" }
+    post:
+      operationId: sendWorkspaceConversationMessage
+      tags: [private-messaging]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+  /workspace/conversations/{id}/messages/{messageId}/file:
+    get:
+      operationId: getWorkspaceMessageAudioFile
+      tags: [private-messaging]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: messageId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Short-lived audio download URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /admin/notifications:
+    get:
+      operationId: listAdminNotifications
+      tags: [notifications]
+      responses:
+        "200":
+          description: Current administrator notifications
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationList" }
+  /admin/notifications/{id}/read:
+    patch:
+      operationId: markAdminNotificationRead
+      tags: [notifications]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Marked notification read
+          content:
+            application/json:
+              schema: { type: object }
+  /admin/notifications/read-all:
+    patch:
+      operationId: markAllAdminNotificationsRead
+      tags: [notifications]
+      responses:
+        "200":
+          description: Marked all owned notifications read
+          content:
+            application/json:
+              schema: { type: object }
+  /workspace/notifications/read-all:
+    patch:
+      operationId: markAllWorkspaceNotificationsRead
+      tags: [notifications]
+      responses:
+        "200":
+          description: Marked all owned notifications read
+          content:
+            application/json:
+              schema: { type: object }
+  /admin/meetings:
+    post:
+      operationId: createMeetingWithPrivateVideo
+      tags: [private-media]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MeetingInput" }
+      responses:
+        "201":
+          description: Created meeting and optional video metadata
+          content:
+            application/json:
+              schema: { type: object }
+  /admin/meetings/{id}/video:
+    get:
+      operationId: getAdminMeetingVideo
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Signed meeting video URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /workspace/meetings/{id}/video:
+    get:
+      operationId: getWorkspaceMeetingVideo
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Signed meeting video URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
 components:
   schemas:
     HealthStatus:
@@ -33,4 +455,195 @@ components:
           type: string
       required:
         - status
+    PrivateUploadRequest:
+      type: object
+      required: [fileName, contentType, size, kind]
+      properties:
+        fileName: { type: string, minLength: 1, maxLength: 255 }
+        contentType: { type: string, minLength: 1, maxLength: 255 }
+        size:
+          type: integer
+          minimum: 1
+          maximum: 52428800
+          description: profile-photo uploads are additionally limited to 5242880 bytes
+        kind:
+          type: string
+          enum: [document, audio, video, profile-photo]
+          description: profile-photo accepts only image/jpeg, image/png, or image/webp; SVG is not accepted
+    PrivateUploadUrl:
+      type: object
+      required: [assetId, uploadURL, method, headers]
+      properties:
+        assetId: { type: string, format: uuid }
+        uploadURL: { type: string, format: uri }
+        method: { type: string, enum: [PUT] }
+        headers:
+          type: object
+          properties:
+            Content-Type: { type: string }
+    PrivateUpload:
+      type: object
+      required: [assetId, fileName, contentType, size]
+      properties:
+        assetId: { type: string, format: uuid }
+        fileName: { type: string }
+        contentType: { type: string }
+        size: { type: integer }
+    SetWorkspaceProfilePhotoInput:
+      type: object
+      additionalProperties: false
+      required: [assetId]
+      properties:
+        assetId: { type: string, format: uuid }
+    WorkspaceProfilePhoto:
+      type: object
+      required: [photo, removed, referencePortrait]
+      properties:
+        photo:
+          anyOf:
+            - $ref: "#/components/schemas/ProfilePhoto"
+            - type: "null"
+        removed: { type: boolean }
+        referencePortrait:
+          type: boolean
+          description: Server-derived eligibility to display the configured reference portrait
+    ProfilePhoto:
+      type: object
+      required: [url, contentType, expiresIn]
+      properties:
+        url: { type: string, format: uri }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        expiresIn: { type: integer, enum: [300] }
+    PrivateFileUrl:
+      type: object
+      required: [url, fileName, contentType, expiresIn]
+      properties:
+        url: { type: string, format: uri }
+        fileName: { type: string }
+        contentType: { type: string }
+        expiresIn: { type: integer, enum: [300] }
+    DocumentAssignmentInput:
+      type: object
+      additionalProperties: false
+      required: [collaboratorId, title]
+      properties:
+        collaboratorId: { type: integer }
+        caseId: { type: integer }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        manualContent: { type: string, maxLength: 10000 }
+        assetId: { type: string, format: uuid }
+        priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+        dueAt: { type: ["string", "null"], format: date-time }
+        instruction: { type: string, maxLength: 5000 }
+    AssignedDocument:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        manualContent: { type: ["string", "null"] }
+        assetId: { type: ["string", "null"], format: uuid }
+        fileName: { type: ["string", "null"] }
+        contentType: { type: ["string", "null"] }
+        fileSize: { type: ["integer", "null"] }
+    DocumentAssignment:
+      type: object
+      properties:
+        id: { type: integer }
+        documentId: { type: integer }
+        collaboratorId: { type: integer }
+        priority: { type: string }
+        dueAt: { type: ["string", "null"], format: date-time }
+    AdminConversationInput:
+      type: object
+      additionalProperties: false
+      required: [collaboratorId, subject]
+      properties:
+        collaboratorId: { type: integer }
+        subject: { type: string, minLength: 1, maxLength: 300 }
+        initialMessage: { type: string, maxLength: 10000 }
+    WorkspaceConversationInput:
+      type: object
+      additionalProperties: false
+      required: [subject]
+      properties:
+        subject: { type: string, minLength: 1, maxLength: 300 }
+        initialMessage: { type: string, minLength: 1, maxLength: 10000 }
+    ConversationResponse:
+      type: object
+      required: [conversation]
+      properties:
+        conversation: { type: object }
+    AdminConversationList:
+      type: object
+      properties:
+        conversations:
+          type: array
+          items:
+            type: object
+            required: [conversation, collaborator]
+            properties:
+              conversation: { type: object }
+              collaborator:
+                type: object
+                required: [id, fullName, email]
+                properties:
+                  id: { type: integer }
+                  fullName: { type: string }
+                  email: { type: string, format: email }
+    MessageInput:
+      type: object
+      additionalProperties: false
+      properties:
+        body: { type: string, maxLength: 10000 }
+        audioAssetId: { type: string, format: uuid }
+        transcript: { type: string, minLength: 1, maxLength: 10000 }
+        translation: { type: string, minLength: 1, maxLength: 10000 }
+        sourceLanguage: { type: string, enum: [fr, es] }
+        targetLanguage: { type: string, enum: [fr, es] }
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: object
+          properties:
+            id: { type: integer }
+            conversationId: { type: integer }
+            senderId: { type: integer }
+            body: { type: string }
+            audioAssetId: { type: ["string", "null"], format: uuid }
+            transcript: { type: ["string", "null"] }
+            translation: { type: ["string", "null"] }
+            sourceLanguage: { type: ["string", "null"], enum: [fr, es, null] }
+            targetLanguage: { type: ["string", "null"], enum: [fr, es, null] }
+            audioFileName: { type: ["string", "null"] }
+            audioContentType: { type: ["string", "null"] }
+    MessageList:
+      type: object
+      properties:
+        messages:
+          type: array
+          items: { type: object }
+    NotificationList:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items: { type: object }
+    MeetingInput:
+      type: object
+      required: [title, startsAt, participantIds]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        description: { type: string, maxLength: 5000 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
+        meetingUrl: { type: string, format: uri }
+        participantIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { type: integer }
+        videoAssetId: { type: string, format: uuid }
+        authorizeVideoParticipants: { type: boolean, default: false }
 

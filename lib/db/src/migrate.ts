@@ -132,12 +132,34 @@ async function migrate() {
         id SERIAL PRIMARY KEY,
         case_id INTEGER REFERENCES workspace_cases(id) ON DELETE SET NULL,
         title TEXT NOT NULL,
+        manual_content TEXT,
         content_type TEXT,
         object_path TEXT,
+        file_name TEXT,
+        file_size INTEGER,
         uploaded_by_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE RESTRICT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS workspace_private_uploads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        uploaded_by_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE RESTRICT,
+        object_path TEXT NOT NULL UNIQUE,
+        file_name TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        purpose TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      ALTER TABLE workspace_documents ADD COLUMN IF NOT EXISTS manual_content TEXT;
+      ALTER TABLE workspace_documents ADD COLUMN IF NOT EXISTS asset_id UUID REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT;
+      ALTER TABLE workspace_documents ADD COLUMN IF NOT EXISTS file_name TEXT;
+      ALTER TABLE workspace_documents ADD COLUMN IF NOT EXISTS file_size INTEGER;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS profile_photo_asset_id UUID REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT;
+      ALTER TABLE collaborators ADD COLUMN IF NOT EXISTS profile_photo_removed BOOLEAN NOT NULL DEFAULT FALSE;
 
       CREATE TABLE IF NOT EXISTS workspace_notifications (
         id SERIAL PRIMARY KEY,
@@ -186,8 +208,10 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS workspace_meetings (
         id SERIAL PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', starts_at TIMESTAMPTZ NOT NULL,
         ends_at TIMESTAMPTZ, headquarters_timezone TEXT NOT NULL DEFAULT 'Europe/Madrid', meeting_url TEXT,
+        video_asset_id UUID REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      ALTER TABLE workspace_meetings ADD COLUMN IF NOT EXISTS video_asset_id UUID REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT;
       CREATE TABLE IF NOT EXISTS workspace_meeting_participants (
         id SERIAL PRIMARY KEY, meeting_id INTEGER NOT NULL REFERENCES workspace_meetings(id) ON DELETE CASCADE,
         collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
@@ -201,8 +225,15 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS workspace_messages (
         id SERIAL PRIMARY KEY, conversation_id INTEGER NOT NULL REFERENCES workspace_conversations(id) ON DELETE CASCADE,
         sender_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE RESTRICT, body TEXT NOT NULL,
+        audio_asset_id UUID REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT,
+        transcript TEXT, translation TEXT, source_language TEXT, target_language TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS audio_asset_id UUID REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT;
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS transcript TEXT;
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS translation TEXT;
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS source_language TEXT;
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS target_language TEXT;
       CREATE TABLE IF NOT EXISTS workspace_strategic_notes (
         id SERIAL PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', is_shared BOOLEAN NOT NULL DEFAULT FALSE,
         collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
@@ -248,16 +279,25 @@ async function migrate() {
       ["admin@somiren.local", "Administration Somiren", JSON.stringify(["workspace:read", "workspace:write", "MANAGE_USERS", "MANAGE_PERMISSIONS", "CAN_USE_VIDEO_CONFERENCE"])],
     );
     await client.query(
+      `UPDATE collaborators SET permissions = CASE
+         WHEN permissions ? 'USE_INTERNAL_MESSAGING' THEN permissions
+         ELSE permissions || '["USE_INTERNAL_MESSAGING"]'::jsonb
+       END, updated_at = NOW()
+       WHERE role = 'ADMIN'`,
+    );
+    await client.query(
       `INSERT INTO workspace_roles (label, permissions)
        SELECT value.label, value.permissions::jsonb
        FROM (VALUES
          ('ADMIN', $1),
-         ('EXECUTIVE_ASSISTANT_STRATEGIC_ADVISOR', $2)
+         ('EXECUTIVE_ASSISTANT_STRATEGIC_ADVISOR', $2),
+         ('COLLABORATOR', $3)
        ) AS value(label, permissions)
        WHERE NOT EXISTS (SELECT 1 FROM workspace_roles r WHERE r.label = value.label)`,
       [
-        JSON.stringify(["workspace:read", "workspace:write", "MANAGE_USERS", "MANAGE_PERMISSIONS", "CAN_USE_VIDEO_CONFERENCE"]),
+          JSON.stringify(["workspace:read", "workspace:write", "MANAGE_USERS", "MANAGE_PERMISSIONS", "CAN_USE_VIDEO_CONFERENCE", "USE_INTERNAL_MESSAGING"]),
         JSON.stringify(["workspace:read", "workspace:write", "VIEW_ASSIGNED_CASES", "MANAGE_ASSIGNED_CASES", "VIEW_ASSIGNED_TASKS", "MANAGE_ASSIGNED_TASKS", "VIEW_EXECUTIVE_REQUESTS", "MANAGE_ASSIGNED_REQUESTS", "VIEW_ASSIGNED_DOCUMENTS", "SUBMIT_DOCUMENTS", "USE_INTERNAL_MESSAGING", "PARTICIPATE_IN_MEETINGS"]),
+        JSON.stringify(["workspace:read", "workspace:write", "VIEW_ASSIGNED_CASES", "MANAGE_ASSIGNED_CASES", "VIEW_ASSIGNED_TASKS", "MANAGE_ASSIGNED_TASKS", "VIEW_EXECUTIVE_REQUESTS", "MANAGE_ASSIGNED_REQUESTS", "VIEW_ASSIGNED_DOCUMENTS", "DOWNLOAD_ALLOWED_DOCUMENTS", "SUBMIT_DOCUMENTS", "USE_INTERNAL_MESSAGING", "PARTICIPATE_IN_MEETINGS"]),
       ],
     );
     const allowedEmail = process.env.NURIA_EMAIL?.trim().toLowerCase();

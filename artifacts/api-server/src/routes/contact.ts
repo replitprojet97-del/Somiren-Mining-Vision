@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { Resend } from "resend";
+import { sendContactEmail } from "../lib/contactEmail";
 import { z } from "zod";
 
 const router: IRouter = Router();
@@ -31,14 +31,6 @@ router.post("/contact", async (req, res) => {
 
   const { name, email, phone, subject, message } = parsed.data;
 
-  const apiKey = process.env["RESEND_API_KEY"];
-  if (!apiKey) {
-    req.log.error("RESEND_API_KEY manquant");
-    res.status(503).json({ error: "Service d'envoi d'email non configuré" });
-    return;
-  }
-
-  const resend = new Resend(apiKey);
   const toEmail = process.env["CONTACT_EMAIL"] ?? "contact@somiren.com";
   const fromEmail = process.env["RESEND_FROM_EMAIL"] ?? "onboarding@resend.dev";
 
@@ -52,7 +44,8 @@ router.post("/contact", async (req, res) => {
     ? `<tr><td style="padding:6px 12px;color:#999;font-size:13px;">Téléphone</td><td style="padding:6px 12px;font-size:13px;color:#fff;">${safePhone}</td></tr>`
     : "";
 
-  const { error } = await resend.emails.send({
+  try {
+    await sendContactEmail({
     from: `Somiren S.A. <${fromEmail}>`,
     to: [toEmail],
     replyTo: email,
@@ -112,7 +105,7 @@ router.post("/contact", async (req, res) => {
 </html>`,
   });
 
-  if (error) {
+  } catch (error) {
     req.log.error({ err: error }, "Erreur envoi email Resend");
     res.status(500).json({ error: "Échec de l'envoi, veuillez réessayer." });
     return;

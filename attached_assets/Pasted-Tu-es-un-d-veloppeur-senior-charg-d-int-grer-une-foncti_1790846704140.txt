@@ -1,0 +1,385 @@
+Tu es un développeur senior chargé d'intégrer une fonctionnalité d'assistance documentaire IA dans mon application existante.
+
+IMPORTANT :
+
+- L'application existe déjà et fonctionne.
+- L'espace Utilisateur existe déjà.
+- L'espace Admin existe déjà.
+- Le rôle ADMIN existe déjà.
+- Je ne veux PAS créer un nouveau système d'authentification.
+- Je ne veux PAS reconstruire l'application.
+- Je ne veux PAS supprimer ou casser les fonctionnalités existantes.
+- Je veux ajouter une fonctionnalité supplémentaire dans l'espace ADMIN.
+- L'application est développée avec Replit et hébergée sur Render.
+
+==================================================
+OBJECTIF
+
+Ajouter dans l'espace ADMIN un "Assistant documentaire IA".
+
+Son rôle initial est volontairement limité.
+
+L'IA doit uniquement :
+
+1. Recevoir un prompt écrit par un ADMIN.
+2. Générer le contenu d'un document demandé.
+3. Produire un brouillon.
+4. Permettre à l'ADMIN de consulter et modifier le brouillon.
+5. Permettre à l'ADMIN de valider le document.
+6. Après validation, permettre à l'ADMIN de choisir l'utilisateur destinataire.
+7. Envoyer le document validé dans l'espace de cet utilisateur.
+8. Créer éventuellement une tâche associée au document.
+
+L'IA ne doit PAS envoyer elle-même le document.
+
+La validation finale doit toujours être effectuée par l'ADMIN.
+
+==================================================
+ÉTAPE 1 — ANALYSE DU PROJET
+
+AVANT DE MODIFIER LE CODE :
+
+Analyse complètement l'application existante.
+
+Identifie :
+
+- framework frontend ;
+- backend ;
+- base de données ;
+- système d'authentification ;
+- système actuel de rôles ;
+- rôle ADMIN existant ;
+- permissions actuelles de l'ADMIN ;
+- espace Admin ;
+- espace Utilisateur ;
+- système actuel de fichiers ;
+- système actuel de notifications ;
+- API/routes existantes ;
+- composants UI réutilisables ;
+- modèle de données utilisateur ;
+- modèle de données des tâches, s'il existe déjà.
+
+IMPORTANT :
+
+NE MODIFIE PAS LE CODE pendant cette première étape.
+
+Présente-moi :
+
+1. L'architecture actuelle.
+2. Les fichiers qui devront être modifiés.
+3. Les tables/modèles qui devront éventuellement être ajoutés ou modifiés.
+4. Les routes/API nécessaires.
+5. La manière dont l'Assistant documentaire pourra être intégré sans casser l'existant.
+6. Les éventuels risques ou conflits avec le système actuel.
+
+ATTENDS AVANT DE PASSER À L'IMPLÉMENTATION.
+
+==================================================
+ÉTAPE 2 — INTERFACE ADMIN
+
+Ajouter dans l'espace ADMIN une nouvelle section :
+
+"Assistant documentaire IA"
+
+Cette section doit permettre à l'ADMIN de :
+
+- sélectionner un utilisateur ;
+- écrire un prompt ;
+- générer un document ;
+- consulter le brouillon ;
+- modifier le contenu ;
+- régénérer le contenu ;
+- télécharger le document ;
+- valider le document ;
+- envoyer le document à l'utilisateur.
+
+Exemple de prompt :
+
+"Crée une lettre destinée à Jean Dupont lui demandant de fournir une pièce d'identité, un justificatif de domicile et ses relevés bancaires des trois derniers mois."
+
+L'interface doit rester cohérente avec le design existant.
+
+Ne pas créer une nouvelle interface indépendante de l'application.
+
+==================================================
+ÉTAPE 3 — GÉNÉRATION IA
+
+Créer un service backend dédié à l'IA.
+
+Exemple :
+
+AIService
+
+ou une architecture équivalente.
+
+Le frontend ne doit jamais appeler directement l'API IA.
+
+Flux :
+
+ADMIN
+→ FRONTEND
+→ BACKEND
+→ AI SERVICE
+→ API IA
+→ BACKEND
+→ FRONTEND
+
+La clé API doit rester exclusivement côté serveur.
+
+Ne jamais mettre la clé API dans le frontend.
+
+Ne jamais écrire la clé directement dans le code.
+
+Utiliser une variable d'environnement :
+
+AI_API_KEY
+
+Prévoir également une variable pour le modèle :
+
+AI_MODEL
+
+==================================================
+ÉTAPE 4 — FOURNISSEUR IA
+
+Pour la première version, utiliser une API IA externe compatible avec une utilisation gratuite lorsque les limites gratuites le permettent.
+
+Créer une couche d'abstraction afin de ne pas rendre toute l'application dépendante d'un fournisseur précis.
+
+Par exemple :
+
+AIProvider
+AIService
+
+Le reste de l'application doit appeler le service interne plutôt que directement le fournisseur.
+
+Cela permettra ultérieurement de changer de fournisseur ou de passer à un modèle open-weight auto-hébergé.
+
+==================================================
+ÉTAPE 5 — DOCUMENT
+
+Le modèle IA doit produire le contenu du document.
+
+Ne pas demander au modèle de produire directement un fichier PDF binaire.
+
+Séparer :
+
+1. Prompt ADMIN
+2. Réponse IA
+3. Contenu du document
+4. Fichier final
+5. Statut du document
+
+Le backend doit générer le fichier final.
+
+Prévoir au minimum :
+
+- PDF
+- DOCX
+
+Si le projet possède déjà un système de génération ou stockage de documents, le réutiliser plutôt que créer un système parallèle.
+
+==================================================
+ÉTAPE 6 — BROUILLON
+
+Après génération, le document doit avoir le statut :
+
+DRAFT
+
+Il doit rester visible uniquement dans l'espace ADMIN.
+
+L'ADMIN doit pouvoir :
+
+- consulter ;
+- modifier ;
+- régénérer ;
+- supprimer le brouillon ;
+- télécharger ;
+- valider.
+
+Le document ne doit absolument pas être visible par l'utilisateur tant qu'il n'est pas validé.
+
+==================================================
+ÉTAPE 7 — VALIDATION
+
+Ajouter une action claire :
+
+"Valider et envoyer"
+
+Avant l'envoi, afficher un récapitulatif :
+
+Utilisateur destinataire
+Titre du document
+Type de document
+Aperçu
+Message éventuel
+
+Demander confirmation à l'ADMIN.
+
+Après confirmation :
+
+1. enregistrer la validation ;
+2. enregistrer la date ;
+3. enregistrer l'ADMIN ayant validé ;
+4. associer le document à l'utilisateur ;
+5. créer la tâche utilisateur si nécessaire ;
+6. rendre le document visible dans son espace ;
+7. envoyer une notification à l'utilisateur si le système de notification existe.
+
+==================================================
+ÉTAPE 8 — ESPACE UTILISATEUR
+
+Réutiliser l'espace utilisateur existant.
+
+Ajouter le document validé dans une section appropriée.
+
+L'utilisateur doit pouvoir :
+
+- voir qu'un nouveau document lui a été envoyé ;
+- consulter le document ;
+- télécharger le document ;
+- voir les instructions associées ;
+- éventuellement répondre ou déposer les fichiers demandés si le système de tâches existant le permet.
+
+Ne pas modifier inutilement les autres fonctionnalités de l'espace utilisateur.
+
+==================================================
+ÉTAPE 9 — SÉCURITÉ
+
+Respecter les permissions existantes.
+
+Seuls les utilisateurs disposant du rôle ADMIN existant doivent pouvoir utiliser l'Assistant documentaire.
+
+Un utilisateur normal ne doit jamais pouvoir :
+
+- accéder à l'Assistant ;
+- générer un document administratif ;
+- consulter les brouillons d'un ADMIN ;
+- envoyer lui-même un document administratif à un autre utilisateur ;
+- appeler directement les routes backend réservées à l'ADMIN.
+
+Les vérifications de permission doivent être effectuées côté backend.
+
+Ne pas se contenter de masquer les boutons dans le frontend.
+
+==================================================
+ÉTAPE 10 — HISTORIQUE
+
+Enregistrer pour chaque document IA :
+
+- ADMIN ayant effectué la demande ;
+- prompt initial ;
+- réponse IA ;
+- date de génération ;
+- utilisateur destinataire ;
+- statut ;
+- modifications effectuées ;
+- date de validation ;
+- date d'envoi.
+
+Prévoir au minimum les statuts :
+
+DRAFT
+APPROVED
+SENT
+CANCELLED
+
+==================================================
+ÉTAPE 11 — COÛTS ET INFRASTRUCTURE
+
+Je souhaite commencer sans louer de GPU et sans installer de modèle IA local.
+
+Utiliser une API IA externe.
+
+L'application étant hébergée sur Render, l'intégration doit fonctionner avec l'infrastructure existante.
+
+Ne pas ajouter de service payant supplémentaire sans me prévenir.
+
+Ne pas créer de serveur GPU.
+
+Ne pas créer une deuxième application.
+
+==================================================
+ÉTAPE 12 — ARCHITECTURE FUTURE
+
+Même si la première version est simple, concevoir le AIService de manière à permettre plus tard :
+
+API IA externe
+↓
+ou
+Modèle open-weight auto-hébergé
+
+sans devoir réécrire toute l'application.
+
+==================================================
+RÈGLES IMPORTANTES
+
+L'IA est un assistant de rédaction.
+
+Elle ne possède pas les droits ADMIN.
+
+Elle ne doit pas :
+
+- envoyer directement un document ;
+- modifier directement la base de données ;
+- supprimer des utilisateurs ;
+- modifier les permissions ;
+- modifier les paramètres de l'application ;
+- effectuer des actions administratives autonomes.
+
+Elle génère uniquement une proposition de document.
+
+L'ADMIN garde toujours le contrôle final.
+
+==================================================
+MÉTHODE DE DÉVELOPPEMENT
+
+Procéder progressivement.
+
+PHASE A :
+Analyser l'application existante.
+
+PHASE B :
+Proposer les modifications nécessaires.
+
+PHASE C :
+Attendre ma validation.
+
+PHASE D :
+Implémenter le AIService.
+
+PHASE E :
+Créer l'interface Assistant documentaire.
+
+PHASE F :
+Créer la génération de brouillons.
+
+PHASE G :
+Créer l'aperçu et la modification.
+
+PHASE H :
+Créer la validation et l'envoi.
+
+PHASE I :
+Intégrer le document dans l'espace utilisateur.
+
+PHASE J :
+Tester les permissions et la sécurité.
+
+PHASE K :
+Tester l'ensemble du workflow.
+
+Après chaque phase importante, vérifier que les fonctionnalités existantes fonctionnent toujours.
+
+IMPORTANT :
+
+Commence uniquement par PHASE A.
+
+Analyse le projet et présente-moi ton rapport.
+
+NE MODIFIE AUCUN CODE POUR LE MOMENT.Ce que je te conseille ensuite
+
+
+
+
+
+.

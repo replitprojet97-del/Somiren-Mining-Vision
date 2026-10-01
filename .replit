@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "postgresql-16"]
+modules = ["nodejs-20", "web", "bash", "python-base-3.13", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -40,6 +40,9 @@ externalPort = 80
 CONTACT_EMAIL = "contact@somiren.com"
 RESEND_FROM_EMAIL = "noreply@somiren.com"
 NURIA_EMAIL = " nuria.molero@somiren.com"
+AI_FREE_TIER_CONFIRMED = "true"
+AI_MODEL = "mistral-small-2603"
+SUPABASE_URL = "https://usalvvwuzpjnafrqbftq.supabase.co"
 
 [nix]
 channel = "stable-25_05"

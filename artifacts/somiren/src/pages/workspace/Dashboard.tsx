@@ -1,42 +1,67 @@
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { AlertCircle, FileText, Folder, Calendar, DollarSign, Circle, Video, ArrowRight } from "lucide-react";
-import { C } from "@/lib/theme";
-import { Pill, priorityTone, SectionCard, LinkAction, EmptyState } from "./components/UI";
-import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 import {
-  useDashboard,
-  useReceivedDocuments,
-  useMeetings,
-  useNotes,
-  useFinanceSummary,
-  useArrears,
-  usePaymentRequirements
+  AlertCircle, Bell, BriefcaseBusiness, CalendarDays, CheckSquare, ChevronRight,
+  ClipboardList, Download, FileText, Folder, Home, Lightbulb,
+  MessageSquare, NotebookPen, ShieldCheck, Video,
+} from "lucide-react";
+import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
+import { useProfilePhoto } from "@/hooks/use-profile-photo";
+import {
+  useArrears, useCases, useConversations, useDashboard, useFinanceSummary,
+  useMeetings, useNotes, useNotifications, usePaymentRequirements, useReceivedDocuments,
+  useRequests, useTasks, useVideoAccess,
 } from "@/hooks/use-workspace";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { DashboardEmpty, DashboardPanel, DashboardRestricted, parisDateTime, QueryMessage } from "./components/DashboardBits";
+import "./WorkspaceReference.css";
 
-function StatCard({ icon: Icon, label, value, tone, onClick }: any) {
-  const tones: any = {
-    red: { bg: C.redBg, fg: C.red },
-    blue: { bg: C.blueBg, fg: C.blue },
-    green: { bg: C.greenBg, fg: C.green },
-    amber: { bg: C.amberBg, fg: C.amber },
-    copper: { bg: C.copperSoft, fg: C.copper },
+const imagePath = (filename: string) => `${import.meta.env.BASE_URL}images/workspace-reference/${filename}`;
+const roleLabel = (role?: string) => {
+  if (role === "EXECUTIVE_ASSISTANT_STRATEGIC_ADVISOR") return "Assistante exécutive & Conseillère stratégique";
+  if (role === "ADMIN") return "Administrateur";
+  if (role === "COLLABORATOR") return "Collaborateur";
+  return role || "Collaborateur";
+};
+
+function initials(name?: string) {
+  return name?.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toLocaleUpperCase("fr-FR") || "C";
+}
+
+function statusLabel(status?: string) {
+  const labels: Record<string, string> = {
+    received: "Nouveau",
+    in_progress: "En cours",
+    submitted: "Transmis",
+    completed: "Terminé",
+    active: "En cours",
+    waiting: "À traiter",
+    on_hold: "Suspendu",
+    pending: "En attente",
+    paid: "Versé",
+    sent: "Versé",
+    overdue: "En retard",
+    accepted: "Acceptée",
+    rejected: "Refusée",
   };
-  const t = tones[tone];
+  return status ? labels[status.toLowerCase()] || status.replaceAll("_", " ") : "Statut non communiqué";
+}
+
+function StatCard({ icon: Icon, label, value, tone, action, onClick, isLoading, isError }: {
+  icon: typeof AlertCircle;
+  label: string;
+  value: string | number;
+  tone: string;
+  action: string;
+  onClick: () => void;
+  isLoading?: boolean;
+  isError?: boolean;
+}) {
   return (
-    <button
-      onClick={onClick}
-      className="bg-white rounded-lg p-4 text-left flex flex-col gap-3 hover:shadow-sm transition-shadow"
-      style={{ border: `1px solid ${C.line}` }}
-    >
-      <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: t.bg }}>
-        <Icon size={17} color={t.fg} />
-      </div>
-      <div>
-        <p className="text-2xl font-semibold" style={{ color: C.ink }}>{value}</p>
-        <p className="text-[13px]" style={{ color: C.inkSoft }}>{label}</p>
-      </div>
+    <button className={`sr-stat sr-${tone}`} type="button" onClick={onClick} data-testid={`button-dashboard-stat-${tone}`}>
+      <span className="sr-stat-icon"><Icon size={17} aria-hidden="true" /></span>
+      <span className="sr-stat-name">{label}</span>
+      <strong>{value}</strong>
+      <small>{isError ? "Données indisponibles" : isLoading ? "Chargement…" : action}{!isError && !isLoading && <ChevronRight size={10} aria-hidden="true" />}</small>
     </button>
   );
 }
@@ -44,182 +69,271 @@ function StatCard({ icon: Icon, label, value, tone, onClick }: any) {
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { profile } = useWorkspaceAuth();
-  
-  const { data: dashboard } = useDashboard();
-  const { data: receivedDocs } = useReceivedDocuments();
-  const { data: meetings } = useMeetings();
-  const { data: notes } = useNotes();
-  const { data: financeSummary } = useFinanceSummary();
-  const { data: arrears } = useArrears();
-  const { data: requirements } = usePaymentRequirements();
+  const [caseTab, setCaseTab] = useState("ACTIVE");
+  const permissions = profile?.permissions ?? [];
+  const can = (permission: string) => permissions.includes(permission);
+  const hasWorkspaceRead = can("workspace:read");
+  const canWriteWorkspace = can("workspace:write");
+  const canViewDocuments = can("VIEW_ASSIGNED_DOCUMENTS");
+  const canViewCases = can("VIEW_ASSIGNED_CASES");
+  const canViewTasks = can("VIEW_ASSIGNED_TASKS");
+  const canViewRequests = can("VIEW_EXECUTIVE_REQUESTS");
+  const canParticipateInMeetings = can("PARTICIPATE_IN_MEETINGS");
+  const canUseMessaging = can("USE_INTERNAL_MESSAGING");
+  const canUseVideo = can("CAN_USE_VIDEO_CONFERENCE");
+  const canViewFinance = can("VIEW_OWN_FINANCIAL_INFORMATION");
+  const canViewArrears = can("VIEW_OWN_ARREARS");
+  const canViewPaymentRequirements = can("VIEW_OWN_PAYMENT_REQUIREMENTS");
+  const canSeeFinance = canViewFinance || canViewArrears || canViewPaymentRequirements;
+  const dashboardQuery = useDashboard(hasWorkspaceRead);
+  const documentsQuery = useReceivedDocuments(canViewDocuments);
+  const meetingsQuery = useMeetings(canParticipateInMeetings);
+  const notesQuery = useNotes(hasWorkspaceRead);
+  const financeQuery = useFinanceSummary(canViewFinance);
+  const arrearsQuery = useArrears(canViewArrears);
+  const requirementsQuery = usePaymentRequirements(canViewPaymentRequirements);
+  const casesQuery = useCases(canViewCases);
+  const tasksQuery = useTasks(canViewTasks);
+  const requestsQuery = useRequests(canViewRequests);
+  const conversationsQuery = useConversations(canUseMessaging);
+  const notificationsQuery = useNotifications(hasWorkspaceRead);
+  const videoQuery = useVideoAccess(canUseVideo);
+  const [now, setNow] = useState(() => new Date());
 
+  const dashboard = dashboardQuery.data;
+  const documents = documentsQuery.data ?? [];
+  const cases = casesQuery.data ?? [];
+  const tasks = tasksQuery.data ?? dashboard?.todayWork ?? [];
+  const requests = requestsQuery.data ?? [];
+  const meetings = meetingsQuery.data ?? [];
+  const notes = notesQuery.data ?? [];
+  const conversations = conversationsQuery.data ?? [];
+  const notifications = notificationsQuery.data ?? [];
+  const requirements = requirementsQuery.data ?? [];
+  const arrears = arrearsQuery.data ?? [];
+  const finance = canViewFinance ? financeQuery.data : undefined;
+  const videoAccess = videoQuery.data;
+  const taskSummaryFallback = canViewTasks && tasksQuery.isError && !dashboardQuery.isError && !dashboardQuery.isLoading;
+  const profilePhoto = useProfilePhoto();
+  const [failedPortrait, setFailedPortrait] = useState<string | null>(null);
+  const name = profile?.fullName || "Collaborateur";
+  const role = roleLabel(profile?.role);
+  const matchingPortraitPersona = name.trim().toLocaleLowerCase("fr-FR") === "nuria molero rodriguez"
+    && profile?.role === "EXECUTIVE_ASSISTANT_STRATEGIC_ADVISOR";
+  const portraitSource = profilePhoto.photo?.url || (matchingPortraitPersona && profilePhoto.referencePortrait && profilePhoto.isReady && !profilePhoto.removed
+    ? imagePath("profile-reference.jpg") : null);
+  const upcomingMeetings = useMemo(
+    () => meetings.filter((meeting: any) => new Date(meeting.startsAt).getTime() >= now.getTime()),
+    [meetings, now],
+  );
+  const pendingRequestCount = requests.filter((item: any) => item.status === "new").length;
+  const unreadCount = notifications.filter((item: any) => !item.isRead).length;
+  const visibleCases = cases.filter((item: any) => {
+    if (caseTab === "ACTIVE") return item.status?.toLowerCase() === "active";
+    if (caseTab === "WAITING") return item.status?.toLowerCase() === "waiting";
+    if (caseTab === "COMPLETED") return item.status?.toLowerCase() === "completed";
+    return item.status?.toLowerCase() !== "completed" && ["high", "urgent"].includes(item.priority?.toLowerCase());
+  }).slice(0, 3);
   const go = (path: string) => setLocation(`/espace-collaborateur/${path}`);
 
-  const urgentCasesCount = dashboard?.urgentCases?.length || 0;
-  const docsCount = receivedDocs?.length || 0;
-  const casesCount = dashboard?.counts?.cases || 0;
-  const meetingsCount = meetings?.length || 0;
+  const communicationCount = conversationsQuery.isLoading ? "…" : conversationsQuery.isError ? "—" : conversations.length;
+  const countValue = (query: { isLoading: boolean; isError: boolean }, value: number | undefined) =>
+    query.isLoading ? "…" : query.isError || value === undefined ? "—" : value;
+  const visibleArrears = canViewArrears ? arrears : [];
+  const visibleRequirements = canViewPaymentRequirements ? requirements : [];
+  const hasRestrictedFinanceData = !canViewFinance || !canViewArrears || !canViewPaymentRequirements;
+  const financeHasError = (canViewFinance && financeQuery.isError)
+    || (canViewArrears && arrearsQuery.isError)
+    || (canViewPaymentRequirements && requirementsQuery.isError);
 
-  const currentStatus: string = financeSummary?.lastPaymentStatus || "En attente";
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div
-        className="rounded-lg overflow-hidden relative bg-white"
-        style={{ border: `1px solid ${C.line}` }}
-      >
-        <div className="p-6 md:p-7 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-gray-200 hidden sm:flex items-center justify-center font-bold text-xl text-gray-600">
-            {profile?.fullName?.charAt(0)}
-          </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold" style={{ color: C.ink }}>
-              Bonjour {profile?.fullName?.split(" ")[0]},
-            </h1>
-            <p className="text-sm mt-0.5" style={{ color: C.inkSoft }}>{profile?.role}</p>
-            <p className="text-sm italic mt-2" style={{ color: C.copper }}>
-              « Anticiper, coordonner, faciliter les décisions. »
-            </p>
-          </div>
+    <div className="sr-content">
+      <section className="sr-welcome" aria-label="Profil collaborateur">
+        <img className="sr-mine-bg" src={imagePath("mine-banner.jpg")} alt="" />
+        <div className="sr-welcome-shade" />
+        {portraitSource && portraitSource !== failedPortrait
+          ? <img className="sr-avatar" src={portraitSource} alt={`Portrait de ${name}`} onError={() => setFailedPortrait(portraitSource)} />
+          : <span className="sr-avatar sr-avatar-initials" aria-label={`Initiales de ${name}`}>{initials(name)}</span>}
+        <div className="sr-welcome-copy">
+          <h1 data-testid="text-dashboard-user-name">{name}</h1>
+          <b>{role}</b>
+          <p>{matchingPortraitPersona
+            ? "Coordination, organisation et soutien stratégique au service de la Direction."
+            : "Votre espace sécurisé pour consulter vos dossiers, réunions et informations confidentielles."}</p>
         </div>
-      </div>
+      </section>
 
-      {/* Indicateurs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        <StatCard icon={AlertCircle} label="À traiter" value={urgentCasesCount} tone="red" onClick={() => go("requests")} />
-        <StatCard icon={FileText} label="Documents reçus" value={docsCount} tone="blue" onClick={() => go("inbox")} />
-        <StatCard icon={Folder} label="Dossiers en cours" value={casesCount} tone="green" onClick={() => go("cases")} />
-        <StatCard icon={Calendar} label="Réunions aujourd'hui" value={meetingsCount} tone="amber" onClick={() => go("agenda")} />
-        <StatCard icon={DollarSign} label="Situation financière" value={currentStatus} tone={currentStatus === "Versé" ? "green" : "amber"} onClick={() => go("finance")} />
-      </div>
+      <section className="sr-stats" aria-label="Indicateurs de l’espace collaborateur">
+        {canViewRequests && <StatCard icon={BriefcaseBusiness} label="À traiter" value={countValue(requestsQuery, pendingRequestCount)} tone="red" action="Voir les demandes" onClick={() => go("requests")} isLoading={requestsQuery.isLoading} isError={requestsQuery.isError} />}
+        {canViewDocuments && <StatCard icon={FileText} label="Documents reçus" value={countValue(documentsQuery, documentsQuery.data?.length)} tone="blue" action="Voir les documents" onClick={() => go("documents")} isLoading={documentsQuery.isLoading} isError={documentsQuery.isError} />}
+        {canViewCases && <StatCard icon={Folder} label="Dossiers en cours" value={countValue(casesQuery, casesQuery.data?.filter((item: any) => item.status?.toLowerCase() === "active").length)} tone="green" action="Voir mes dossiers" onClick={() => go("cases")} isLoading={casesQuery.isLoading} isError={casesQuery.isError} />}
+        {canParticipateInMeetings && <StatCard icon={CalendarDays} label="Réunions à venir" value={countValue(meetingsQuery, upcomingMeetings.length)} tone="violet" action="Voir l’agenda" onClick={() => go("agenda")} isLoading={meetingsQuery.isLoading} isError={meetingsQuery.isError} />}
+        {canUseMessaging && <StatCard icon={MessageSquare} label="Messages & Audios" value={communicationCount} tone="cyan" action="Voir les messages" onClick={() => go("comms")} isLoading={conversationsQuery.isLoading} isError={conversationsQuery.isError} />}
+      </section>
 
-      <div className="grid lg:grid-cols-2 gap-5">
-        {/* Documents reçus */}
-        <SectionCard title="Documents reçus" action={<LinkAction onClick={() => go("inbox")}>Voir tout</LinkAction>}>
-          <div className="space-y-3">
-            {!receivedDocs?.length && <p className="text-sm text-gray-500">Aucun document reçu.</p>}
-            {receivedDocs?.slice(0, 3).map((d: any) => (
-              <div key={d.assignment.id} className="flex items-start justify-between gap-3 pb-3" style={{ borderBottom: `1px solid ${C.line}` }}>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: C.ink }}>{d.document.title}</p>
-                  <p className="text-[12.5px]" style={{ color: C.inkSoft }}>{format(new Date(d.assignment.createdAt), "dd MMM, HH:mm", { locale: fr })}</p>
-                </div>
-                <Pill tone={priorityTone(d.assignment.priority || "normal")}>{d.assignment.priority || "Normal"}</Pill>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+      <div className="sr-dashboard-grid">
+        <div className="sr-primary-col">
+          {canViewDocuments && <DashboardPanel
+            className="sr-documents"
+            icon={FileText}
+            title="Documents reçus"
+            description="Documents affectés à votre compte."
+            action="Voir tout"
+            onAction={() => go("documents")}
+          >
+            <QueryMessage loading={documentsQuery.isLoading} error={documentsQuery.isError}>
+              {documents.length === 0
+                ? <DashboardEmpty icon={FileText} title="Aucun document reçu" text="Les documents qui vous seront transmis apparaîtront ici." />
+                : documents.slice(0, 3).map((entry: any) => (
+                  <button className="sr-document-row" type="button" key={entry.assignment.id} onClick={() => go("documents")} aria-label={`Consulter le document ${entry.document.title}`} data-testid={`button-dashboard-document-${entry.assignment.id}`}>
+                    <FileText aria-hidden="true" />
+                    <span className="sr-row-copy"><b>{entry.document.title}</b><small>{entry.assignment.instruction || `Référence ${entry.document.id}`}</small></span>
+                    <span className={`sr-tag ${entry.assignment.status === "received" ? "sr-new" : "sr-process"}`}>{statusLabel(entry.assignment.status)}</span>
+                    <small className="sr-row-date">{parisDateTime(entry.assignment.createdAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small>
+                    <ChevronRight className="sr-row-chevron" aria-hidden="true" />
+                  </button>
+                ))}
+            </QueryMessage>
+          </DashboardPanel>}
 
-        {/* Prochaines réunions */}
-        <SectionCard title="Prochaines réunions" action={<LinkAction onClick={() => go("agenda")}>Voir l'agenda</LinkAction>}>
-          <div className="space-y-3">
-            {!meetings?.length && <p className="text-sm text-gray-500">Aucune réunion prévue.</p>}
-            {meetings?.map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between gap-3 pb-3" style={{ borderBottom: `1px solid ${C.line}` }}>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: C.ink }}>{m.title}</p>
-                  <p className="text-[12.5px]" style={{ color: C.inkSoft }}>{format(new Date(m.startsAt), "HH:mm")} - {m.mode || "En ligne"}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-5">
-        <SectionCard title="Mes tâches" action={<LinkAction onClick={() => go("tasks")}>Voir tout</LinkAction>}>
-          <div className="space-y-3">
-            {!dashboard?.todayWork?.length && <p className="text-sm text-gray-500">Aucune tâche pour aujourd'hui.</p>}
-            {dashboard?.todayWork?.slice(0, 4).map((t: any) => (
-              <div key={t.id} className="flex items-center gap-3">
-                <Circle size={15} style={{ color: C.inkFaint }} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm truncate" style={{ color: C.ink }}>{t.title}</p>
-                  <p className="text-[12px]" style={{ color: C.inkSoft }}>{t.dueAt ? format(new Date(t.dueAt), "dd MMM yyyy", { locale: fr }) : "Sans échéance"}</p>
-                </div>
-                <Pill tone={priorityTone(t.priority || "normal")}>{t.priority || "Normal"}</Pill>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Notes stratégiques" action={<LinkAction onClick={() => go("notes")}>Voir tout</LinkAction>}>
-          <div className="space-y-3">
-            {!notes?.length && <p className="text-sm text-gray-500">Aucune note.</p>}
-            {notes?.slice(0, 4).map((n: any) => (
-              <div key={n.id} className="flex items-center justify-between gap-3 pb-3" style={{ borderBottom: `1px solid ${C.line}` }}>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: C.ink }}>{n.title}</p>
-                  <p className="text-[12.5px]" style={{ color: C.inkSoft }}>Dernière modification : {format(new Date(n.updatedAt), "dd MMM yyyy", { locale: fr })}</p>
-                </div>
-                <Pill tone={n.isShared ? "info" : "neutral"}>{n.isShared ? "Partagée" : "Privée"}</Pill>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-5">
-        <SectionCard title="Ma situation financière" action={<LinkAction onClick={() => go("finance")}>Voir le détail</LinkAction>}>
-          <div className="space-y-4">
-            {!financeSummary ? (
-               <EmptyState icon={DollarSign} text="Aucune donnée financière disponible." />
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[12.5px]" style={{ color: C.inkSoft }}>Dernier paiement</p>
-                    <p className="text-lg font-semibold mt-1" style={{ color: C.ink }}>
-                      {financeSummary.lastPaymentAmount ? financeSummary.lastPaymentAmount.toLocaleString() : "0"} {financeSummary.currency || "EUR"}
-                    </p>
-                    <p className="text-[12px]" style={{ color: C.inkSoft }}>{financeSummary.lastPaymentDate ? format(new Date(financeSummary.lastPaymentDate), "dd MMM yyyy", { locale: fr }) : "N/A"}</p>
-                  </div>
-                  <Pill tone="basse">Versé</Pill>
-                </div>
-              </>
-            )}
-            {requirements && requirements.length > 0 && (
-              <div>
-                <p className="text-[12.5px] font-medium" style={{ color: C.ink }}>Exigences à remplir</p>
-                {requirements.map((r: any) => (
-                  <div key={r.id} className="flex items-center justify-between gap-3 mt-2">
-                    <span className="text-[12px]" style={{ color: C.inkSoft }}>{r.title}</span>
-                    <Pill tone={r.status === "pending" ? "haute" : "info"}>{r.status}</Pill>
-                  </div>
+          {canViewCases && <DashboardPanel className="sr-cases" icon={Folder} title="Mes dossiers" action="Voir tout" onAction={() => go("cases")}>
+            <QueryMessage loading={casesQuery.isLoading} error={casesQuery.isError}>
+              <div className="sr-tabs" role="group" aria-label="Filtrer mes dossiers">
+                {[
+                  { status: "ACTIVE", label: "En cours", count: cases.filter((item: any) => item.status?.toLowerCase() === "active").length },
+                  { status: "WAITING", label: "À traiter", count: cases.filter((item: any) => item.status?.toLowerCase() === "waiting").length },
+                  { status: "COMPLETED", label: "Terminés", count: cases.filter((item: any) => item.status?.toLowerCase() === "completed").length },
+                  { status: "URGENT", label: "Urgents", count: cases.filter((item: any) => item.status?.toLowerCase() !== "completed" && ["high", "urgent"].includes(item.priority?.toLowerCase())).length },
+                ].map(tab => (
+                  <button type="button" key={tab.status} className={caseTab === tab.status ? "selected" : ""} aria-pressed={caseTab === tab.status} onClick={() => setCaseTab(tab.status)} data-testid={`button-dashboard-case-filter-${tab.status.toLowerCase()}`}>
+                    {tab.label} ({tab.count})
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
-        </SectionCard>
+              {visibleCases.length
+                ? visibleCases.map((item: any) => (
+                  <button className="sr-document-row sr-case-row" type="button" key={item.id} onClick={() => go("cases")} aria-label={`Consulter le dossier ${item.title}`} data-testid={`button-dashboard-case-${item.id}`}>
+                    <Folder aria-hidden="true" />
+                    <span className="sr-row-copy"><b>{item.title}</b><small>{item.reference || statusLabel(item.status)}</small></span>
+                    <span className="sr-tag sr-new">{statusLabel(item.status)}</span>
+                    <small className="sr-row-date">{item.updatedAt ? parisDateTime(item.updatedAt, { day: "numeric", month: "short" }) : ""}</small>
+                    <ChevronRight className="sr-row-chevron" aria-hidden="true" />
+                  </button>
+                ))
+                : <div className="sr-inline-empty">Aucun dossier dans cette catégorie.</div>}
+            </QueryMessage>
+          </DashboardPanel>}
 
-        <SectionCard title="Arriérés" action={<LinkAction onClick={() => go("finance")}>Voir le détail</LinkAction>}>
-          {arrears && arrears.length ? arrears.map((a: any) => (
-            <div key={a.id} className="p-3 rounded-md" style={{ border: `1px solid ${C.line}` }}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium" style={{ color: C.ink }}>{a.period}</p>
-                  <p className="text-[12px] mt-1" style={{ color: C.inkSoft }}>{a.amount.toLocaleString()} {a.currency || "EUR"}</p>
-                </div>
-                <Pill tone="haute">{a.status}</Pill>
-              </div>
-              {a.reason && <p className="text-[12px] mt-3" style={{ color: C.inkSoft }}><strong>Motif communiqué :</strong> {a.reason}</p>}
+          <div className="sr-lower-grid">
+            {canViewTasks && <DashboardPanel className="sr-small-panel" icon={ClipboardList} title="Mes tâches" action="Voir tout" onAction={() => go("tasks")}>
+              <QueryMessage loading={tasksQuery.isLoading || (tasksQuery.isError && dashboardQuery.isLoading)} error={tasksQuery.isError && dashboardQuery.isError}>
+                {taskSummaryFallback && <div className="sr-data-warning" role="status">Liste complète indisponible ; aperçu des tâches du jour affiché.</div>}
+                {tasks.length === 0
+                  ? <DashboardEmpty icon={CheckSquare} title={taskSummaryFallback ? "Aucune tâche à échéance prochaine" : "Aucune tâche assignée"} text={taskSummaryFallback ? "Le résumé du tableau de bord ne signale pas de tâche proche." : "Les tâches qui vous sont attribuées apparaîtront ici."} />
+                  : <div className="sr-compact-list">{tasks.slice(0, 3).map((task: any) => (
+                    <button type="button" className="sr-compact-row" key={task.id} onClick={() => go("tasks")} data-testid={`button-dashboard-task-${task.id}`}>
+                      <CheckSquare aria-hidden="true" /><span><b>{task.title}</b><small>{task.dueAt ? parisDateTime(task.dueAt, { day: "numeric", month: "short" }) : "Sans échéance"}</small></span>
+                    </button>
+                  ))}</div>}
+              </QueryMessage>
+            </DashboardPanel>}
+            <DashboardPanel className="sr-small-panel" icon={Lightbulb} title="Notes stratégiques" action="Voir tout" onAction={() => go("notes")}>
+              <QueryMessage loading={notesQuery.isLoading} error={notesQuery.isError}>
+                {notes.length === 0
+                  ? <DashboardEmpty icon={NotebookPen} title="Aucune note pour le moment" text="Vos notes stratégiques apparaîtront ici." />
+                  : <div className="sr-compact-list">{notes.slice(0, 2).map((note: any) => (
+                    <button type="button" className="sr-compact-row" key={note.id} onClick={() => go("notes")} data-testid={`button-dashboard-note-${note.id}`}>
+                      <NotebookPen aria-hidden="true" /><span><b>{note.title}</b><small>{note.isShared ? "Partagée" : "Privée"} · {parisDateTime(note.updatedAt, { day: "numeric", month: "short" })}</small></span>
+                    </button>
+                  ))}</div>}
+              </QueryMessage>
+            </DashboardPanel>
+          </div>
+        </div>
+
+        <div className="sr-secondary-col">
+          {canParticipateInMeetings && <DashboardPanel className="sr-meetings" icon={CalendarDays} title="Prochaines réunions" action="Voir tout" onAction={() => go("agenda")}>
+            <QueryMessage loading={meetingsQuery.isLoading} error={meetingsQuery.isError}>
+              {upcomingMeetings.length === 0
+                ? <DashboardEmpty icon={CalendarDays} title="Aucune réunion programmée" text="Les prochaines réunions confirmées apparaîtront ici." button="Voir mon agenda" onClick={() => go("agenda")} />
+                : <div className="sr-meeting-list">{upcomingMeetings.slice(0, 3).map((meeting: any) => (
+                  <button type="button" className="sr-meeting-row" key={meeting.id} onClick={() => go("agenda")} data-testid={`button-dashboard-meeting-${meeting.id}`}>
+                    <CalendarDays aria-hidden="true" /><span><b>{meeting.title}</b><small>{parisDateTime(meeting.startsAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small></span>
+                  </button>
+                ))}</div>}
+            </QueryMessage>
+          </DashboardPanel>}
+
+          {canSeeFinance && <DashboardPanel className="sr-finance" icon={Home} title="Ma situation financière" action="Voir détail" onAction={() => go("finance")}>
+            <QueryMessage loading={financeQuery.isLoading || arrearsQuery.isLoading || requirementsQuery.isLoading} error={financeHasError}>
+              {!finance && visibleArrears.length === 0 && visibleRequirements.length === 0
+                ? <>
+                  <div className="sr-finance-no-data">Aucune donnée financière disponible.</div>
+                  {hasRestrictedFinanceData && <DashboardRestricted>Certaines informations financières ne sont pas accessibles avec les permissions de votre compte.</DashboardRestricted>}
+                </>
+                : <>
+                  {finance && <div className="sr-finance-row">
+                    <span className="sr-euro" aria-hidden="true">€</span>
+                    <div><b>{finance.periodLabel || "Rémunération"}</b><small>{statusLabel(finance.salaryStatus)}</small><small>{finance.communicatedDelayReason || "Aucun motif communiqué"}</small></div>
+                    <span className="sr-status">{statusLabel(finance.salaryStatus)}</span>
+                  </div>}
+                  {visibleArrears.slice(0, 1).map((item: any) => <div className="sr-finance-row arrears" key={item.id}>
+                    <span className="sr-euro" aria-hidden="true">€</span>
+                    <div><b>{item.periodLabel || "Arriérés"}</b><small>{statusLabel(item.status)}</small><small>{item.communicatedReason || "Aucun motif communiqué"}</small></div>
+                  </div>)}
+                  {visibleRequirements.slice(0, 1).map((item: any) => <div className="sr-finance-requirement" key={item.id}><b>{item.title}</b><span>{statusLabel(item.status)}</span></div>)}
+                  {hasRestrictedFinanceData && <DashboardRestricted>Certaines informations financières ne sont pas accessibles avec les permissions de votre compte.</DashboardRestricted>}
+                </>}
+            </QueryMessage>
+          </DashboardPanel>}
+
+          {canUseVideo && <DashboardPanel className="sr-video" icon={Video} title="Visioconférence" action="Voir tout" onAction={() => go("video")}>
+            <QueryMessage loading={videoQuery.isLoading} error={videoQuery.isError}>
+              {videoAccess?.meeting
+                ? <div className="sr-video-active"><strong>{videoAccess.meeting.title}</strong><span>Accès autorisé jusqu’à {parisDateTime(videoAccess.meeting.expiresAt, { hour: "2-digit", minute: "2-digit" })}</span><button className="sr-outline" type="button" onClick={() => go("video")}>Rejoindre ou consulter</button></div>
+                : <DashboardEmpty icon={Video} title="Aucune visioconférence en cours" text="Les accès autorisés aux réunions vidéo apparaîtront ici." button="Voir mes réunions" onClick={() => go("video")} />}
+            </QueryMessage>
+          </DashboardPanel>}
+        </div>
+
+        <aside className="sr-rail" aria-label="Raccourcis et notifications">
+          <DashboardPanel className="sr-shortcuts" icon={CalendarDays} title="Mes raccourcis">
+            <div className="sr-shortcut-grid">
+              {canUseMessaging && <button type="button" onClick={() => go("comms?compose=message")} data-testid="button-dashboard-shortcut-comms"><MessageSquare aria-hidden="true" /><span>Nouveau<br />message</span></button>}
+              {canUseMessaging && <button type="button" title="Rédigez un message interne au sujet d’une réunion. Cette action ne modifie pas votre participation." aria-label="Répondre à une réunion par un message interne, sans modifier votre participation." onClick={() => go("comms?compose=meeting")} data-testid="button-dashboard-shortcut-agenda"><CheckSquare aria-hidden="true" /><span>Répondre à<br />une réunion</span></button>}
+              {canViewDocuments && <button type="button" title="Consulter vos documents reçus et ouvrir leurs pièces jointes, selon vos permissions." aria-label="Ouvrir les documents reçus" onClick={() => go("documents")} data-testid="button-dashboard-shortcut-documents"><Download aria-hidden="true" /><span>Documents<br />reçus</span></button>}
+              {canWriteWorkspace && <button type="button" onClick={() => go("notes")} data-testid="button-dashboard-shortcut-notes"><CalendarDays aria-hidden="true" /><span>Créer une<br />note</span></button>}
             </div>
-          )) : <EmptyState icon={DollarSign} text="Aucun arriéré." />}
-        </SectionCard>
+          </DashboardPanel>
+          <DashboardPanel className="sr-notifications" icon={ShieldCheck} title="Notifications" action="Voir tout" onAction={() => go("notifications")}>
+            <QueryMessage loading={notificationsQuery.isLoading} error={notificationsQuery.isError}>
+              {notifications.length === 0
+                ? <div className="sr-notifications-empty">{unreadCount === 0 ? "Aucune notification." : "Aucune notification récente."}</div>
+                : notifications.slice(0, 3).map((item: any, index: number) => (
+                  <button type="button" className="sr-notification" key={item.id} onClick={() => go("notifications")} data-testid={`button-dashboard-notification-${item.id}`}>
+                    <span className={`sr-n-icon ${["cyan", "violet", "teal"][index % 3]}`}><Bell aria-hidden="true" /></span>
+                    <span className="sr-notification-copy"><b>{item.title || "Notification"}</b><small>{item.body || "Consultez le détail de cette notification."}</small><time>{parisDateTime(item.createdAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</time></span>
+                    {!item.isRead && <i aria-label="Non lue" />}
+                  </button>
+                ))}
+            </QueryMessage>
+          </DashboardPanel>
+          <section className="sr-mountain" aria-label="Engagement pour une exploitation minière responsable">
+            <img src={imagePath("mountains.jpg")} alt="Montagnes et forêt de pins" />
+            <div>Ensemble vers une exploitation minière responsable et durable.</div>
+          </section>
+        </aside>
       </div>
 
-      <SectionCard title="Visioconférence" action={<LinkAction onClick={() => go("video")}>Voir mes réunions</LinkAction>}>
-        <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: C.copperSoft }}>
-            <Video size={22} color={C.copper} />
-          </div>
-          <p className="text-sm" style={{ color: C.inkSoft }}>Rejoignez vos réunions programmées en un clic.</p>
-          <button onClick={() => go("video")} className="px-4 py-2 rounded-md text-sm font-medium text-white" style={{ background: C.navy }}>
-            Voir mes réunions
-          </button>
-        </div>
-      </SectionCard>
+      <footer className="sr-footer">
+        <span>SOMIREN S.A.　|　 Excellence minière, avenir durable</span>
+        <span>Espace Collaborateur — {name}</span>
+      </footer>
     </div>
   );
 }

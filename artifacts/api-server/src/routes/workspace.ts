@@ -3,11 +3,14 @@ import {
   conversationsTable, db, documentAssignmentsTable, documentsTable, executiveRequestsTable, financialRecordsTable,
   meetingParticipantsTable, meetingsTable, messagesTable, notificationsTable, paymentRequirementDocumentsTable,
   paymentRequirementsTable, paymentsTable, strategicNotesTable, tasksTable, videoAuthorizationsTable,
+  privateUploadsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gt, gte, lte, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { getWorkspaceActor } from "./collaboratorAuth";
+import { cleanupReplacedProfilePhoto, consumeUpload, createDownloadUrl, getConsumedAsset } from "./privateMedia";
+import { isReferencePortraitEligible, isValidAudioMessage, videoSigningExpirySeconds } from "./privateMediaValidation";
 
 const router: IRouter = Router();
 const idSchema = z.coerce.number().int().positive();
@@ -73,13 +76,159 @@ const textSchema = z.string().trim().min(1).max(5000);
 const assignmentSchema = z.object({ status: z.enum(["received", "in_progress", "submitted", "completed"]).optional(), instruction: z.string().max(5000).optional(), priority: z.enum(["low", "normal", "high", "urgent"]).optional(), dueAt: z.coerce.date().nullable().optional() }).refine(v => Object.keys(v).length > 0);
 const requestSchema = z.object({ title: textSchema.max(300), description: z.string().max(5000).optional(), priority: z.enum(["low", "normal", "high", "urgent"]).optional(), dueAt: z.coerce.date().nullable().optional(), status: z.enum(["new", "accepted", "in_progress", "submitted", "validated", "revision_required", "completed"]).optional() });
 const noteSchema = z.object({ title: textSchema.max(300), body: z.string().max(10000).optional(), isShared: z.boolean().optional() });
-const messageSchema = z.object({ body: textSchema.max(10000) });
+const threadMessageSchema = z.object({
+  body: z.string().trim().min(1).max(10000).optional(),
+  audioAssetId: z.string().uuid().optional(),
+  transcript: z.string().trim().min(1).max(10000).optional(),
+  translation: z.string().trim().min(1).max(10000).optional(),
+  sourceLanguage: z.enum(["fr", "es"]).optional(),
+  targetLanguage: z.enum(["fr", "es"]).optional(),
+}).strict().superRefine((value, ctx) => {
+  const hasAudioFields = Boolean(value.audioAssetId || value.transcript || value.translation || value.sourceLanguage || value.targetLanguage);
+  if (hasAudioFields && !isValidAudioMessage(value)) {
+    ctx.addIssue({ code: "custom", message: "Audio messages require an audio file, readable transcript and translation, and distinct French/Spanish languages" });
+  }
+  if (!value.body && !value.audioAssetId) ctx.addIssue({ code: "custom", message: "Message body or audio is required" });
+});
+
+async function notifyActiveAdmins(title: string, body: string): Promise<void> {
+  const admins = await db.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.role, "ADMIN"), eq(collaboratorsTable.isActive, true)));
+  if (admins.length) await db.insert(notificationsTable).values(admins.map(admin => ({ collaboratorId: admin.id, title, body })));
+}
 
 router.use(requireWorkspaceAccess);
 
 router.get("/workspace/me", (_req, res): void => {
   const current = actor(res);
   res.json({ profile: { id: current.id, email: current.email, fullName: current.fullName, role: current.role, department: "Direction Générale", employeeId: "SMR-DIR-001" }, permissions: current.permissions });
+});
+
+router.get("/workspace/me/photo", async (req, res): Promise<void> => {
+  const current = actor(res);
+  const referencePortrait = isReferencePortraitEligible(current, process.env.NURIA_EMAIL);
+  const [collaborator] = await db.select({
+    assetId: collaboratorsTable.profilePhotoAssetId,
+    removed: collaboratorsTable.profilePhotoRemoved,
+  }).from(collaboratorsTable).where(eq(collaboratorsTable.id, current.id)).limit(1);
+  if (!collaborator) {
+    res.status(404).json({ error: "Collaborator profile not found" });
+    return;
+  }
+  if (!collaborator.assetId) {
+    res.json({ photo: null, removed: collaborator.removed, referencePortrait });
+    return;
+  }
+  const [asset] = await db.select().from(privateUploadsTable).where(and(
+    eq(privateUploadsTable.id, collaborator.assetId),
+    eq(privateUploadsTable.uploadedById, current.id),
+    eq(privateUploadsTable.kind, "profile-photo"),
+    eq(privateUploadsTable.status, "consumed"),
+    eq(privateUploadsTable.purpose, "profile-photo"),
+  )).limit(1);
+  if (!asset) {
+    req.log.error("Collaborator profile photo metadata is inconsistent");
+    res.status(503).json({ error: "Profile photo metadata could not be loaded" });
+    return;
+  }
+  const url = await createDownloadUrl(asset);
+  if (!url) {
+    req.log.warn("Collaborator profile photo signing failed");
+    res.status(502).json({ error: "Could not create a profile photo URL" });
+    return;
+  }
+  res.json({ photo: { url, contentType: asset.contentType, expiresIn: 300 }, removed: false, referencePortrait });
+});
+
+router.put("/workspace/me/photo", async (req, res): Promise<void> => {
+  const body = z.object({ assetId: z.string().uuid() }).strict().safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "A valid completed profile photo upload is required" });
+    return;
+  }
+  const current = actor(res);
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [collaborator] = await tx.select({
+        assetId: collaboratorsTable.profilePhotoAssetId,
+      }).from(collaboratorsTable).where(eq(collaboratorsTable.id, current.id)).for("update").limit(1);
+      if (!collaborator) return { valid: false as const };
+      if (collaborator.assetId === body.data.assetId) {
+        return { valid: true as const, replacedAssetId: null };
+      }
+      const [asset] = await tx.select().from(privateUploadsTable).where(and(
+        eq(privateUploadsTable.id, body.data.assetId),
+        eq(privateUploadsTable.uploadedById, current.id),
+        eq(privateUploadsTable.kind, "profile-photo"),
+        eq(privateUploadsTable.status, "complete"),
+      )).for("update").limit(1);
+      if (!asset) return { valid: false as const };
+      const [consumed] = await tx.update(privateUploadsTable).set({
+        status: "consumed",
+        purpose: "profile-photo",
+        updatedAt: new Date(),
+      }).where(and(
+        eq(privateUploadsTable.id, asset.id),
+        eq(privateUploadsTable.uploadedById, current.id),
+        eq(privateUploadsTable.kind, "profile-photo"),
+        eq(privateUploadsTable.status, "complete"),
+      )).returning({ id: privateUploadsTable.id });
+      if (!consumed) return { valid: false as const };
+      await tx.update(collaboratorsTable).set({
+        profilePhotoAssetId: asset.id,
+        profilePhotoRemoved: false,
+        updatedAt: new Date(),
+      }).where(eq(collaboratorsTable.id, current.id));
+      return {
+        valid: true as const,
+        replacedAssetId: collaborator.assetId && collaborator.assetId !== asset.id ? collaborator.assetId : null,
+      };
+    });
+    if (!result.valid) {
+      res.status(400).json({ error: "Photo upload must be completed and owned by this collaborator" });
+      return;
+    }
+    if (result.replacedAssetId) {
+      await cleanupReplacedProfilePhoto(result.replacedAssetId, current.id, (error) => {
+        req.log.warn({ err: error }, "Could not clean up the replaced profile photo");
+      });
+    }
+    res.json({ updated: true });
+  } catch (error) {
+    req.log.error({ err: error }, "Profile photo update failed");
+    res.status(503).json({ error: "Could not update the profile photo" });
+  }
+});
+
+router.delete("/workspace/me/photo", async (req, res): Promise<void> => {
+  const current = actor(res);
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [collaborator] = await tx.select({
+        assetId: collaboratorsTable.profilePhotoAssetId,
+      }).from(collaboratorsTable).where(eq(collaboratorsTable.id, current.id)).for("update").limit(1);
+      if (!collaborator) return { found: false as const, oldAssetId: null };
+      await tx.update(collaboratorsTable).set({
+        profilePhotoAssetId: null,
+        profilePhotoRemoved: true,
+        updatedAt: new Date(),
+      }).where(eq(collaboratorsTable.id, current.id));
+      return { found: true as const, oldAssetId: collaborator.assetId };
+    });
+    if (!result.found) {
+      res.status(404).json({ error: "Collaborator profile not found" });
+      return;
+    }
+    if (result.oldAssetId) {
+      await cleanupReplacedProfilePhoto(result.oldAssetId, current.id, (error) => {
+        req.log.warn({ err: error }, "Could not clean up the removed profile photo");
+      });
+    }
+    res.json({ removed: true });
+  } catch (error) {
+    req.log.error({ err: error }, "Profile photo removal failed");
+    res.status(503).json({ error: "Could not remove the profile photo" });
+  }
 });
 
 router.get("/workspace/dashboard", async (_req, res): Promise<void> => {
@@ -155,6 +304,12 @@ router.patch("/workspace/notifications/:id/read", requireWorkspaceWrite, async (
   const current = actor(res); const [notification] = await db.update(notificationsTable).set({ isRead: true, updatedAt: new Date() }).where(and(eq(notificationsTable.id, parsed.data), eq(notificationsTable.collaboratorId, current.id))).returning();
   if (!notification) { res.status(404).json({ error: "Notification not found" }); return; } res.json({ notification });
 });
+router.patch("/workspace/notifications/read-all", requireWorkspaceWrite, async (_req, res): Promise<void> => {
+  const current = actor(res);
+  await db.update(notificationsTable).set({ isRead: true, updatedAt: new Date() })
+    .where(and(eq(notificationsTable.collaboratorId, current.id), eq(notificationsTable.isRead, false)));
+  res.json({ updated: true });
+});
 router.get("/workspace/activity", async (_req, res): Promise<void> => { const current = actor(res); res.json({ activity: await db.select().from(activityLogsTable).where(eq(activityLogsTable.collaboratorId, current.id)).orderBy(desc(activityLogsTable.createdAt)).limit(100) }); });
 router.get("/workspace/video-access", async (_req, res): Promise<void> => {
   const current = actor(res); const now = new Date();
@@ -163,8 +318,6 @@ router.get("/workspace/video-access", async (_req, res): Promise<void> => {
   if (!authorization) { res.json({ authorized: false, allowed: false, reason: "No active video authorization for this account." }); return; }
   res.json({ authorized: true, allowed: true, meeting: { title: authorization.meetingTitle, url: authorization.meetingUrl, startsAt: authorization.startsAt, expiresAt: authorization.expiresAt } });
 });
-router.post("/storage/uploads/request-url", requireWorkspaceWrite, (_req, res): void => { res.status(501).json({ error: "Private document uploads are not enabled; no upload URL was created." }); });
-
 router.get("/workspace/me/permissions", (_req, res): void => {
   const permissions = actor(res).permissions;
   res.json({ permissions, videoEnabled: permissions.includes("CAN_USE_VIDEO_CONFERENCE") });
@@ -176,6 +329,20 @@ router.get("/workspace/documents/received", requirePermission("VIEW_ASSIGNED_DOC
     .where(eq(documentAssignmentsTable.collaboratorId, current.id)).orderBy(desc(documentAssignmentsTable.updatedAt));
   res.json({ documents });
 });
+router.get("/workspace/documents/received/:id/file", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), requirePermission("DOWNLOAD_ALLOWED_DOCUMENTS"), async (req, res): Promise<void> => {
+  const id = idSchema.safeParse(req.params.id);
+  if (!id.success) { res.status(400).json({ error: "Invalid assignment id" }); return; }
+  const current = actor(res);
+  const [row] = await db.select({ document: documentsTable }).from(documentAssignmentsTable)
+    .innerJoin(documentsTable, eq(documentAssignmentsTable.documentId, documentsTable.id))
+    .where(and(eq(documentAssignmentsTable.id, id.data), eq(documentAssignmentsTable.collaboratorId, current.id))).limit(1);
+  if (!row?.document.assetId) { res.status(404).json({ error: "Document attachment not found" }); return; }
+  const asset = await getConsumedAsset(row.document.assetId, "document");
+  if (!asset) { res.status(404).json({ error: "Document attachment not found" }); return; }
+  const url = await createDownloadUrl(asset);
+  if (!url) { req.log.warn("Private received document signing failed"); res.status(502).json({ error: "Could not create a file download URL" }); return; }
+  res.json({ url, fileName: asset.fileName, contentType: asset.contentType, expiresIn: 300 });
+});
 router.patch("/workspace/documents/received/:id", requirePermission("SUBMIT_DOCUMENTS"), async (req, res): Promise<void> => {
   const id = idSchema.safeParse(req.params.id), body = assignmentSchema.safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid document assignment" }); return; }
   const current = actor(res); const [assignment] = await db.update(documentAssignmentsTable).set({ ...body.data, updatedAt: new Date() }).where(and(eq(documentAssignmentsTable.id, id.data), eq(documentAssignmentsTable.collaboratorId, current.id))).returning();
@@ -184,17 +351,115 @@ router.patch("/workspace/documents/received/:id", requirePermission("SUBMIT_DOCU
 router.get("/workspace/requests", requirePermission("VIEW_EXECUTIVE_REQUESTS"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ requests: await db.select().from(executiveRequestsTable).where(eq(executiveRequestsTable.assigneeId, current.id)).orderBy(desc(executiveRequestsTable.updatedAt)) }); });
 router.post("/workspace/requests", requirePermission("MANAGE_ASSIGNED_REQUESTS"), async (req, res): Promise<void> => {
   const body = requestSchema.safeParse(req.body); if (!body.success) { res.status(400).json({ error: "Invalid request" }); return; } const current = actor(res);
-  const [request] = await db.insert(executiveRequestsTable).values({ ...body.data, assigneeId: current.id }).returning(); await addActivity(current, "executive_request", request.id, "created"); res.status(201).json({ request });
+  const [request] = await db.insert(executiveRequestsTable).values({ ...body.data, assigneeId: current.id }).returning(); await notifyActiveAdmins("New request", `${current.fullName} submitted a request: ${request.title}`); await addActivity(current, "executive_request", request.id, "created"); res.status(201).json({ request });
 });
 router.patch("/workspace/requests/:id", requirePermission("MANAGE_ASSIGNED_REQUESTS"), async (req, res): Promise<void> => {
   const id = idSchema.safeParse(req.params.id), body = requestSchema.partial().refine(v => Object.keys(v).length > 0).safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid request update" }); return; } const current = actor(res);
   const [request] = await db.update(executiveRequestsTable).set({ ...body.data, updatedAt: new Date() }).where(and(eq(executiveRequestsTable.id, id.data), eq(executiveRequestsTable.assigneeId, current.id))).returning(); if (!request) { res.status(404).json({ error: "Request not found" }); return; } res.json({ request });
 });
-router.get("/workspace/meetings", requirePermission("PARTICIPATE_IN_MEETINGS"), async (_req, res): Promise<void> => { const current = actor(res); const meetings = await db.select({ meeting: meetingsTable }).from(meetingParticipantsTable).innerJoin(meetingsTable, eq(meetingParticipantsTable.meetingId, meetingsTable.id)).where(eq(meetingParticipantsTable.collaboratorId, current.id)).orderBy(asc(meetingsTable.startsAt)); res.json({ meetings: meetings.map(v => v.meeting) }); });
-router.get("/workspace/conversations", requirePermission("USE_INTERNAL_MESSAGING"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ conversations: await db.select().from(conversationsTable).where(eq(conversationsTable.collaboratorId, current.id)).orderBy(desc(conversationsTable.updatedAt)) }); });
-router.post("/workspace/conversations", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => { const body = z.object({ subject: textSchema.max(300), initialMessage: z.string().max(10000).optional() }).safeParse(req.body); if (!body.success) { res.status(400).json({ error: "Invalid conversation" }); return; } const current = actor(res); const [conversation] = await db.insert(conversationsTable).values({ subject: body.data.subject, collaboratorId: current.id }).returning(); if (body.data.initialMessage) await db.insert(messagesTable).values({ conversationId: conversation.id, senderId: current.id, body: body.data.initialMessage }); res.status(201).json({ conversation }); });
-router.get("/workspace/conversations/:id/messages", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id); if (!id.success) { res.status(400).json({ error: "Invalid conversation id" }); return; } const current = actor(res); const [conversation] = await db.select().from(conversationsTable).where(and(eq(conversationsTable.id, id.data), eq(conversationsTable.collaboratorId, current.id))); if (!conversation) { res.status(404).json({ error: "Conversation not found" }); return; } res.json({ messages: await db.select().from(messagesTable).where(eq(messagesTable.conversationId, conversation.id)).orderBy(asc(messagesTable.createdAt)) }); });
-router.post("/workspace/conversations/:id/messages", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id), body = messageSchema.safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid message" }); return; } const current = actor(res); const [conversation] = await db.select().from(conversationsTable).where(and(eq(conversationsTable.id, id.data), eq(conversationsTable.collaboratorId, current.id))); if (!conversation) { res.status(404).json({ error: "Conversation not found" }); return; } const [message] = await db.insert(messagesTable).values({ conversationId: id.data, senderId: current.id, body: body.data.body }).returning(); res.status(201).json({ message }); });
+router.get("/workspace/meetings", requirePermission("PARTICIPATE_IN_MEETINGS"), async (_req, res): Promise<void> => {
+  const current = actor(res);
+  const rows = await db.select({ meeting: meetingsTable, video: { fileName: privateUploadsTable.fileName, contentType: privateUploadsTable.contentType } })
+    .from(meetingParticipantsTable).innerJoin(meetingsTable, eq(meetingParticipantsTable.meetingId, meetingsTable.id))
+    .leftJoin(privateUploadsTable, eq(meetingsTable.videoAssetId, privateUploadsTable.id))
+    .where(eq(meetingParticipantsTable.collaboratorId, current.id)).orderBy(asc(meetingsTable.startsAt));
+  res.json({ meetings: rows.map(row => ({ ...row.meeting, videoFileName: row.video?.fileName ?? null, videoContentType: row.video?.contentType ?? null })) });
+});
+router.get("/workspace/meetings/:id/video", requirePermission("CAN_USE_VIDEO_CONFERENCE"), requirePermission("PARTICIPATE_IN_MEETINGS"), async (req, res): Promise<void> => {
+  const id = idSchema.safeParse(req.params.id);
+  if (!id.success) { res.status(400).json({ error: "Invalid meeting id" }); return; }
+  const current = actor(res);
+  const [meeting] = await db.select({ meeting: meetingsTable }).from(meetingParticipantsTable)
+    .innerJoin(meetingsTable, eq(meetingParticipantsTable.meetingId, meetingsTable.id))
+    .where(and(eq(meetingParticipantsTable.meetingId, id.data), eq(meetingParticipantsTable.collaboratorId, current.id))).limit(1);
+  if (!meeting?.meeting.videoAssetId) { res.status(404).json({ error: "Meeting video not found" }); return; }
+  const validUntil = meeting.meeting.endsAt ?? new Date(meeting.meeting.startsAt.getTime() + 24 * 60 * 60 * 1000);
+  const now = new Date();
+  if (now < meeting.meeting.startsAt) { res.status(403).json({ error: "Meeting video is outside its scheduled viewing window" }); return; }
+  const expiresIn = videoSigningExpirySeconds(validUntil, now);
+  if (expiresIn === undefined) { res.status(403).json({ error: "Meeting video is outside its scheduled viewing window" }); return; }
+  const asset = await getConsumedAsset(meeting.meeting.videoAssetId, "meeting-video");
+  if (!asset) { res.status(404).json({ error: "Meeting video not found" }); return; }
+  const url = await createDownloadUrl(asset, expiresIn);
+  if (!url) { req.log.warn("Private meeting video signing failed"); res.status(502).json({ error: "Could not create a file download URL" }); return; }
+  res.json({ url, fileName: asset.fileName, contentType: asset.contentType, expiresIn });
+});
+router.get("/workspace/conversations", requirePermission("USE_INTERNAL_MESSAGING"), async (_req, res): Promise<void> => {
+  const current = actor(res);
+  res.json({ conversations: await db.select().from(conversationsTable).where(eq(conversationsTable.collaboratorId, current.id)).orderBy(desc(conversationsTable.updatedAt)) });
+});
+router.post("/workspace/conversations", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => {
+  const body = z.object({ subject: textSchema.max(300), initialMessage: z.string().trim().min(1).max(10000).optional() }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid conversation" }); return; }
+  const current = actor(res);
+  const conversation = await db.transaction(async tx => {
+    const [created] = await tx.insert(conversationsTable).values({ subject: body.data.subject, collaboratorId: current.id }).returning();
+    if (body.data.initialMessage) await tx.insert(messagesTable).values({ conversationId: created.id, senderId: current.id, body: body.data.initialMessage });
+    const admins = await tx.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.role, "ADMIN"), eq(collaboratorsTable.isActive, true)));
+    if (admins.length) await tx.insert(notificationsTable).values(admins.map(admin => ({
+      collaboratorId: admin.id, title: "New message", body: `${current.fullName} started a conversation: ${created.subject}`,
+    })));
+    return created;
+  });
+  res.status(201).json({ conversation });
+});
+router.get("/workspace/conversations/:id/messages", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => {
+  const id = idSchema.safeParse(req.params.id);
+  if (!id.success) { res.status(400).json({ error: "Invalid conversation id" }); return; }
+  const current = actor(res);
+  const [conversation] = await db.select().from(conversationsTable).where(and(eq(conversationsTable.id, id.data), eq(conversationsTable.collaboratorId, current.id)));
+  if (!conversation) { res.status(404).json({ error: "Conversation not found" }); return; }
+  const rows = await db.select({ message: messagesTable, audio: { fileName: privateUploadsTable.fileName, contentType: privateUploadsTable.contentType } })
+    .from(messagesTable).leftJoin(privateUploadsTable, eq(messagesTable.audioAssetId, privateUploadsTable.id))
+    .where(eq(messagesTable.conversationId, id.data)).orderBy(asc(messagesTable.createdAt));
+  res.json({ messages: rows.map(row => ({ ...row.message, audioFileName: row.audio?.fileName ?? null, audioContentType: row.audio?.contentType ?? null })) });
+});
+router.post("/workspace/conversations/:id/messages", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => {
+  const id = idSchema.safeParse(req.params.id), body = threadMessageSchema.safeParse(req.body);
+  if (!id.success || !body.success) { res.status(400).json({ error: "Invalid message" }); return; }
+  const current = actor(res);
+  const result = await db.transaction(async tx => {
+    const [conversation] = await tx.select().from(conversationsTable)
+      .where(and(eq(conversationsTable.id, id.data), eq(conversationsTable.collaboratorId, current.id))).limit(1);
+    if (!conversation) return { error: "Conversation not found" as const };
+    let audio: Awaited<ReturnType<typeof consumeUpload>> = undefined;
+    if (body.data.audioAssetId) {
+      audio = await consumeUpload(tx, body.data.audioAssetId, current.id, "audio", "message-audio");
+      if (!audio) return { uploadError: true as const };
+    }
+    const [message] = await tx.insert(messagesTable).values({
+      conversationId: id.data, senderId: current.id, body: body.data.body ?? "",
+      audioAssetId: audio?.id ?? null, transcript: body.data.transcript ?? null,
+      translation: body.data.translation ?? null, sourceLanguage: body.data.sourceLanguage ?? null,
+      targetLanguage: body.data.targetLanguage ?? null,
+    }).returning();
+    await tx.update(conversationsTable).set({ updatedAt: new Date() }).where(eq(conversationsTable.id, id.data));
+    const admins = await tx.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.role, "ADMIN"), eq(collaboratorsTable.isActive, true)));
+    if (admins.length) await tx.insert(notificationsTable).values(admins.map(admin => ({
+      collaboratorId: admin.id, title: "New message", body: `${current.fullName} replied to: ${conversation.subject}`,
+    })));
+    return { message: { ...message, audioFileName: audio?.fileName ?? null, audioContentType: audio?.contentType ?? null } };
+  });
+  if ("error" in result) { res.status(404).json({ error: result.error }); return; }
+  if ("uploadError" in result) { res.status(400).json({ error: "Audio must be a completed audio upload owned by this collaborator" }); return; }
+  res.status(201).json(result);
+});
+router.get("/workspace/conversations/:id/messages/:messageId/file", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => {
+  const id = idSchema.safeParse(req.params.id), messageId = idSchema.safeParse(req.params.messageId);
+  if (!id.success || !messageId.success) { res.status(400).json({ error: "Invalid message id" }); return; }
+  const current = actor(res);
+  const [row] = await db.select({ message: messagesTable }).from(messagesTable)
+    .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
+    .where(and(eq(messagesTable.id, messageId.data), eq(messagesTable.conversationId, id.data), eq(conversationsTable.collaboratorId, current.id))).limit(1);
+  if (!row?.message.audioAssetId) { res.status(404).json({ error: "Audio message not found" }); return; }
+  const asset = await getConsumedAsset(row.message.audioAssetId, "message-audio");
+  if (!asset) { res.status(404).json({ error: "Audio message not found" }); return; }
+  const url = await createDownloadUrl(asset);
+  if (!url) { req.log.warn("Private message audio signing failed"); res.status(502).json({ error: "Could not create a file download URL" }); return; }
+  res.json({ url, fileName: asset.fileName, contentType: asset.contentType, expiresIn: 300 });
+});
 router.get("/workspace/notes", async (_req, res): Promise<void> => { const current = actor(res); res.json({ notes: await db.select().from(strategicNotesTable).where(or(eq(strategicNotesTable.collaboratorId, current.id), eq(strategicNotesTable.isShared, true))).orderBy(desc(strategicNotesTable.updatedAt)) }); });
 router.post("/workspace/notes", requireWorkspaceWrite, async (req, res): Promise<void> => { const body = noteSchema.safeParse(req.body); if (!body.success) { res.status(400).json({ error: "Invalid note" }); return; } const current = actor(res); const [note] = await db.insert(strategicNotesTable).values({ ...body.data, collaboratorId: current.id }).returning(); res.status(201).json({ note }); });
 router.patch("/workspace/notes/:id", requireWorkspaceWrite, async (req, res): Promise<void> => { const id = idSchema.safeParse(req.params.id), body = noteSchema.partial().refine(v => Object.keys(v).length > 0).safeParse(req.body); if (!id.success || !body.success) { res.status(400).json({ error: "Invalid note update" }); return; } const current = actor(res); const [note] = await db.update(strategicNotesTable).set({ ...body.data, updatedAt: new Date() }).where(and(eq(strategicNotesTable.id, id.data), eq(strategicNotesTable.collaboratorId, current.id))).returning(); if (!note) { res.status(404).json({ error: "Note not found" }); return; } res.json({ note }); });

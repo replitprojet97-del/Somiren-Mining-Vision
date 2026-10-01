@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -19,6 +19,8 @@ export const collaboratorsTable = pgTable("collaborators", {
   role: text("role").notNull(),
   permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
+  profilePhotoAssetId: uuid("profile_photo_asset_id").references((): AnyPgColumn => privateUploadsTable.id, { onDelete: "restrict" }),
+  profilePhotoRemoved: boolean("profile_photo_removed").notNull().default(false),
   ...timestamps,
 });
 
@@ -67,12 +69,29 @@ export const tasksTable = pgTable("workspace_tasks", {
   ...timestamps,
 });
 
+export const privateUploadsTable = pgTable("workspace_private_uploads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  uploadedById: integer("uploaded_by_id").notNull().references((): AnyPgColumn => collaboratorsTable.id, { onDelete: "restrict" }),
+  objectPath: text("object_path").notNull().unique(),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  kind: text("kind").notNull(),
+  status: text("status").notNull().default("pending"),
+  purpose: text("purpose"),
+  ...timestamps,
+});
+
 export const documentsTable = pgTable("workspace_documents", {
   id: serial("id").primaryKey(),
   caseId: integer("case_id").references(() => casesTable.id, { onDelete: "set null" }),
   title: text("title").notNull(),
+  manualContent: text("manual_content"),
   contentType: text("content_type"),
   objectPath: text("object_path"),
+  assetId: uuid("asset_id").references(() => privateUploadsTable.id, { onDelete: "restrict" }),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
   category: text("category").notNull().default("general"),
   confidentiality: text("confidentiality").notNull().default("private"),
   uploadedById: integer("uploaded_by_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }),
@@ -101,7 +120,8 @@ export const executiveRequestsTable = pgTable("workspace_executive_requests", {
 export const meetingsTable = pgTable("workspace_meetings", {
   id: serial("id").primaryKey(), title: text("title").notNull(), description: text("description").notNull().default(""),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(), endsAt: timestamp("ends_at", { withTimezone: true }),
-  headquartersTimezone: text("headquarters_timezone").notNull().default("Europe/Madrid"), meetingUrl: text("meeting_url"), ...timestamps,
+  headquartersTimezone: text("headquarters_timezone").notNull().default("Europe/Madrid"), meetingUrl: text("meeting_url"),
+  videoAssetId: uuid("video_asset_id").references(() => privateUploadsTable.id, { onDelete: "restrict" }), ...timestamps,
 });
 export const meetingParticipantsTable = pgTable("workspace_meeting_participants", {
   id: serial("id").primaryKey(), meetingId: integer("meeting_id").notNull().references(() => meetingsTable.id, { onDelete: "cascade" }),
@@ -112,7 +132,11 @@ export const conversationsTable = pgTable("workspace_conversations", {
 });
 export const messagesTable = pgTable("workspace_messages", {
   id: serial("id").primaryKey(), conversationId: integer("conversation_id").notNull().references(() => conversationsTable.id, { onDelete: "cascade" }),
-  senderId: integer("sender_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }), body: text("body").notNull(), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  senderId: integer("sender_id").notNull().references(() => collaboratorsTable.id, { onDelete: "restrict" }), body: text("body").notNull(),
+  audioAssetId: uuid("audio_asset_id").references(() => privateUploadsTable.id, { onDelete: "restrict" }),
+  transcript: text("transcript"), translation: text("translation"),
+  sourceLanguage: text("source_language"), targetLanguage: text("target_language"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 export const strategicNotesTable = pgTable("workspace_strategic_notes", {
   id: serial("id").primaryKey(), title: text("title").notNull(), body: text("body").notNull().default(""), isShared: boolean("is_shared").notNull().default(false),
