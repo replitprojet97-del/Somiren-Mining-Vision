@@ -220,9 +220,14 @@ export function Topbar({ onOpenMobile, mobileOpen }: { onOpenMobile: () => void;
         </a>
       </Link>
       <div className="sr-top-tools">
-        <div className="sr-date" data-testid="workspace-local-date"><Calendar size={16} aria-hidden="true" /><span>{formatDate(now, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></div>
-        <i aria-hidden="true" />
-        <div className="sr-time" title={timeZone} data-testid="workspace-local-time"><Clock size={14} aria-hidden="true" />{localTime} ({localOffset})</div>
+        <div className="sr-header-clock" title={timeZone}>
+          <div className="sr-date" data-testid="workspace-local-date">
+            <Calendar size={16} aria-hidden="true" />
+            <span className="sr-date-full">{formatDate(now, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+            <span className="sr-date-short">{formatDate(now, { day: "numeric", month: "short", year: "numeric" })}</span>
+          </div>
+          <div className="sr-time" data-testid="workspace-local-time"><Clock size={14} aria-hidden="true" />{localTime} ({localOffset})</div>
+        </div>
         <i aria-hidden="true" />
         <label className="sr-locale">
           <select className="sr-language-select" aria-label={w("Choisir la langue", "Select language")} value={lang}
