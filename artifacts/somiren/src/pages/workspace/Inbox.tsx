@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { FileText, Search, Download } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import { C } from "@/lib/theme";
 import { Pill, priorityTone, EmptyState } from "./components/UI";
 import { useReceivedDocuments, useUpdateReceivedDocument, useMe } from "@/hooks/use-workspace";
-import { openSigned, errMsg } from "../shared/signed";
+import { DocOpenButton } from "./components/DocOpen";
 import { format } from "date-fns";
 import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { localizeApiMessage } from "@/i18n/api-error-translations";
@@ -14,10 +14,8 @@ export default function Inbox() {
   const updateDoc = useUpdateReceivedDocument();
   const me = useMe();
   const [search, setSearch] = useState("");
-  const canDownload = me.data?.permissions?.includes("DOWNLOAD_ALLOWED_DOCUMENTS");
   const canSubmit = me.data?.permissions?.includes("SUBMIT_DOCUMENTS");
   const filtered = (docs || []).filter((d: any) => [d.document.title, d.document.manualContent, d.document.fileName, d.assignment.instruction].some(v => String(v || "").toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale))));
-  const [dlError, setDlError] = useState<string | null>(null);
 
   if (isLoading) return <div className="p-8 flex justify-center">{w("Chargement...", "Loading...")}</div>;
 
@@ -41,10 +39,8 @@ export default function Inbox() {
         </div>
       </div>
 
-      <p className="text-sm" style={{ color: C.inkSoft }}>{w("Les documents rédigés et les fichiers joints par l’Admin pour votre compte arrivent ici. Le texte est lisible directement ; les pièces jointes s’ouvrent avec un lien privé temporaire.", "Documents and attachments shared by your administrator appear here. Text can be read directly; attachments open through a temporary private link.")}</p>
       {isError && <p className="text-sm text-red-600" role="alert">{loadError instanceof Error ? localizeApiMessage(loadError.message, lang) : w("Impossible de charger les documents.", "Unable to load documents.")} <button className="underline" onClick={() => refetch()}>{w("Réessayer", "Try again")}</button></p>}
       {updateDoc.isError && <p className="text-sm text-red-600" role="alert">{updateDoc.error instanceof Error ? localizeApiMessage(updateDoc.error.message, lang) : w("La mise à jour du statut a échoué. Réessayez.", "The status update failed. Please try again.")}</p>}
-      {dlError && <p className="text-sm text-red-600" role="alert">{dlError === "download-error" ? w("Téléchargement impossible.", "Download failed.") : localizeApiMessage(dlError, lang)}</p>}
       <div className="bg-white rounded-lg overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -71,13 +67,7 @@ export default function Inbox() {
                       <p className="font-medium" style={{ color: C.ink }}>{d.document.title}</p>
                       <p className="text-[12.5px] mt-1" style={{ color: C.inkSoft }}>{d.assignment.instruction || w("Aucune instruction", "No instructions")}</p>
                       {d.document.manualContent && <div className="mt-2 p-3 rounded-md text-[13px] whitespace-pre-wrap break-words" style={{ background: C.bg, color: C.ink }} data-testid={`text-manual-${d.assignment.id}`}>{d.document.manualContent}</div>}
-                      {d.document.assetId && canDownload && (
-                        <button type="button" className="mt-2 flex items-center gap-1.5 text-[12.5px] font-medium hover:underline" style={{ color: C.copper }}
-                          onClick={() => { setDlError(null); openSigned(`/workspace/documents/received/${d.assignment.id}/file`).catch((e) => setDlError(errMsg(e, "download-error"))); }} data-testid={`button-download-${d.assignment.id}`}>
-                          <Download size={14} /> {w("Télécharger l’original", "Download original")}{d.document.fileName ? ` (${d.document.fileName})` : ""}
-                        </button>
-                      )}
-                      {d.document.assetId && !canDownload && <p className="mt-2 text-xs" style={{ color: C.inkSoft }}>{w("Une pièce jointe est disponible. Demandez à la Direction la permission de téléchargement.", "An attachment is available. Ask Management for download permission.")}</p>}
+                      <DocOpenButton doc={{ ...d.document, downloadPath: d.document.downloadPath ?? `/workspace/documents/received/${d.assignment.id}/file` }} testId={`button-download-${d.assignment.id}`} />
                     </td>
                     <td className="px-5 py-4 hidden md:table-cell" style={{ color: C.inkSoft }}>
                       {d.assignment.dueAt ? format(new Date(d.assignment.dueAt), "dd MMM yyyy", { locale: dateLocale }) : "—"}

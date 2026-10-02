@@ -22,6 +22,9 @@ import type {
 import type {
   AdminConversationInput,
   AdminConversationList,
+  AdminTaskInput,
+  AdminTaskList,
+  AdminTaskUpdate,
   AdminVideoAuthorizationList,
   ArrearInput,
   ArrearResult,
@@ -76,9 +79,14 @@ import type {
   TwoFactorUnavailable,
   UnreadMessageCount,
   VideoAuthorizationRevocation,
+  WorkspaceCaseDetails,
   WorkspaceConversationInput,
   WorkspaceProfilePhoto,
   WorkspaceSessionList,
+  WorkspaceTaskDeletion,
+  WorkspaceTaskList,
+  WorkspaceTaskResult,
+  WorkspaceTaskUpdate,
   WorkspaceVideoAccess,
   WorkspaceVideoJoinInput,
   WorkspaceVideoJoinResult
@@ -110,6 +118,582 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListAdminTasksUrl = () => {
+
+
+
+
+  return `/api/admin/tasks`
+}
+
+export const listAdminTasks = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminTaskList> => {
+
+  return customFetch<AdminTaskList>(getListAdminTasksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminTasksQueryKey = () => {
+    return [
+    `/api/admin/tasks`
+    ] as const;
+    }
+
+
+export const getListAdminTasksQueryOptions = <TData = Awaited<ReturnType<typeof listAdminTasks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminTasksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminTasks>>> = ({ signal }) => listAdminTasks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminTasks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminTasks>>>
+export type ListAdminTasksQueryError = ErrorType<unknown>
+
+
+
+export function useListAdminTasks<TData = Awaited<ReturnType<typeof listAdminTasks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminTasksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminTaskUrl = () => {
+
+
+
+
+  return `/api/admin/tasks`
+}
+
+export const createAdminTask = async (adminTaskInput: AdminTaskInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceTaskResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<WorkspaceTaskResult>(getCreateAdminTaskUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminTaskInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminTaskMutationKey = () => ['createAdminTask'] as const;
+
+export const getCreateAdminTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminTask>>, TError,CreateAdminTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminTask>>, TError,CreateAdminTaskMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminTask>>, CreateAdminTaskMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminTask(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminTask>>>
+    export type CreateAdminTaskMutationBody = BodyType<AdminTaskInput>
+    export type CreateAdminTaskMutationError = ErrorType<unknown>
+    export type CreateAdminTaskMutationVariables = {data: BodyType<AdminTaskInput>}
+
+    export const useCreateAdminTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminTask>>, TError,CreateAdminTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminTask>>,
+        TError,
+        CreateAdminTaskMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminTaskMutationOptions(options));
+    }
+
+export const getUpdateAdminTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/tasks/${id}`
+}
+
+export const updateAdminTask = async (id: number,
+    adminTaskUpdate: AdminTaskUpdate, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceTaskResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<WorkspaceTaskResult>(getUpdateAdminTaskUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminTaskUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminTaskMutationKey = () => ['updateAdminTask'] as const;
+
+export const getUpdateAdminTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminTask>>, TError,UpdateAdminTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminTask>>, TError,UpdateAdminTaskMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminTask>>, UpdateAdminTaskMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminTask(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminTaskMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminTask>>>
+    export type UpdateAdminTaskMutationBody = BodyType<AdminTaskUpdate>
+    export type UpdateAdminTaskMutationError = ErrorType<unknown>
+    export type UpdateAdminTaskMutationVariables = {id: number;data: BodyType<AdminTaskUpdate>}
+
+    export const useUpdateAdminTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminTask>>, TError,UpdateAdminTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminTask>>,
+        TError,
+        UpdateAdminTaskMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminTaskMutationOptions(options));
+    }
+
+export const getDeleteAdminTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/tasks/${id}`
+}
+
+export const deleteAdminTask = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceTaskDeletion> => {
+
+  return customFetch<WorkspaceTaskDeletion>(getDeleteAdminTaskUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminTaskMutationKey = () => ['deleteAdminTask'] as const;
+
+export const getDeleteAdminTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminTask>>, TError,DeleteAdminTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminTask>>, TError,DeleteAdminTaskMutationVariables, TContext> => {
+
+const mutationKey = getDeleteAdminTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminTask>>, DeleteAdminTaskMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminTask(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminTaskMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminTask>>>
+
+    export type DeleteAdminTaskMutationError = ErrorType<unknown>
+    export type DeleteAdminTaskMutationVariables = {id: number}
+
+    export const useDeleteAdminTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminTask>>, TError,DeleteAdminTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminTask>>,
+        TError,
+        DeleteAdminTaskMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteAdminTaskMutationOptions(options));
+    }
+
+export const getListWorkspaceTasksUrl = () => {
+
+
+
+
+  return `/api/workspace/tasks`
+}
+
+export const listWorkspaceTasks = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceTaskList> => {
+
+  return customFetch<WorkspaceTaskList>(getListWorkspaceTasksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWorkspaceTasksQueryKey = () => {
+    return [
+    `/api/workspace/tasks`
+    ] as const;
+    }
+
+
+export const getListWorkspaceTasksQueryOptions = <TData = Awaited<ReturnType<typeof listWorkspaceTasks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWorkspaceTasksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkspaceTasks>>> = ({ signal }) => listWorkspaceTasks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceTasks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWorkspaceTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listWorkspaceTasks>>>
+export type ListWorkspaceTasksQueryError = ErrorType<unknown>
+
+
+
+export function useListWorkspaceTasks<TData = Awaited<ReturnType<typeof listWorkspaceTasks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWorkspaceTasksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateWorkspaceTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/tasks/${id}`
+}
+
+export const updateWorkspaceTask = async (id: number,
+    workspaceTaskUpdate: WorkspaceTaskUpdate, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceTaskResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<WorkspaceTaskResult>(getUpdateWorkspaceTaskUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workspaceTaskUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateWorkspaceTaskMutationKey = () => ['updateWorkspaceTask'] as const;
+
+export const getUpdateWorkspaceTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkspaceTask>>, TError,UpdateWorkspaceTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkspaceTask>>, TError,UpdateWorkspaceTaskMutationVariables, TContext> => {
+
+const mutationKey = getUpdateWorkspaceTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkspaceTask>>, UpdateWorkspaceTaskMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateWorkspaceTask(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkspaceTaskMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkspaceTask>>>
+    export type UpdateWorkspaceTaskMutationBody = BodyType<WorkspaceTaskUpdate>
+    export type UpdateWorkspaceTaskMutationError = ErrorType<unknown>
+    export type UpdateWorkspaceTaskMutationVariables = {id: number;data: BodyType<WorkspaceTaskUpdate>}
+
+    export const useUpdateWorkspaceTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkspaceTask>>, TError,UpdateWorkspaceTaskMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkspaceTask>>,
+        TError,
+        UpdateWorkspaceTaskMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateWorkspaceTaskMutationOptions(options));
+    }
+
+export const getGetWorkspaceCaseDetailsUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/cases/${id}`
+}
+
+export const getWorkspaceCaseDetails = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceCaseDetails> => {
+
+  return customFetch<WorkspaceCaseDetails>(getGetWorkspaceCaseDetailsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceCaseDetailsQueryKey = (id: number,) => {
+    return [
+    `/api/workspace/cases/${id}`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceCaseDetailsQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceCaseDetails>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceCaseDetails>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceCaseDetailsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceCaseDetails>>> = ({ signal }) => getWorkspaceCaseDetails(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceCaseDetails>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceCaseDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceCaseDetails>>>
+export type GetWorkspaceCaseDetailsQueryError = ErrorType<unknown>
+
+
+
+export function useGetWorkspaceCaseDetails<TData = Awaited<ReturnType<typeof getWorkspaceCaseDetails>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceCaseDetails>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceCaseDetailsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetOwnWorkspaceDocumentFileUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/documents/${id}/file`
+}
+
+export const getOwnWorkspaceDocumentFile = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PrivateFileUrl> => {
+
+  return customFetch<PrivateFileUrl>(getGetOwnWorkspaceDocumentFileUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOwnWorkspaceDocumentFileQueryKey = (id: number,) => {
+    return [
+    `/api/workspace/documents/${id}/file`
+    ] as const;
+    }
+
+
+export const getGetOwnWorkspaceDocumentFileQueryOptions = <TData = Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOwnWorkspaceDocumentFileQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>> = ({ signal }) => getOwnWorkspaceDocumentFile(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOwnWorkspaceDocumentFileQueryResult = NonNullable<Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>>
+export type GetOwnWorkspaceDocumentFileQueryError = ErrorType<unknown>
+
+
+
+export function useGetOwnWorkspaceDocumentFile<TData = Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnWorkspaceDocumentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOwnWorkspaceDocumentFileQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getLoginCollaboratorUrl = () => {
 

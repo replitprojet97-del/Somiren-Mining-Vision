@@ -30,7 +30,7 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
     if (streamRef.current) {
       void video.play().catch(() => {
         if (mountedRef.current) {
-           setError(w("L’aperçu local n’a pas pu démarrer. Arrêtez puis relancez la caméra.", "The local preview could not start. Stop and restart the camera."));
+           setError(w("Impossible d’activer la caméra. Réessayez.", "Unable to turn on the camera. Try again."));
           stopCamera();
         }
       });
@@ -53,7 +53,7 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
   async function startCamera(): Promise<void> {
     setError("");
     if (!navigator.mediaDevices?.getUserMedia) {
-       setError(w("La caméra n’est pas prise en charge par ce navigateur. Aucun flux distant n’est utilisé.", "This browser does not support the camera. No remote video stream is used."));
+       setError(w("La caméra n’est pas prise en charge par ce navigateur.", "This browser does not support the camera."));
       return;
     }
     const requestId = ++requestIdRef.current;
@@ -70,7 +70,7 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
       if (requestId === requestIdRef.current && mountedRef.current) {
         const detail = cameraError instanceof Error && cameraError.name === "NotAllowedError"
           ? w("L’accès à la caméra a été refusé. Autorisez la caméra puis réessayez.", "Camera access was denied. Allow camera access and try again.")
-          : w("Impossible d’ouvrir la caméra locale. Vérifiez les autorisations du navigateur puis réessayez.", "Unable to open the local camera. Check your browser permissions and try again.");
+          : w("Caméra indisponible. Vérifiez son accès puis réessayez.", "Camera unavailable. Check camera access and try again.");
         setError(detail);
       }
     } finally {
@@ -82,9 +82,6 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
     <section className="space-y-3 rounded-lg bg-white p-4" style={{ border: `1px solid ${C.line}` }} aria-labelledby="local-camera-heading">
       <div>
         <h3 id="local-camera-heading" className="text-sm font-semibold" style={{ color: C.ink }}>{w("Votre caméra", "Your camera")}</h3>
-        <p className="mt-1 text-xs" style={{ color: C.inkSoft }}>
-          {w("Vous seul voyez cet aperçu. Aucune image n’est transmise ni enregistrée.", "Only you can see this preview. No image is transmitted or recorded.")}
-        </p>
       </div>
       {isActive && (
         <video
@@ -92,9 +89,9 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
           autoPlay
           muted
           playsInline
-          aria-label={w("Aperçu vidéo local", "Local video preview")}
+          aria-label={w("Votre caméra", "Your camera")}
           onError={() => {
-            setError(w("L’aperçu local a rencontré une erreur et la caméra a été arrêtée.", "The local preview encountered an error and the camera was stopped."));
+            setError(w("La caméra s’est arrêtée. Réessayez.", "The camera stopped. Try again."));
             stopCamera();
           }}
           className="max-h-80 w-full rounded-md bg-black object-contain"
@@ -121,7 +118,6 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
             {w("Arrêter la caméra", "Stop camera")}
           </button>
         )}
-        <span className="text-xs" style={{ color: C.green }} aria-live="polite">{w("Aperçu local, aucune transmission", "Local preview, no transmission")}</span>
       </div>
       {error && <p role="alert" className="text-sm" style={{ color: C.red }}>{localizeCameraError(error, lang)}</p>}
     </section>
@@ -130,11 +126,11 @@ export function LocalCameraPreview({ autoStart = false }: { autoStart?: boolean 
 
 function localizeCameraError(message: string, lang: "fr" | "en"): string {
   const pairs: readonly (readonly [string, string])[] = [
-    ["L’aperçu local n’a pas pu démarrer. Arrêtez puis relancez la caméra.", "The local preview could not start. Stop and restart the camera."],
-    ["La caméra n’est pas prise en charge par ce navigateur. Aucun flux distant n’est utilisé.", "This browser does not support the camera. No remote video stream is used."],
+    ["Impossible d’activer la caméra. Réessayez.", "Unable to turn on the camera. Try again."],
+    ["La caméra n’est pas prise en charge par ce navigateur.", "This browser does not support the camera."],
     ["L’accès à la caméra a été refusé. Autorisez la caméra puis réessayez.", "Camera access was denied. Allow camera access and try again."],
-    ["Impossible d’ouvrir la caméra locale. Vérifiez les autorisations du navigateur puis réessayez.", "Unable to open the local camera. Check your browser permissions and try again."],
-    ["L’aperçu local a rencontré une erreur et la caméra a été arrêtée.", "The local preview encountered an error and the camera was stopped."],
+    ["Caméra indisponible. Vérifiez son accès puis réessayez.", "Camera unavailable. Check camera access and try again."],
+    ["La caméra s’est arrêtée. Réessayez.", "The camera stopped. Try again."],
   ];
   const pair = pairs.find(([french, english]) => message === french || message === english);
   return pair ? pair[lang === "en" ? 1 : 0] : message;

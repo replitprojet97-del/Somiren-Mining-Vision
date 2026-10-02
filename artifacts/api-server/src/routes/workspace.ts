@@ -18,6 +18,7 @@ import {
   GetWorkspaceVideoAccessResponse, JoinWorkspaceVideoMeetingBody, JoinWorkspaceVideoMeetingResponse,
   ListWorkspaceSessionsResponse, RequestArrearTransferParams, RequestArrearTransferResponse,
   RequestSalaryTransferParams, RequestSalaryTransferResponse,
+  UpdateWorkspaceTaskBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -29,10 +30,7 @@ const caseUpdateSchema = z.object({
   comment: z.string().min(1).max(2000).optional(),
   clarificationRequest: z.string().min(1).max(2000).optional(),
 }).refine((value) => Object.keys(value).length > 0, "At least one update is required");
-const taskUpdateSchema = z.object({
-  status: z.enum(["todo", "in_progress", "blocked", "completed"]).optional(),
-  comment: z.string().min(1).max(2000).optional(),
-}).refine((value) => Object.keys(value).length > 0, "At least one update is required");
+const taskUpdateSchema = UpdateWorkspaceTaskBody.refine((value) => Object.keys(value).length > 0, "At least one update is required");
 
 type WorkspaceActor = typeof collaboratorsTable.$inferSelect;
 
@@ -272,8 +270,10 @@ router.get("/workspace/cases/:id", requirePermission("VIEW_ASSIGNED_CASES"), asy
   const current = actor(res);
   const [workspaceCase] = await db.select().from(casesTable).where(and(eq(casesTable.id, parsed.data), eq(casesTable.assigneeId, current.id)));
   if (!workspaceCase) { res.status(404).json({ error: "Case not found" }); return; }
-  const tasks = await db.select().from(tasksTable).where(and(eq(tasksTable.caseId, workspaceCase.id), eq(tasksTable.assigneeId, current.id)));
-  const documents = await db.select().from(documentsTable).where(and(eq(documentsTable.caseId, workspaceCase.id), eq(documentsTable.uploadedById, current.id)));
+  const tasks = current.permissions.includes("VIEW_ASSIGNED_TASKS")
+    ? await db.select().from(tasksTable).where(and(eq(tasksTable.caseId, workspaceCase.id), eq(tasksTable.assigneeId, current.id))) : [];
+  const documents = current.permissions.includes("VIEW_ASSIGNED_DOCUMENTS")
+    ? await visibleDocuments(current.id, workspaceCase.id) : [];
   res.json({ case: workspaceCase, tasks, documents });
 });
 router.patch("/workspace/cases/:id", requirePermission("MANAGE_ASSIGNED_CASES"), async (req, res): Promise<void> => {
@@ -288,7 +288,13 @@ router.patch("/workspace/cases/:id", requirePermission("MANAGE_ASSIGNED_CASES"),
   res.json({ case: updated });
 });
 
-router.get("/workspace/tasks", requirePermission("VIEW_ASSIGNED_TASKS"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ tasks: await db.select().from(tasksTable).where(eq(tasksTable.assigneeId, current.id)).orderBy(asc(tasksTable.dueAt)) }); });
+router.get("/workspace/tasks", requirePermission("VIEW_ASSIGNED_TASKS"), async (_req, res): Promise<void> => {
+  const current = actor(res);
+  const rows = await db.select({ task: tasksTable, caseTitle: casesTable.title }).from(tasksTable)
+    .leftJoin(casesTable, and(eq(tasksTable.caseId, casesTable.id), eq(casesTable.assigneeId, current.id)))
+    .where(eq(tasksTable.assigneeId, current.id)).orderBy(asc(tasksTable.dueAt));
+  res.json({ tasks: rows.map(row => ({ ...row.task, caseTitle: row.caseTitle })) });
+});
 router.post("/workspace/tasks", requirePermission("MANAGE_ASSIGNED_TASKS"), async (req, res): Promise<void> => {
   const body = z.object({ caseId: idSchema.optional(), title: textSchema.max(300), description: z.string().max(5000).optional(), priority: z.enum(["low", "normal", "high", "urgent"]).optional(), dueAt: z.coerce.date().nullable().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid task" }); return; } const current = actor(res);
@@ -305,7 +311,40 @@ router.patch("/workspace/tasks/:id", requirePermission("MANAGE_ASSIGNED_TASKS"),
   res.json({ task: updated });
 });
 
-router.get("/workspace/documents", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ documents: await db.select().from(documentsTable).where(eq(documentsTable.uploadedById, current.id)).orderBy(desc(documentsTable.createdAt)) }); });
+async function visibleDocuments(collaboratorId: number, caseId?: number) {
+  const own = await db.select().from(documentsTable).where(and(
+    eq(documentsTable.uploadedById, collaboratorId),
+    caseId === undefined ? undefined : eq(documentsTable.caseId, caseId),
+  )).orderBy(desc(documentsTable.createdAt));
+  const assigned = await db.select({ document: documentsTable, assignmentId: documentAssignmentsTable.id })
+    .from(documentAssignmentsTable).innerJoin(documentsTable, eq(documentAssignmentsTable.documentId, documentsTable.id))
+    .where(and(eq(documentAssignmentsTable.collaboratorId, collaboratorId),
+      caseId === undefined ? undefined : eq(documentsTable.caseId, caseId))).orderBy(desc(documentsTable.createdAt));
+  const result = new Map(own.map(document => [document.id, {
+    ...document, assignmentId: null as number | null,
+    downloadPath: document.assetId ? `/workspace/documents/${document.id}/file` : null as string | null,
+  }]));
+  for (const { document, assignmentId } of assigned) {
+    result.set(document.id, { ...document, assignmentId,
+      downloadPath: document.assetId ? `/workspace/documents/received/${assignmentId}/file` : null });
+  }
+  return [...result.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+router.get("/workspace/documents", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), async (_req, res): Promise<void> => {
+  res.json({ documents: await visibleDocuments(actor(res).id) });
+});
+router.get("/workspace/documents/:id/file", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), async (req, res): Promise<void> => {
+  const id = idSchema.safeParse(req.params.id);
+  if (!id.success) { res.status(400).json({ error: "Invalid document id" }); return; }
+  const [document] = await db.select().from(documentsTable)
+    .where(and(eq(documentsTable.id, id.data), eq(documentsTable.uploadedById, actor(res).id))).limit(1);
+  const asset = document?.assetId ? await getConsumedAsset(document.assetId, "document") : undefined;
+  if (!asset) { res.status(404).json({ error: "Document attachment not found" }); return; }
+  const url = await createDownloadUrl(asset);
+  if (!url) { req.log.warn("Private document signing failed"); res.status(502).json({ error: "Could not create a file download URL" }); return; }
+  res.json({ url, fileName: asset.fileName, contentType: asset.contentType, expiresIn: 300 });
+});
 router.get("/workspace/notifications", async (_req, res): Promise<void> => { const current = actor(res); res.json({ notifications: await db.select().from(notificationsTable).where(eq(notificationsTable.collaboratorId, current.id)).orderBy(desc(notificationsTable.createdAt)) }); });
 router.patch("/workspace/notifications/:id/read", requireWorkspaceWrite, async (req, res): Promise<void> => {
   const parsed = idSchema.safeParse(req.params.id); if (!parsed.success) { res.status(400).json({ error: "Invalid notification id" }); return; }
@@ -359,7 +398,7 @@ router.get("/workspace/documents/received", requirePermission("VIEW_ASSIGNED_DOC
     .where(eq(documentAssignmentsTable.collaboratorId, current.id)).orderBy(desc(documentAssignmentsTable.updatedAt));
   res.json({ documents });
 });
-router.get("/workspace/documents/received/:id/file", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), requirePermission("DOWNLOAD_ALLOWED_DOCUMENTS"), async (req, res): Promise<void> => {
+router.get("/workspace/documents/received/:id/file", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), async (req, res): Promise<void> => {
   const id = idSchema.safeParse(req.params.id);
   if (!id.success) { res.status(400).json({ error: "Invalid assignment id" }); return; }
   const current = actor(res);

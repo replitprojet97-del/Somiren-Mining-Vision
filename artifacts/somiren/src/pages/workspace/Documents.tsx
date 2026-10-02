@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { FileText, Search, Download } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import { C } from "@/lib/theme";
+import { DocOpenButton } from "./components/DocOpen";
 import { Pill, Tabs, EmptyState } from "./components/UI";
 import { useDocuments } from "@/hooks/use-workspace";
 import { format } from "date-fns";
@@ -15,6 +16,10 @@ export default function Documents() {
   const filtered = (documents || []).filter((d: any) => (!search || String(d.title || "").toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale))) && (tab === "all" || d.category === tab));
 
   if (isLoading) return <div className="p-8 flex justify-center">{w("Chargement...", "Loading...")}</div>;
+  if (isError) return <div className="space-y-5">
+    <h1 className="text-xl font-semibold" style={{ color: C.ink }}>{w("Bibliothèque documentaire", "Document library")}</h1>
+    <p role="alert" className="text-sm text-red-600">{error instanceof Error ? localizeApiMessage(error.message, lang) : w("Bibliothèque indisponible.", "Library unavailable.")} <button className="underline" onClick={() => refetch()}>{w("Réessayer", "Try again")}</button></p>
+  </div>;
 
   return (
     <div className="space-y-5">
@@ -36,7 +41,6 @@ export default function Documents() {
         </div>
       </div>
 
-      {isError && <p role="alert" className="text-sm text-red-600">{error instanceof Error ? localizeApiMessage(error.message, lang) : w("Bibliothèque indisponible.", "Library unavailable.")} <button className="underline" onClick={() => refetch()}>{w("Réessayer", "Try again")}</button></p>}
 
       <Tabs tabs={["all", "Rapports", "Contrats", "Stratégie", "Procédures"].map(category => category === "all" ? w("Tous les documents", "All documents") : categoryLabel(category, w))} active={tab === "all" ? w("Tous les documents", "All documents") : categoryLabel(tab, w)} setActive={label => setTab(label === w("Tous les documents", "All documents") ? "all" : categoryValue(label, w))} />
 
@@ -61,24 +65,23 @@ export default function Documents() {
                 </tr>
               ) : (
                 filtered.map((d: any) => (
-                  <tr key={d.id} className="hover:bg-gray-50 transition-colors" style={{ borderBottom: `1px solid ${C.line}` }}>
+                  <tr key={`${d.id}-${d.assignmentId ?? "own"}`} className="hover:bg-gray-50 transition-colors" style={{ borderBottom: `1px solid ${C.line}` }}>
                     <td className="px-5 py-4 min-w-[250px]">
                       <p className="font-medium" style={{ color: C.ink }}>{d.title}</p>
-                      <p className="text-[12.5px] mt-1" style={{ color: C.inkSoft }}>{d.format}</p>
+                      <p className="text-[12.5px] mt-1" style={{ color: C.inkSoft }}>{d.format || d.fileName}</p>
+                      {d.manualContent && <details className="mt-2"><summary className="cursor-pointer text-[12.5px]" style={{ color: C.copper }}>{w("Lire", "Read")}</summary><div className="mt-2 p-3 rounded-md text-[13px] whitespace-pre-wrap break-words" style={{ background: C.bg, color: C.ink }}>{d.manualContent}</div></details>}
                     </td>
                     <td className="px-5 py-4 hidden md:table-cell" style={{ color: C.inkSoft }}>
                       {categoryLabel(d.category, w)}
                     </td>
                     <td className="px-5 py-4 hidden sm:table-cell" style={{ color: C.inkSoft }}>
-                      {format(new Date(d.createdAt), "dd MMM yyyy", { locale: dateLocale })}
+                      {d.createdAt ? format(new Date(d.createdAt), "dd MMM yyyy", { locale: dateLocale }) : "—"}
                     </td>
                     <td className="px-5 py-4 hidden md:table-cell">
                       <Pill tone="neutral">{w("Standard", "Standard")}</Pill>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <button disabled className="p-2 rounded opacity-50 cursor-not-allowed" title={w("Télécharger", "Download")} aria-label={w("Télécharger", "Download")}>
-                        <Download size={16} style={{ color: C.copper }} />
-                      </button>
+                      <DocOpenButton doc={d} compact testId={`button-open-${d.id}`} />
                     </td>
                   </tr>
                 ))

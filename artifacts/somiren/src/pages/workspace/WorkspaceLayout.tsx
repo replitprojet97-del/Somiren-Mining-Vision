@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Redirect, Route, Switch } from "wouter";
+import { useEffect, useState } from "react";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import { useMe } from "@/hooks/use-workspace";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
@@ -81,7 +81,7 @@ export default function WorkspaceLayout() {
             <Route path="/espace-collaborateur/tasks"><div className="sr-route-page"><Tasks /></div></Route>
             <Route path="/espace-collaborateur/requests"><div className="sr-route-page"><Requests /></div></Route>
             <Route path="/espace-collaborateur/agenda"><div className="sr-route-page"><Agenda /></div></Route>
-            <Route path="/espace-collaborateur/video"><div className="sr-route-page"><VideoView /></div></Route>
+            <Route path="/espace-collaborateur/video" />
             <Route path="/espace-collaborateur/comms"><div className="sr-route-page"><Comms /></div></Route>
             <Route path="/espace-collaborateur/documents"><div className="sr-route-page"><Inbox /><details className="mt-6 rounded-lg bg-white p-4"><summary className="cursor-pointer text-sm font-semibold">{w("Bibliothèque des dossiers", "Case document library")}</summary><div className="mt-4"><Documents /></div></details></div></Route>
             <Route path="/espace-collaborateur/support"><div className="sr-route-page"><Support /></div></Route>
@@ -92,8 +92,27 @@ export default function WorkspaceLayout() {
             <Route path="/espace-collaborateur/notifications"><div className="sr-route-page"><Notifications /></div></Route>
             <Route path="/espace-collaborateur/security"><div className="sr-route-page"><Security /></div></Route>
           </Switch>
+          <PersistentVideoView key={me.id} />
         </main>
       </div>
     </div>
   );
+}
+
+function PersistentVideoView() {
+  const [location] = useLocation();
+  const visible = location === "/espace-collaborateur/video";
+  const [visited, setVisited] = useState(visible);
+
+  useEffect(() => {
+    if (visible) setVisited(true);
+  }, [visible]);
+
+  // Keep the same player and camera alive while navigating within this workspace.
+  // Signing out or changing accounts unmounts this owner and releases the camera.
+  return visited || visible ? (
+    <div className="sr-route-page" hidden={!visible} style={{ display: visible ? undefined : "none" }}>
+      <VideoView visible={visible} />
+    </div>
+  ) : null;
 }

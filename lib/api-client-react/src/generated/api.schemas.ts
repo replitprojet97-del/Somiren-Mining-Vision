@@ -5,6 +5,223 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type WorkspaceTaskStatus = typeof WorkspaceTaskStatus[keyof typeof WorkspaceTaskStatus];
+
+
+export const WorkspaceTaskStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  completed: 'completed',
+} as const;
+
+export type WorkspaceTaskPriority = typeof WorkspaceTaskPriority[keyof typeof WorkspaceTaskPriority];
+
+
+export const WorkspaceTaskPriority = {
+  low: 'low',
+  normal: 'normal',
+  high: 'high',
+  urgent: 'urgent',
+} as const;
+
+export interface WorkspaceTask {
+  id: number;
+  /** @nullable */
+  caseId?: number | null;
+  /** @nullable */
+  caseTitle?: string | null;
+  title: string;
+  description: string;
+  /** @nullable */
+  comment?: string | null;
+  status: WorkspaceTaskStatus;
+  priority: WorkspaceTaskPriority;
+  /** @nullable */
+  dueAt?: string | null;
+  assigneeId: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type AdminTask = WorkspaceTask & ({
+  assigneeName: string;
+  /** @nullable */
+  caseTitle?: string | null;
+});
+
+export type AdminTaskInputPriority = typeof AdminTaskInputPriority[keyof typeof AdminTaskInputPriority];
+
+
+export const AdminTaskInputPriority = {
+  low: 'low',
+  normal: 'normal',
+  high: 'high',
+  urgent: 'urgent',
+} as const;
+
+export type AdminTaskInputStatus = typeof AdminTaskInputStatus[keyof typeof AdminTaskInputStatus];
+
+
+export const AdminTaskInputStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  completed: 'completed',
+} as const;
+
+export interface AdminTaskInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  /** @minimum 1 */
+  assigneeId: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  caseId?: number | null;
+  /** @maxLength 5000 */
+  description?: string;
+  priority?: AdminTaskInputPriority;
+  status?: AdminTaskInputStatus;
+  /** @nullable */
+  dueAt?: string | null;
+}
+
+export type AdminTaskUpdatePriority = typeof AdminTaskUpdatePriority[keyof typeof AdminTaskUpdatePriority];
+
+
+export const AdminTaskUpdatePriority = {
+  low: 'low',
+  normal: 'normal',
+  high: 'high',
+  urgent: 'urgent',
+} as const;
+
+export type AdminTaskUpdateStatus = typeof AdminTaskUpdateStatus[keyof typeof AdminTaskUpdateStatus];
+
+
+export const AdminTaskUpdateStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  completed: 'completed',
+} as const;
+
+export interface AdminTaskUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  /** @minimum 1 */
+  assigneeId?: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  caseId?: number | null;
+  /** @maxLength 5000 */
+  description?: string;
+  priority?: AdminTaskUpdatePriority;
+  status?: AdminTaskUpdateStatus;
+  /** @nullable */
+  dueAt?: string | null;
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  comment?: string | null;
+}
+
+export type WorkspaceTaskUpdateStatus = typeof WorkspaceTaskUpdateStatus[keyof typeof WorkspaceTaskUpdateStatus];
+
+
+export const WorkspaceTaskUpdateStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  completed: 'completed',
+} as const;
+
+export interface WorkspaceTaskUpdate {
+  status?: WorkspaceTaskUpdateStatus;
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  comment?: string | null;
+}
+
+export interface WorkspaceTaskResult {
+  task: WorkspaceTask;
+}
+
+export interface WorkspaceTaskList {
+  tasks: WorkspaceTask[];
+}
+
+export interface AdminTaskList {
+  tasks: AdminTask[];
+}
+
+export const WorkspaceTaskDeletionValue = {
+  success: true,
+} as const;
+export type WorkspaceTaskDeletion = typeof WorkspaceTaskDeletionValue;
+
+export interface WorkspaceCase {
+  id: number;
+  title: string;
+  reference: string;
+  summary: string;
+  description: string;
+  /** @nullable */
+  instructions?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  status: string;
+  priority: string;
+  progress: number;
+  /** @nullable */
+  dueDate?: string | null;
+  assigneeId: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkspaceDocument {
+  id: number;
+  /** @nullable */
+  caseId?: number | null;
+  title: string;
+  /** @nullable */
+  manualContent?: string | null;
+  /** @nullable */
+  fileName?: string | null;
+  /** @nullable */
+  contentType?: string | null;
+  /** @nullable */
+  assetId?: string | null;
+  category: string;
+  confidentiality: string;
+  uploadedById: number;
+  createdAt?: string;
+  /** @nullable */
+  assignmentId: number | null;
+  /** @nullable */
+  downloadPath: string | null;
+}
+
+export interface WorkspaceCaseDetails {
+  case: WorkspaceCase;
+  tasks: WorkspaceTask[];
+  documents: WorkspaceDocument[];
+}
+
 export interface CollaboratorLoginInput {
   /** @maxLength 320 */
   email: string;

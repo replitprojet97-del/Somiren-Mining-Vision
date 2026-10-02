@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, Users, Folder, FileText, Briefcase, Calendar, Shield, Activity, Lock, Package, MessageSquare, Bell, Wallet } from "lucide-react";
+import { Home, Users, Folder, FileText, Briefcase, Calendar, Shield, Activity, Lock, Package, MessageSquare, Bell, Wallet, CheckSquare } from "lucide-react";
 import { Sidebar, Topbar } from "./layout";
 import { C } from "./shared";
 import DashboardView from "./DashboardView";
@@ -15,17 +15,19 @@ import CommunicationsView from "./CommunicationsView";
 import { useAdminNotifications } from "@/hooks/use-workspace";
 import NotificationsView from "./NotificationsView";
 import PayrollView from "./PayrollView";
+import TasksView from "./TasksView";
 import ShipmentsView from "./ShipmentsView";
 
 const NAV = [
   { id: "dashboard", label: "Tableau de bord", icon: Home },
   { id: "users", label: "Collaborateurs", icon: Users },
   { id: "cases", label: "Dossiers", icon: Folder },
+  { id: "tasks", label: "Tâches", icon: CheckSquare },
   { id: "documents", label: "Envoyer un document", icon: FileText },
   { id: "requests", label: "Demandes de la Direction", icon: Briefcase },
   { id: "meetings", label: "Réunions", icon: Calendar },
   { id: "conversations", label: "Conversations", icon: MessageSquare },
-  { id: "payroll", label: "Paie & Arriérés", icon: Wallet },
+  { id: "payroll", label: "Paie & Arriérés", icon: Wallet, CheckSquare },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "shipments", label: "Suivi des envois", icon: Package },
   { id: "permissions", label: "Rôles & Permissions", icon: Shield },
@@ -46,6 +48,7 @@ export default function AdminShell({ profile, onLogout }: any) {
       case "dashboard": return <DashboardView go={setActive} />;
       case "users": return <UsersView />;
       case "cases": return <CasesView />;
+      case "tasks": return <TasksView />;
       case "documents": return <SendDocumentView />;
       case "requests": return <RequestsView />;
       case "meetings": return <MeetingsView />;

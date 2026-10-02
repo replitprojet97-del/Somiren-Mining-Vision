@@ -63,9 +63,11 @@ export const useCases = (enabled = true) => {
 export const useCase = (id: string) => {
   const api = useApiClient();
   return useQuery({
-    queryKey: ["workspace", "cases", id],
+    queryKey: ["workspace", "case", id],
     queryFn: async () => api(`/workspace/cases/${id}`),
     enabled: !!id,
+    staleTime: 5_000,
+    refetchInterval: POLL,
   });
 };
 
@@ -80,7 +82,7 @@ export const useUpdateCase = () => {
       }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["workspace", "cases"] });
-      queryClient.invalidateQueries({ queryKey: ["workspace", "cases", id] });
+      queryClient.invalidateQueries({ queryKey: ["workspace", "case", String(id)] });
       queryClient.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
     },
   });
@@ -105,6 +107,7 @@ export const useUpdateTask = () => {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace", "case"] });
       queryClient.invalidateQueries({ queryKey: ["workspace", "tasks"] });
       queryClient.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
     },

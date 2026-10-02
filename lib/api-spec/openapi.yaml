@@ -11,6 +11,111 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /admin/tasks:
+    get:
+      operationId: listAdminTasks
+      responses:
+        "200":
+          description: Tasks and their assigned collaborators
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTaskList" }
+    post:
+      operationId: createAdminTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTaskInput" }
+      responses:
+        "201":
+          description: Assigned task
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceTaskResult" }
+  /admin/tasks/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer, minimum: 1 }
+    patch:
+      operationId: updateAdminTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTaskUpdate" }
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceTaskResult" }
+    delete:
+      operationId: deleteAdminTask
+      responses:
+        "200":
+          description: Deleted task
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceTaskDeletion" }
+  /workspace/tasks:
+    get:
+      operationId: listWorkspaceTasks
+      responses:
+        "200":
+          description: Tasks assigned to the authenticated collaborator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceTaskList" }
+  /workspace/tasks/{id}:
+    patch:
+      operationId: updateWorkspaceTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceTaskUpdate" }
+      responses:
+        "200":
+          description: Updated own task
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceTaskResult" }
+  /workspace/cases/{id}:
+    get:
+      operationId: getWorkspaceCaseDetails
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Assigned case and authorized associated records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceCaseDetails" }
+  /workspace/documents/{id}/file:
+    get:
+      operationId: getOwnWorkspaceDocumentFile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Short-lived signed URL for an own document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
   /auth/login:
     post:
       operationId: loginCollaborator
@@ -1004,6 +1109,127 @@ paths:
         "409": { description: Name already used }
 components:
   schemas:
+    WorkspaceTask:
+      type: object
+      required: [id, title, description, status, priority, assigneeId]
+      properties:
+        id: { type: integer }
+        caseId: { type: ["integer", "null"] }
+        caseTitle: { type: ["string", "null"] }
+        title: { type: string }
+        description: { type: string }
+        comment: { type: ["string", "null"] }
+        status: { type: string, enum: [todo, in_progress, blocked, completed] }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        dueAt: { type: ["string", "null"], format: date-time }
+        assigneeId: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AdminTask:
+      allOf:
+        - $ref: "#/components/schemas/WorkspaceTask"
+        - type: object
+          required: [assigneeName]
+          properties:
+            assigneeName: { type: string }
+            caseTitle: { type: ["string", "null"] }
+    AdminTaskInput:
+      type: object
+      required: [title, assigneeId]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        assigneeId: { type: integer, minimum: 1 }
+        caseId: { type: ["integer", "null"], minimum: 1 }
+        description: { type: string, maxLength: 5000 }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        status: { type: string, enum: [todo, in_progress, blocked, completed] }
+        dueAt: { type: ["string", "null"], format: date-time }
+    AdminTaskUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        assigneeId: { type: integer, minimum: 1 }
+        caseId: { type: ["integer", "null"], minimum: 1 }
+        description: { type: string, maxLength: 5000 }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        status: { type: string, enum: [todo, in_progress, blocked, completed] }
+        dueAt: { type: ["string", "null"], format: date-time }
+        comment: { type: ["string", "null"], maxLength: 2000 }
+    WorkspaceTaskUpdate:
+      type: object
+      properties:
+        status: { type: string, enum: [todo, in_progress, blocked, completed] }
+        comment: { type: ["string", "null"], maxLength: 2000 }
+    WorkspaceTaskResult:
+      type: object
+      required: [task]
+      properties:
+        task: { $ref: "#/components/schemas/WorkspaceTask" }
+    WorkspaceTaskList:
+      type: object
+      required: [tasks]
+      properties:
+        tasks:
+          type: array
+          items: { $ref: "#/components/schemas/WorkspaceTask" }
+    AdminTaskList:
+      type: object
+      required: [tasks]
+      properties:
+        tasks:
+          type: array
+          items: { $ref: "#/components/schemas/AdminTask" }
+    WorkspaceTaskDeletion:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
+    WorkspaceCaseDetails:
+      type: object
+      required: [case, tasks, documents]
+      properties:
+        case: { $ref: "#/components/schemas/WorkspaceCase" }
+        tasks:
+          type: array
+          items: { $ref: "#/components/schemas/WorkspaceTask" }
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/WorkspaceDocument" }
+    WorkspaceCase:
+      type: object
+      required: [id, title, reference, summary, description, status, priority, progress, assigneeId]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        reference: { type: string }
+        summary: { type: string }
+        description: { type: string }
+        instructions: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        status: { type: string }
+        priority: { type: string }
+        progress: { type: integer }
+        dueDate: { type: ["string", "null"], format: date-time }
+        assigneeId: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    WorkspaceDocument:
+      type: object
+      required: [id, title, category, confidentiality, uploadedById, assignmentId, downloadPath]
+      properties:
+        id: { type: integer }
+        caseId: { type: ["integer", "null"] }
+        title: { type: string }
+        manualContent: { type: ["string", "null"] }
+        fileName: { type: ["string", "null"] }
+        contentType: { type: ["string", "null"] }
+        assetId: { type: ["string", "null"], format: uuid }
+        category: { type: string }
+        confidentiality: { type: string }
+        uploadedById: { type: integer }
+        createdAt: { type: string, format: date-time }
+        assignmentId: { type: ["integer", "null"] }
+        downloadPath: { type: ["string", "null"] }
     CollaboratorLoginInput:
       type: object
       additionalProperties: false

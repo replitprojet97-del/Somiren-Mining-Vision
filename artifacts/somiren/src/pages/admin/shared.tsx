@@ -60,14 +60,14 @@ export function PriorityLabel({ p }: { p: string }) {
 export function Feedback({ error, success }: { error?: string | null, success?: string | null }) {
   if (error) {
     return (
-      <div className="flex items-center gap-2 p-3 mb-4 rounded-md text-sm border bg-red-50 text-red-600 border-red-200">
+      <div role="alert" className="flex items-center gap-2 p-3 mb-4 rounded-md text-sm border bg-red-50 text-red-600 border-red-200">
         <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
       </div>
     );
   }
   if (success) {
     return (
-      <div className="flex items-center gap-2 p-3 mb-4 rounded-md text-sm border bg-green-50 text-green-600 border-green-200">
+      <div role="status" className="flex items-center gap-2 p-3 mb-4 rounded-md text-sm border bg-green-50 text-green-600 border-green-200">
         <CheckCircle2 className="w-4 h-4 shrink-0" /> {success}
       </div>
     );

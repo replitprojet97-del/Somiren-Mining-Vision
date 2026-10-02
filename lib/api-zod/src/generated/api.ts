@@ -8,6 +8,244 @@
 import * as zod from 'zod';
 
 
+export const ListAdminTasksResponse = zod.object({
+  "tasks": zod.array(zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "caseTitle": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "comment": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "dueAt": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+}).and(zod.object({
+  "assigneeName": zod.string(),
+  "caseTitle": zod.string().nullish()
+})))
+})
+
+
+export const createAdminTaskBodyTitleMax = 300;
+
+
+
+export const createAdminTaskBodyDescriptionMax = 5000;
+
+
+
+export const CreateAdminTaskBody = zod.object({
+  "title": zod.string().min(1).max(createAdminTaskBodyTitleMax),
+  "assigneeId": zod.number().int().min(1),
+  "caseId": zod.number().int().min(1).nullish(),
+  "description": zod.string().max(createAdminTaskBodyDescriptionMax).optional(),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']).optional(),
+  "dueAt": zod.coerce.date().nullish()
+})
+
+export const CreateAdminTaskResponse = zod.object({
+  "task": zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "caseTitle": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "comment": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "dueAt": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+})
+
+
+
+
+
+export const UpdateAdminTaskParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateAdminTaskBodyTitleMax = 300;
+
+
+
+export const updateAdminTaskBodyDescriptionMax = 5000;
+
+export const updateAdminTaskBodyCommentMax = 2000;
+
+
+
+export const UpdateAdminTaskBody = zod.object({
+  "title": zod.string().min(1).max(updateAdminTaskBodyTitleMax).optional(),
+  "assigneeId": zod.number().int().min(1).optional(),
+  "caseId": zod.number().int().min(1).nullish(),
+  "description": zod.string().max(updateAdminTaskBodyDescriptionMax).optional(),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']).optional(),
+  "dueAt": zod.coerce.date().nullish(),
+  "comment": zod.string().max(updateAdminTaskBodyCommentMax).nullish()
+})
+
+export const UpdateAdminTaskResponse = zod.object({
+  "task": zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "caseTitle": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "comment": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "dueAt": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+})
+
+
+
+
+
+export const DeleteAdminTaskParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteAdminTaskResponse = zod.object({
+  "success": zod.literal(true)
+})
+
+
+export const ListWorkspaceTasksResponse = zod.object({
+  "tasks": zod.array(zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "caseTitle": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "comment": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "dueAt": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+}))
+})
+
+
+
+
+
+export const UpdateWorkspaceTaskParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateWorkspaceTaskBodyCommentMax = 2000;
+
+
+
+export const UpdateWorkspaceTaskBody = zod.object({
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']).optional(),
+  "comment": zod.string().max(updateWorkspaceTaskBodyCommentMax).nullish()
+})
+
+export const UpdateWorkspaceTaskResponse = zod.object({
+  "task": zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "caseTitle": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "comment": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "dueAt": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+})
+
+
+
+
+
+export const GetWorkspaceCaseDetailsParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetWorkspaceCaseDetailsResponse = zod.object({
+  "case": zod.object({
+  "id": zod.number().int(),
+  "title": zod.string(),
+  "reference": zod.string(),
+  "summary": zod.string(),
+  "description": zod.string(),
+  "instructions": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.string(),
+  "priority": zod.string(),
+  "progress": zod.number().int(),
+  "dueDate": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+}),
+  "tasks": zod.array(zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "caseTitle": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "comment": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'completed']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "dueAt": zod.coerce.date().nullish(),
+  "assigneeId": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.number().int(),
+  "caseId": zod.number().int().nullish(),
+  "title": zod.string(),
+  "manualContent": zod.string().nullish(),
+  "fileName": zod.string().nullish(),
+  "contentType": zod.string().nullish(),
+  "assetId": zod.string().uuid().nullish(),
+  "category": zod.string(),
+  "confidentiality": zod.string(),
+  "uploadedById": zod.number().int(),
+  "createdAt": zod.coerce.date().optional(),
+  "assignmentId": zod.number().int().nullable(),
+  "downloadPath": zod.string().nullable()
+}))
+})
+
+
+
+
+
+export const GetOwnWorkspaceDocumentFileParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetOwnWorkspaceDocumentFileResponse = zod.object({
+  "url": zod.string().url(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "expiresIn": zod.literal(300)
+})
+
+
 /**
  * @summary Sign in with a collaborator password, optionally starting a second-factor challenge
  */
