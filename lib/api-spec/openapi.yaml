@@ -475,6 +475,75 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /workspace/documents/received/{id}/returns:
+    post:
+      operationId: returnReceivedDocument
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DocumentReturnInput" }
+      responses:
+        "201":
+          description: File returned and Management notified atomically; retrying the same asset is idempotent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentReturnSuccess" }
+        "400": { description: Invalid or incomplete document upload }
+        "403": { description: Submission permission required }
+        "404": { description: Assignment not found for the signed-in collaborator }
+  /workspace/documents/returns/{id}/file:
+    get:
+      operationId: getReturnedDocumentFile
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Owner-authorized short-lived download URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
+  /admin/document-returns:
+    get:
+      operationId: listDocumentReturns
+      tags: [private-media]
+      responses:
+        "200":
+          description: Document return history, reserved to confidential administrators
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [returns]
+                properties:
+                  returns:
+                    type: array
+                    items: { $ref: "#/components/schemas/AdminDocumentReturn" }
+  /admin/document-returns/{id}/file:
+    get:
+      operationId: getAdminReturnedDocumentFile
+      tags: [private-media]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Confidential administrator short-lived download URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivateFileUrl" }
   /admin/conversations:
     get:
       operationId: listAdminConversations
@@ -1745,6 +1814,46 @@ components:
         collaboratorId: { type: integer }
         priority: { type: string }
         dueAt: { type: ["string", "null"], format: date-time }
+    DocumentReturnInput:
+      type: object
+      additionalProperties: false
+      required: [assetId]
+      properties:
+        assetId: { type: string, format: uuid }
+        comment: { type: string, maxLength: 2000 }
+    DocumentReturn:
+      type: object
+      required: [id, assignmentId, assetId, fileName, contentType, fileSize, comment, submittedAt, downloadPath]
+      properties:
+        id: { type: integer }
+        assignmentId: { type: integer }
+        assetId: { type: string, format: uuid }
+        fileName: { type: string }
+        contentType: { type: string }
+        fileSize: { type: integer }
+        comment: { type: ["string", "null"] }
+        submittedAt: { type: string, format: date-time }
+        downloadPath: { type: string }
+    DocumentReturnSuccess:
+      type: object
+      required: [returnedDocument]
+      properties:
+        returnedDocument: { $ref: "#/components/schemas/DocumentReturn" }
+    AdminDocumentReturn:
+      allOf:
+        - $ref: "#/components/schemas/DocumentReturn"
+        - type: object
+          required: [documentTitle, collaboratorName, originalDocument]
+          properties:
+            documentTitle: { type: string }
+            collaboratorName: { type: string }
+            originalDocument:
+              allOf:
+                - $ref: "#/components/schemas/AssignedDocument"
+                - type: object
+                  required: [downloadPath]
+                  properties:
+                    downloadPath: { type: ["string", "null"] }
     AdminConversationInput:
       type: object
       additionalProperties: false

@@ -40,8 +40,11 @@ import type {
   ConversationResponse,
   CreateMeetingWithPrivateVideo201,
   DocumentAssignmentInput,
+  DocumentReturnInput,
+  DocumentReturnSuccess,
   FinancialSummaryResponse,
   HealthStatus,
+  ListDocumentReturns200,
   ListPrivateDocumentAssignments200,
   ListWorkspaceConversations200,
   LiveVideoAuthorizationInput,
@@ -2203,6 +2206,294 @@ export function useGetReceivedDocumentFile<TData = Awaited<ReturnType<typeof get
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetReceivedDocumentFileQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReturnReceivedDocumentUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/documents/received/${id}/returns`
+}
+
+export const returnReceivedDocument = async (id: number,
+    documentReturnInput: DocumentReturnInput, options?: Parameters<typeof customFetch>[1]): Promise<DocumentReturnSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<DocumentReturnSuccess>(getReturnReceivedDocumentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(documentReturnInput)
+  }
+);}
+
+
+
+
+
+export const getReturnReceivedDocumentMutationKey = () => ['returnReceivedDocument'] as const;
+
+export const getReturnReceivedDocumentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof returnReceivedDocument>>, TError,ReturnReceivedDocumentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof returnReceivedDocument>>, TError,ReturnReceivedDocumentMutationVariables, TContext> => {
+
+const mutationKey = getReturnReceivedDocumentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof returnReceivedDocument>>, ReturnReceivedDocumentMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  returnReceivedDocument(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReturnReceivedDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof returnReceivedDocument>>>
+    export type ReturnReceivedDocumentMutationBody = BodyType<DocumentReturnInput>
+    export type ReturnReceivedDocumentMutationError = ErrorType<void>
+    export type ReturnReceivedDocumentMutationVariables = {id: number;data: BodyType<DocumentReturnInput>}
+
+    export const useReturnReceivedDocument = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof returnReceivedDocument>>, TError,ReturnReceivedDocumentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof returnReceivedDocument>>,
+        TError,
+        ReturnReceivedDocumentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReturnReceivedDocumentMutationOptions(options));
+    }
+
+export const getGetReturnedDocumentFileUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/documents/returns/${id}/file`
+}
+
+export const getReturnedDocumentFile = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PrivateFileUrl> => {
+
+  return customFetch<PrivateFileUrl>(getGetReturnedDocumentFileUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReturnedDocumentFileQueryKey = (id: number,) => {
+    return [
+    `/api/workspace/documents/returns/${id}/file`
+    ] as const;
+    }
+
+
+export const getGetReturnedDocumentFileQueryOptions = <TData = Awaited<ReturnType<typeof getReturnedDocumentFile>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReturnedDocumentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReturnedDocumentFileQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReturnedDocumentFile>>> = ({ signal }) => getReturnedDocumentFile(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReturnedDocumentFile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReturnedDocumentFileQueryResult = NonNullable<Awaited<ReturnType<typeof getReturnedDocumentFile>>>
+export type GetReturnedDocumentFileQueryError = ErrorType<unknown>
+
+
+
+export function useGetReturnedDocumentFile<TData = Awaited<ReturnType<typeof getReturnedDocumentFile>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReturnedDocumentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReturnedDocumentFileQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListDocumentReturnsUrl = () => {
+
+
+
+
+  return `/api/admin/document-returns`
+}
+
+export const listDocumentReturns = async ( options?: Parameters<typeof customFetch>[1]): Promise<ListDocumentReturns200> => {
+
+  return customFetch<ListDocumentReturns200>(getListDocumentReturnsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentReturnsQueryKey = () => {
+    return [
+    `/api/admin/document-returns`
+    ] as const;
+    }
+
+
+export const getListDocumentReturnsQueryOptions = <TData = Awaited<ReturnType<typeof listDocumentReturns>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentReturns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentReturnsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentReturns>>> = ({ signal }) => listDocumentReturns({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocumentReturns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentReturnsQueryResult = NonNullable<Awaited<ReturnType<typeof listDocumentReturns>>>
+export type ListDocumentReturnsQueryError = ErrorType<unknown>
+
+
+
+export function useListDocumentReturns<TData = Awaited<ReturnType<typeof listDocumentReturns>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentReturns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentReturnsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminReturnedDocumentFileUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/document-returns/${id}/file`
+}
+
+export const getAdminReturnedDocumentFile = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PrivateFileUrl> => {
+
+  return customFetch<PrivateFileUrl>(getGetAdminReturnedDocumentFileUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminReturnedDocumentFileQueryKey = (id: number,) => {
+    return [
+    `/api/admin/document-returns/${id}/file`
+    ] as const;
+    }
+
+
+export const getGetAdminReturnedDocumentFileQueryOptions = <TData = Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminReturnedDocumentFileQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>> = ({ signal }) => getAdminReturnedDocumentFile(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminReturnedDocumentFileQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>>
+export type GetAdminReturnedDocumentFileQueryError = ErrorType<unknown>
+
+
+
+export function useGetAdminReturnedDocumentFile<TData = Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminReturnedDocumentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminReturnedDocumentFileQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

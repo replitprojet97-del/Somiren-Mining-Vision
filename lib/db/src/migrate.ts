@@ -230,6 +230,15 @@ async function migrate() {
         priority TEXT NOT NULL DEFAULT 'normal', due_at TIMESTAMPTZ, status TEXT NOT NULL DEFAULT 'received',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS workspace_document_returns (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER NOT NULL REFERENCES workspace_document_assignments(id) ON DELETE CASCADE,
+        asset_id UUID NOT NULL UNIQUE REFERENCES workspace_private_uploads(id) ON DELETE RESTRICT,
+        comment TEXT,
+        submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS workspace_document_returns_assignment_idx
+        ON workspace_document_returns (assignment_id, submitted_at DESC);
       CREATE TABLE IF NOT EXISTS workspace_executive_requests (
         id SERIAL PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'new',
         priority TEXT NOT NULL DEFAULT 'normal', due_at TIMESTAMPTZ, assignee_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE RESTRICT,

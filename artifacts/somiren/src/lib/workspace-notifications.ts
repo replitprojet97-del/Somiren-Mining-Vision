@@ -8,6 +8,7 @@ type WorkspaceNotification = {
 const TITLES: Record<string, readonly [string, string]> = {
   "New document assigned": ["Nouveau document attribué", "New document assigned"],
   "Nouveau document attribué": ["Nouveau document attribué", "New document assigned"],
+  "Document traité retourné": ["Document traité retourné", "Processed document returned"],
   "New request": ["Nouvelle demande", "New request"],
   "Nouvelle demande": ["Nouvelle demande", "New request"],
   "Meeting scheduled": ["Réunion programmée", "Meeting scheduled"],
@@ -24,6 +25,10 @@ const TITLES: Record<string, readonly [string, string]> = {
 };
 
 function translateBody(body: string, title: string | null | undefined, lang: Lang): string {
+  if (lang === "en" && title === "Document traité retourné") {
+    const match = /^([\s\S]+) a renvoyé « ([\s\S]+) ». Le fichier et son commentaire sont disponibles dans les documents retournés à la Direction\.$/u.exec(body);
+    if (match) return `${match[1]} returned “${match[2]}”. The file and comment are available in documents returned to Management.`;
+  }
   if (title === "Vérification en cours" && body === "Votre signalement a été enregistré. La vérification est en cours. Vous recevrez une notification ou un message de l’administration.") {
     return lang === "en"
       ? "Your report has been recorded. Verification is in progress. You will receive a notification or message from the administration."

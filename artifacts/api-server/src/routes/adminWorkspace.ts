@@ -14,6 +14,7 @@ import {
 import { and, asc, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
+import { adminDocumentReturnsRouter } from "./documentReturns";
 import { resolveSenderService } from "../lib/sender-service";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -353,6 +354,8 @@ router.patch("/admin/cases/:id", async (req, res): Promise<void> => {
   if (body.data.assigneeId) { const [a] = await db.select({ id: collaboratorsTable.id }).from(collaboratorsTable).where(and(eq(collaboratorsTable.id, body.data.assigneeId), eq(collaboratorsTable.isActive, true))); if (!a) { res.status(400).json({ error: "Invalid active assignee" }); return; } }
   const [item] = await db.update(casesTable).set({ ...body.data, updatedAt: new Date() }).where(eq(casesTable.id, id.data)).returning(); if (!item) { res.status(404).json({ error: "Case not found" }); return; } await addAdminActivity(actor(res), "case", item.id, "updated"); res.json({ case: item });
 });
+
+router.use(adminDocumentReturnsRouter(requireConfidentialAdmin));
 
 const assignmentSchema = z.object({
   collaboratorId: idSchema,

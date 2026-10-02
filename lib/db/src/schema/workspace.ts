@@ -137,6 +137,14 @@ export const documentAssignmentsTable = pgTable("workspace_document_assignments"
   ...timestamps,
 });
 
+export const documentReturnsTable = pgTable("workspace_document_returns", {
+  id: serial("id").primaryKey(),
+  assignmentId: integer("assignment_id").notNull().references(() => documentAssignmentsTable.id, { onDelete: "cascade" }),
+  assetId: uuid("asset_id").notNull().unique().references(() => privateUploadsTable.id, { onDelete: "restrict" }),
+  comment: text("comment"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const executiveRequestsTable = pgTable("workspace_executive_requests", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(), description: text("description").notNull().default(""),

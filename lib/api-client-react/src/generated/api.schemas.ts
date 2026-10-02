@@ -902,6 +902,40 @@ export interface DocumentAssignment {
   dueAt?: string | null;
 }
 
+export interface DocumentReturnInput {
+  assetId: string;
+  /** @maxLength 2000 */
+  comment?: string;
+}
+
+export interface DocumentReturn {
+  id: number;
+  assignmentId: number;
+  assetId: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  /** @nullable */
+  comment: string | null;
+  submittedAt: string;
+  downloadPath: string;
+}
+
+export interface DocumentReturnSuccess {
+  returnedDocument: DocumentReturn;
+}
+
+export type AdminDocumentReturnOriginalDocument = AssignedDocument & ({
+  /** @nullable */
+  downloadPath: string | null;
+});
+
+export type AdminDocumentReturn = DocumentReturn & {
+  documentTitle: string;
+  collaboratorName: string;
+  originalDocument: AdminDocumentReturnOriginalDocument;
+};
+
 export interface AdminConversationInput {
   collaboratorId: number;
   /**
@@ -1130,6 +1164,10 @@ export type ListPrivateDocumentAssignments200AssignmentsItem = { [key: string]: 
 
 export type ListPrivateDocumentAssignments200 = {
   assignments?: ListPrivateDocumentAssignments200AssignmentsItem[];
+};
+
+export type ListDocumentReturns200 = {
+  returns: AdminDocumentReturn[];
 };
 
 export type ListWorkspaceConversations200ConversationsItem = { [key: string]: unknown };

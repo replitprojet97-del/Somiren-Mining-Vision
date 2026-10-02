@@ -5,3 +5,4 @@
 - [Render verification and publishing](render-verification.md) — duplicate API services can mislead; verify domain ownership and live API routing before acting. GitHub pushes can auto-deploy.
 - [Orval generation compatibility](orval-generation-compatibility.md) — the generator's default Zod version can conflict with this workspace's dependencies; worker bundles need ESM output.
 - [Supabase private storage REST](supabase-private-storage-rest.md) — signed upload and file-info payloads differ from legacy SDK assumptions; verify against the live REST response.
+- [Collaborator workflow requirements](collaborator-workflow-rules.md) — processing is not file transmission; the overview arrears card must open the existing details modal directly.

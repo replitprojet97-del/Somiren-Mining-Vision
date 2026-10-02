@@ -578,6 +578,96 @@ export const GetReceivedDocumentFileResponse = zod.object({
 })
 
 
+
+
+
+export const ReturnReceivedDocumentParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const returnReceivedDocumentBodyCommentMax = 2000;
+
+
+
+export const ReturnReceivedDocumentBody = zod.object({
+  "assetId": zod.string().uuid(),
+  "comment": zod.string().max(returnReceivedDocumentBodyCommentMax).optional()
+})
+
+export const ReturnReceivedDocumentResponse = zod.object({
+  "returnedDocument": zod.object({
+  "id": zod.number().int(),
+  "assignmentId": zod.number().int(),
+  "assetId": zod.string().uuid(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "comment": zod.string().nullable(),
+  "submittedAt": zod.coerce.date(),
+  "downloadPath": zod.string()
+})
+})
+
+
+
+
+
+export const GetReturnedDocumentFileParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetReturnedDocumentFileResponse = zod.object({
+  "url": zod.string().url(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "expiresIn": zod.literal(300)
+})
+
+
+export const ListDocumentReturnsResponse = zod.object({
+  "returns": zod.array(zod.object({
+  "id": zod.number().int(),
+  "assignmentId": zod.number().int(),
+  "assetId": zod.string().uuid(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "comment": zod.string().nullable(),
+  "submittedAt": zod.coerce.date(),
+  "downloadPath": zod.string()
+}).and(zod.object({
+  "documentTitle": zod.string(),
+  "collaboratorName": zod.string(),
+  "originalDocument": zod.object({
+  "id": zod.number().int().optional(),
+  "title": zod.string().optional(),
+  "manualContent": zod.string().nullish(),
+  "assetId": zod.string().uuid().nullish(),
+  "fileName": zod.string().nullish(),
+  "contentType": zod.string().nullish(),
+  "fileSize": zod.number().int().nullish()
+}).and(zod.object({
+  "downloadPath": zod.string().nullable()
+}))
+})))
+})
+
+
+
+
+
+export const GetAdminReturnedDocumentFileParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetAdminReturnedDocumentFileResponse = zod.object({
+  "url": zod.string().url(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "expiresIn": zod.literal(300)
+})
+
+
 export const ListAdminConversationsResponse = zod.object({
   "conversations": zod.array(zod.object({
   "conversation": zod.object({

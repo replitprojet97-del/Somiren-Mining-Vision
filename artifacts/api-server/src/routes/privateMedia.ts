@@ -97,7 +97,7 @@ export async function consumeUpload(
   assetId: string,
   uploaderId: number,
   kind: "document" | "audio" | "video",
-  purpose: "document" | "message-audio" | "meeting-video",
+  purpose: "document" | "document-return" | "message-audio" | "meeting-video",
 ): Promise<UploadAsset | undefined> {
   const [asset] = await tx.select().from(privateUploadsTable).where(and(
     eq(privateUploadsTable.id, assetId),

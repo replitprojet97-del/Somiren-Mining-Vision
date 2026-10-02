@@ -4,6 +4,7 @@ import { uploadPrivateFile } from "@/lib/private-media";
 import { MAX_DOC_BYTES } from "@/types/media";
 import { C, SectionCard, PrimaryBtn, Field, Input, Select, Textarea, Feedback } from "./shared";
 import { useAdminApi } from "./api";
+import DocumentReturnsPanel from "./DocumentReturnsPanel";
 
 export default function SendDocumentView() {
   const api = useAdminApi();
@@ -100,6 +101,7 @@ export default function SendDocumentView() {
           <PrimaryBtn icon={Send} onClick={submit} disabled={loading || !form.collaboratorId || !form.title || (!form.manualContent.trim() && !file)}>{loading ? "Création..." : "Créer l'assignation"}</PrimaryBtn>
         </div>
       </SectionCard>
+      <DocumentReturnsPanel />
     </div>
   );
 }

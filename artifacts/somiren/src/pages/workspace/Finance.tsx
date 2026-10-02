@@ -15,6 +15,43 @@ type FinanceNumberFormatters = {
   locale: string;
 };
 
+function ArrearsOverviewCard({ accessible, error, amounts, unknown, openCount, records, onOpen }: {
+  accessible: boolean; error: boolean; amounts: string[]; unknown: number;
+  openCount: number; records: any[]; onOpen: (record: any) => void;
+}) {
+  const { w, formatNumber } = useWorkspaceLocale();
+  const [selectedId, setSelectedId] = useState("");
+  const selected = records.find(record => String(record.id) === selectedId) ?? records[0];
+  const available = accessible && !error;
+  return <div data-testid="card-overview-arrears"
+    className="w-full rounded-lg p-5 text-left"
+    style={{ border: `1px solid ${available && openCount > 0 ? C.amber : C.line}`, background: available && openCount > 0 ? C.amberBg : "white" }}>
+    <span className="block text-[13px] font-medium" style={{ color: C.inkSoft }}>{w("Total des arriérés ouverts connus", "Known total of open arrears")}</span>
+    <span className="block text-2xl font-semibold mt-2 mb-1" style={{ color: C.ink }} data-testid="text-overview-arrears-total">
+      {!accessible ? w("Accès non autorisé", "Access not permitted") : error ? w("Données indisponibles", "Data unavailable")
+        : amounts.length ? amounts.join(" · ") : openCount ? w("Montant non communiqué", "Amount not provided") : w("Aucun arriéré ouvert", "No open arrears")}
+    </span>
+    {available && <span className="block text-xs" style={{ color: C.inkSoft }}>
+      {formatNumber(openCount)} {w("période(s) ouverte(s)", "open period(s)")}
+      {unknown ? ` · ${formatNumber(unknown)} ${w("montant(s) inconnu(s)", "unknown amount(s)")}` : ""}
+    </span>}
+    {available && openCount > 0 && <span className="flex items-start gap-2 mt-3 rounded-md bg-white/70 p-3 text-xs" style={{ color: C.amber }} data-testid="note-overview-arrears">
+      <AlertCircle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+      <span><strong>{w("Important :", "Important:")}</strong> {w("des arriérés restent à régulariser. Consultez les détails.", "arrears remain to be settled. Review the details.")}</span>
+    </span>}
+    {available && records.length > 1 && <label className="block mt-3 text-xs">
+      {w("Période à consulter", "Period to view")}
+      <select className="block w-full mt-1 rounded border bg-white p-2" value={String(selected?.id ?? "")}
+        onChange={event => setSelectedId(event.target.value)} data-testid="select-overview-arrear-period">
+        {records.map(record => <option key={record.id} value={record.id}>{record.periodLabel}</option>)}
+      </select>
+    </label>}
+    {available && selected && <button type="button" onClick={() => onOpen(selected)}
+      className="block mt-3 text-xs font-semibold underline" style={{ color: C.navy }}
+      data-testid="button-view-overview-arrears">{w("Consulter les détails", "View details")}</button>}
+  </div>;
+}
+
 function decimalSeparator(locale: string): string {
   return new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
     .formatToParts(1.1).find(part => part.type === "decimal")?.value ?? ".";
@@ -137,6 +174,38 @@ export default function Finance() {
   ) : null;
   const numberFormatters = { formatNumber, formatMoney, locale };
   const totalArrears = knownArrearsTotals(arrears || [], w("Devise inconnue", "Unknown currency"), numberFormatters);
+  const arrearsCard = <ArrearsOverviewCard
+    accessible={canViewArrears} error={arrearsError}
+    amounts={totalArrears.formatted} unknown={totalArrears.unknown}
+    openCount={arrears?.filter((item: any) => item.status === "open").length || 0}
+    records={[...(arrears || [])].sort((left: any, right: any) => Number(right.status === "open") - Number(left.status === "open"))}
+    onOpen={record => openModal("arrear", record, record.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(record.amount, record.currency || "", numberFormatters))}
+  />;
+  const arrearsDetails = (
+    <div className="space-y-4">
+      {!canViewArrears ? <div className="bg-white rounded-lg py-12" style={{ border: `1px solid ${C.line}` }}>
+        <EmptyState icon={DollarSign} text={w("Les arriérés ne sont pas accessibles avec les permissions de votre compte.", "Arrears are not available with your account permissions.")} />
+      </div> : arrearsError ? <div className="bg-white rounded-lg py-12" style={{ border: `1px solid ${C.line}` }}>
+        <EmptyState icon={DollarSign} text={w("Les arriérés sont indisponibles pour le moment.", "Arrears are currently unavailable.")} />
+      </div> : !arrears?.length ? <div className="bg-white rounded-lg py-12" style={{ border: `1px solid ${C.line}` }}>
+        <EmptyState icon={DollarSign} text={w("Aucun arriéré.", "No arrears.")} />
+      </div> : arrears.map((a: any) => (
+        <div key={a.id} className="bg-white rounded-lg p-5" style={{ border: `1px solid ${C.line}` }} data-testid={`card-arrear-${a.id}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4" style={{ borderBottom: `1px solid ${C.line}` }}>
+            <div>
+              <h3 className="font-semibold text-[15px]" style={{ color: C.ink }}>{a.periodLabel}</h3>
+              <p className="text-xl font-semibold mt-1" style={{ color: C.ink }}>{a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || w("Devise non communiquée", "Currency not provided"), numberFormatters)}</p>
+            </div>
+            <Pill tone={a.status === "open" ? "haute" : a.status === "settled" ? "basse" : "neutral"}>{arrearStatusLabel(a.status, w)}</Pill>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {followUp(a) || <span />}
+            <button type="button" onClick={() => openModal("arrear", a, a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || "", numberFormatters))} className="text-sm underline" style={{ color: C.navy }} data-testid={`button-view-arrear-instructions-${a.id}`}>{w("Consulter les détails", "View details")}</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   if (isLoading) return <div className="p-8 flex justify-center">{w("Chargement…", "Loading…")}</div>;
 
@@ -187,32 +256,14 @@ export default function Finance() {
                     )}
                   </div>
                 </div>
-                <div className="bg-white rounded-lg p-5" style={{ border: `1px solid ${C.line}` }}>
-                    <p className="text-[13px] font-medium" style={{ color: C.inkSoft }}>{w("Total des arriérés ouverts connus", "Known total of open arrears")}</p>
-                  <p className="text-2xl font-semibold mt-2 mb-1" style={{ color: C.ink }}>
-                      {arrearsError ? w("Données indisponibles", "Data unavailable") : totalArrears.formatted.length ? totalArrears.formatted.join(" · ") : w("Montant non communiqué", "Amount not provided")}
-                  </p>
-                  <p className="text-xs" style={{ color: C.inkSoft }}>
-                       {arrearsError ? w("Impossible de calculer le total.", "Unable to calculate the total.") : <>{formatNumber(arrears?.filter((item: any) => item.status === "open").length || 0)} {w("période(s) ouverte(s)", "open period(s)")}
-                         {totalArrears.unknown ? ` · ${formatNumber(totalArrears.unknown)} ${w("montant(s) inconnu(s)", "unknown amount(s)")}` : ""}</>}
-                  </p>
-                </div>
+                 {arrearsCard}
               </div>
             </>
           ) : (
             <div className="bg-white rounded-lg py-5 px-6" style={{ border: `1px solid ${C.line}` }}>
               <p className="text-sm" style={{ color: C.inkSoft }}>{summaryError ? w("Situation de rémunération indisponible.", "Salary information is unavailable.") : w("Aucune situation de rémunération disponible.", "No salary information available.")}</p>
               {arrears?.length > 0 && (
-                <div className="mt-4 rounded-md p-4" style={{ background: C.amberBg }}>
-                  <p className="text-xs font-medium" style={{ color: C.amber }}>{w("Arriérés ouverts", "Open arrears")}</p>
-                  <p className="mt-1 text-lg font-semibold" style={{ color: C.ink }}>
-                    {arrearsError ? w("Données indisponibles", "Data unavailable") : totalArrears.formatted.length ? totalArrears.formatted.join(" · ") : w("Montant non communiqué", "Amount not provided")}
-                  </p>
-                  <p className="text-xs" style={{ color: C.inkSoft }}>
-                     {arrearsError ? w("Nombre de périodes indisponible.", "Number of periods unavailable.") : <>{formatNumber(arrears.filter((item: any) => item.status === "open").length)} {w("période(s) ouverte(s)", "open period(s)")}
-                       {totalArrears.unknown ? ` · ${formatNumber(totalArrears.unknown)} ${w("montant(s) inconnu(s)", "unknown amount(s)")}` : ""}</>}
-                  </p>
-                </div>
+                 <div className="mt-4">{arrearsCard}</div>
               )}
             </div>
           )}
@@ -281,39 +332,7 @@ export default function Finance() {
         </div>
       )}
 
-      {tab === 2 && (
-        <div className="space-y-4">
-          {!canViewArrears ? (
-             <div className="bg-white rounded-lg py-12" style={{ border: `1px solid ${C.line}` }}>
-                <EmptyState icon={DollarSign} text={w("Les arriérés ne sont pas accessibles avec les permissions de votre compte.", "Arrears are not available with your account permissions.")} />
-             </div>
-          ) : arrearsError ? (
-             <div className="bg-white rounded-lg py-12" style={{ border: `1px solid ${C.line}` }}>
-                <EmptyState icon={DollarSign} text={w("Les arriérés sont indisponibles pour le moment.", "Arrears are currently unavailable.")} />
-             </div>
-          ) : !arrears?.length ? (
-             <div className="bg-white rounded-lg py-12" style={{ border: `1px solid ${C.line}` }}>
-                <EmptyState icon={DollarSign} text={w("Aucun arriéré.", "No arrears.")} />
-             </div>
-          ) : (
-            arrears.map((a: any) => (
-              <div key={a.id} className="bg-white rounded-lg p-5" style={{ border: `1px solid ${C.line}` }}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4" style={{ borderBottom: `1px solid ${C.line}` }}>
-                  <div>
-                     <h3 className="font-semibold text-[15px]" style={{ color: C.ink }}>{a.periodLabel}</h3>
-                       <p className="text-xl font-semibold mt-1" style={{ color: C.ink }}>{a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || w("Devise non communiquée", "Currency not provided"), numberFormatters)}</p>
-                  </div>
-                    <Pill tone={a.status === "open" ? "haute" : a.status === "settled" ? "basse" : "neutral"}>{arrearStatusLabel(a.status, w)}</Pill>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  {followUp(a) || <span />}
-                  <button type="button" onClick={() => openModal("arrear", a, a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || "", numberFormatters))} className="text-sm underline" style={{ color: C.navy }} data-testid={`button-view-arrear-instructions-${a.id}`}>{w("Consulter les détails", "View details")}</button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      {tab === 2 && arrearsDetails}
 
       {tab === 3 && (
         <div className="bg-white rounded-lg overflow-hidden" style={{ border: `1px solid ${C.line}` }}>

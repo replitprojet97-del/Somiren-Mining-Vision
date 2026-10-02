@@ -14,6 +14,7 @@ import { cleanupReplacedProfilePhoto, consumeUpload, createDownloadUrl, getConsu
 import { isReferencePortraitEligible, isValidAudioMessage, videoSigningExpirySeconds } from "./privateMediaValidation";
 import { readableSessionDevice } from "../lib/session-device";
 import financeConditionsRouter from "./financeConditions";
+import { documentReturnHistory, workspaceDocumentReturnsRouter } from "./documentReturns";
 import {
   GetWorkspaceFinancialSummaryResponse, ListCollaboratorArrearsResponse,
   GetWorkspaceVideoAccessResponse, JoinWorkspaceVideoMeetingBody, JoinWorkspaceVideoMeetingResponse,
@@ -80,7 +81,7 @@ function requirePermission(permission: string) {
   };
 }
 const textSchema = z.string().trim().min(1).max(5000);
-const assignmentSchema = z.object({ status: z.enum(["received", "in_progress", "submitted", "completed"]).optional(), instruction: z.string().max(5000).optional(), priority: z.enum(["low", "normal", "high", "urgent"]).optional(), dueAt: z.coerce.date().nullable().optional() }).refine(v => Object.keys(v).length > 0);
+const assignmentSchema = z.object({ status: z.enum(["received", "in_progress", "completed"]).optional(), instruction: z.string().max(5000).optional(), priority: z.enum(["low", "normal", "high", "urgent"]).optional(), dueAt: z.coerce.date().nullable().optional() }).refine(v => Object.keys(v).length > 0);
 const requestSchema = z.object({ title: textSchema.max(300), description: z.string().max(5000).optional(), priority: z.enum(["low", "normal", "high", "urgent"]).optional(), dueAt: z.coerce.date().nullable().optional(), status: z.enum(["new", "accepted", "in_progress", "submitted", "validated", "revision_required", "completed"]).optional() });
 const noteSchema = z.object({ title: textSchema.max(300), body: z.string().max(10000).optional(), isShared: z.boolean().optional() });
 const threadMessageSchema = z.object({
@@ -106,6 +107,7 @@ async function notifyActiveAdmins(title: string, body: string): Promise<void> {
 
 router.use(requireWorkspaceAccess);
 router.use(financeConditionsRouter(requirePermission));
+router.use(workspaceDocumentReturnsRouter(requirePermission));
 
 router.get("/workspace/me", (_req, res): void => {
   const current = actor(res);
@@ -398,7 +400,10 @@ router.get("/workspace/documents/received", requirePermission("VIEW_ASSIGNED_DOC
   const documents = await db.select({ assignment: documentAssignmentsTable, document: documentsTable }).from(documentAssignmentsTable)
     .innerJoin(documentsTable, eq(documentAssignmentsTable.documentId, documentsTable.id))
     .where(eq(documentAssignmentsTable.collaboratorId, current.id)).orderBy(desc(documentAssignmentsTable.updatedAt));
-  res.json({ documents });
+  const returns = await documentReturnHistory(current.id);
+  res.json({ documents: documents.map(row => ({
+    ...row, returns: returns.filter(returned => returned.assignmentId === row.assignment.id),
+  })) });
 });
 router.get("/workspace/documents/received/:id/file", requirePermission("VIEW_ASSIGNED_DOCUMENTS"), async (req, res): Promise<void> => {
   const id = idSchema.safeParse(req.params.id);
