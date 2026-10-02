@@ -2,6 +2,38 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { localizeWorkspaceNotification } from "./workspace-notifications.ts";
 
+test("condition reports and review notifications are translated without changing authored values", () => {
+  const notifications = [
+    {
+      title: "Vérification en cours",
+      body: "Votre signalement a été enregistré. La vérification est en cours. Vous recevrez une notification ou un message de l’administration.",
+      english: "Your report has been recorded. Verification is in progress. You will receive a notification or message from the administration.",
+    },
+    {
+      title: "Conditions signalées comme remplies",
+      body: "Collaborateur test signale que les conditions sont remplies pour la période « Mai - Septembre ». Vérification requise.",
+      english: "Collaborateur test reports that the conditions have been met for the period “Mai - Septembre”. Verification required.",
+    },
+    {
+      title: "Signalement pris en compte",
+      body: "Votre signalement pour la période « Mai - Septembre » a été pris en compte. L’administration poursuit la vérification et vous contactera si nécessaire.",
+      english: "Your report for the period “Mai - Septembre” has been acknowledged. The administration is continuing verification and will contact you if necessary.",
+    },
+    {
+      title: "Signalement non validé",
+      body: "Votre signalement pour la période « Mai - Septembre » n’a pas été validé. Consultez les consignes ou contactez l’administration pour connaître la suite à donner.",
+      english: "Your report for the period “Mai - Septembre” has not been accepted. Review the instructions or contact the administration about the next steps.",
+    },
+  ];
+  for (const notification of notifications) {
+    assert.equal(localizeWorkspaceNotification(notification, "fr").body, notification.body);
+    assert.equal(localizeWorkspaceNotification(notification, "en").body, notification.english);
+    assert.notEqual(localizeWorkspaceNotification(notification, "en").title, notification.title);
+  }
+  const authored = { title: "Message personnel", body: "Instructions rédigées par l’administrateur." };
+  assert.deepEqual(localizeWorkspaceNotification(authored, "en"), authored);
+});
+
 test("localizes known English notification templates while preserving authored titles", () => {
   const result = localizeWorkspaceNotification({
     title: "New document assigned",

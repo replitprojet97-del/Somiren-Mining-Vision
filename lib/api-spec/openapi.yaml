@@ -1060,6 +1060,58 @@ paths:
         "403": { description: Own financial information permission required }
         "404": { description: Salary not found for this collaborator }
         "409": { description: Salary already paid }
+  /workspace/me/arrears/{id}/conditions-report:
+    post:
+      operationId: reportArrearConditions
+      tags: [workspace-finance]
+      description: Explicitly report that the administrator's conditions have been met; this does not approve verification or initiate payment.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: Report recorded and administration and collaborator notified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearResult" }
+        "200":
+          description: Existing report returned without duplicate notifications
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearResult" }
+        "400": { description: Invalid arrear id }
+        "401": { description: Authentication required }
+        "403": { description: Own arrears permission required }
+        "404": { description: Arrear not found for this collaborator }
+        "409": { description: Arrear resolved or instructions not provided }
+  /workspace/me/salary-records/{id}/conditions-report:
+    post:
+      operationId: reportSalaryConditions
+      tags: [workspace-finance]
+      description: Explicit condition-completion report, separate from legacy transfer requests; no banking operation.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: Report recorded and administration and collaborator notified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordResult" }
+        "200":
+          description: Existing report returned without duplicate notifications
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordResult" }
+        "400": { description: Invalid salary record id }
+        "401": { description: Authentication required }
+        "403": { description: Own financial information permission required }
+        "404": { description: Salary record not found for this collaborator }
+        "409": { description: Salary already paid or instructions not provided }
   /admin/sender-services:
     get:
       operationId: listSenderServices
@@ -1432,6 +1484,7 @@ components:
         payrollServiceSignature: { type: string }
         transferRequestedAt: { type: ["string", "null"], format: date-time }
         transferRequestStatus: { type: ["string", "null"], enum: [pending, acknowledged, declined, null] }
+        conditionsReportedAt: { type: ["string", "null"], format: date-time }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     ArrearsList:
@@ -1497,6 +1550,7 @@ components:
         payrollServiceSignature: { type: string }
         transferRequestedAt: { type: ["string", "null"], format: date-time }
         transferRequestStatus: { type: ["string", "null"], enum: [pending, acknowledged, declined, null] }
+        conditionsReportedAt: { type: ["string", "null"], format: date-time }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     SalaryRecordsList:

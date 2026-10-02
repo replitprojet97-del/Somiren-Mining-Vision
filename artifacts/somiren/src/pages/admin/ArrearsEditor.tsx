@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { C, Pill, SectionCard } from "./shared";
 import { useAdminApi } from "./api";
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
+import { reportStatusLabel } from "../workspace/components/TransferModal";
 
 type ArrearForm = {
   periodLabel: string;
@@ -36,6 +38,10 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
   onPermissionsGranted: () => void;
 }) {
   const api = useAdminApi();
+  const { w, locale } = useWorkspaceLocale();
+  const statusLabel = (record: any) => record.conditionsReportedAt
+    ? reportStatusLabel(record.transferRequestStatus, w)
+    : requestLabel[record.transferRequestStatus] || record.transferRequestStatus;
   const [arrears, setArrears] = useState<any[]>([]);
   const [form, setForm] = useState<ArrearForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -150,7 +156,9 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
     setSuccess(null);
     try {
       await api.patch(`/admin/arrears/${arrear.id}`, { transferRequestStatus: status });
-      setSuccess(status === "acknowledged" ? "La demande a été prise en compte." : "La demande a été refusée.");
+      setSuccess(arrear.conditionsReportedAt
+        ? (status === "acknowledged" ? w("Le signalement a été pris en compte.", "The report has been acknowledged.") : w("Le signalement n’a pas été validé.", "The report has not been accepted."))
+        : (status === "acknowledged" ? "La demande a été prise en compte." : "La demande a été refusée."));
       await load();
     } catch (err: any) {
       setError(err.error || "Impossible de mettre à jour cette demande.");
@@ -185,7 +193,7 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
                         <Pill tone={arrear.status === "open" ? "moyenne" : arrear.status === "settled" ? "basse" : "neutral"}>
                           {arrear.status === "open" ? "Ouvert" : arrear.status === "settled" ? "Réglé" : "Archivé"}
                         </Pill>
-                        {arrear.transferRequestStatus && <Pill tone={arrear.transferRequestStatus === "pending" ? "haute" : "info"}>{requestLabel[arrear.transferRequestStatus] || arrear.transferRequestStatus}</Pill>}
+                        {arrear.transferRequestStatus && <Pill tone={arrear.transferRequestStatus === "pending" ? "haute" : "info"}>{statusLabel(arrear)}</Pill>}
                       </div>
                     </div>
                     <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
@@ -194,14 +202,14 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
                     </div>
                     {arrear.transferRequestedAt && (
                       <p className="mt-2 text-xs" style={{ color: C.inkSoft }}>
-                        Demande reçue le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(arrear.transferRequestedAt))}
+                        {arrear.conditionsReportedAt ? w("Signalement reçu le", "Report received on") : "Demande reçue le"} {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(arrear.conditionsReportedAt || arrear.transferRequestedAt))}
                       </p>
                     )}
                     <div className="mt-3 flex flex-wrap justify-end gap-2">
                       {arrear.transferRequestStatus === "pending" && (
                         <>
-                          <button type="button" onClick={() => void reviewRequest(arrear, "acknowledged")} className="rounded-md px-2.5 py-1.5 text-xs font-medium" style={{ border: `1px solid ${C.line}`, color: C.green }} data-testid={`button-acknowledge-transfer-${arrear.id}`}>Prendre en compte</button>
-                          <button type="button" onClick={() => void reviewRequest(arrear, "declined")} className="rounded-md px-2.5 py-1.5 text-xs font-medium" style={{ border: `1px solid ${C.line}`, color: C.red }} data-testid={`button-decline-transfer-${arrear.id}`}>Refuser la demande</button>
+                          <button type="button" onClick={() => void reviewRequest(arrear, "acknowledged")} className="rounded-md px-2.5 py-1.5 text-xs font-medium" style={{ border: `1px solid ${C.line}`, color: C.green }} data-testid={`button-acknowledge-transfer-${arrear.id}`}>{w("Prendre en compte", "Acknowledge")}</button>
+                          <button type="button" onClick={() => void reviewRequest(arrear, "declined")} className="rounded-md px-2.5 py-1.5 text-xs font-medium" style={{ border: `1px solid ${C.line}`, color: C.red }} data-testid={`button-decline-transfer-${arrear.id}`}>{arrear.conditionsReportedAt ? w("Ne pas valider", "Do not accept") : "Refuser la demande"}</button>
                         </>
                       )}
                       <button type="button" onClick={() => startEdit(arrear)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium" style={{ border: `1px solid ${C.line}`, color: C.inkSoft }} data-testid={`button-edit-arrear-${arrear.id}`}><Pencil size={13} /> Modifier</button>

@@ -17,9 +17,30 @@ const TITLES: Record<string, readonly [string, string]> = {
   "Visioconférence planifiée": ["Visioconférence planifiée", "Video conference scheduled"],
   "Visioconférence annulée": ["Visioconférence annulée", "Video conference cancelled"],
   "Nouvel arriéré communiqué": ["Nouvel arriéré communiqué", "New arrears communicated"],
+  "Vérification en cours": ["Vérification en cours", "Verification in progress"],
+  "Conditions signalées comme remplies": ["Conditions signalées comme remplies", "Conditions reported as met"],
+  "Signalement pris en compte": ["Signalement pris en compte", "Report acknowledged"],
+  "Signalement non validé": ["Signalement non validé", "Report not accepted"],
 };
 
 function translateBody(body: string, title: string | null | undefined, lang: Lang): string {
+  if (title === "Vérification en cours" && body === "Votre signalement a été enregistré. La vérification est en cours. Vous recevrez une notification ou un message de l’administration.") {
+    return lang === "en"
+      ? "Your report has been recorded. Verification is in progress. You will receive a notification or message from the administration."
+      : body;
+  }
+  if (lang === "en" && title === "Conditions signalées comme remplies") {
+    const match = /^([\s\S]+) signale que les conditions sont remplies pour la période « ([\s\S]+) ». Vérification requise\.$/u.exec(body);
+    if (match) return `${match[1]} reports that the conditions have been met for the period “${match[2]}”. Verification required.`;
+  }
+  if (lang === "en" && title === "Signalement pris en compte") {
+    const match = /^Votre signalement pour la période « ([\s\S]+) » a été pris en compte\. L’administration poursuit la vérification et vous contactera si nécessaire\.$/u.exec(body);
+    if (match) return `Your report for the period “${match[1]}” has been acknowledged. The administration is continuing verification and will contact you if necessary.`;
+  }
+  if (lang === "en" && title === "Signalement non validé") {
+    const match = /^Votre signalement pour la période « ([\s\S]+) » n’a pas été validé\. Consultez les consignes ou contactez l’administration pour connaître la suite à donner\.$/u.exec(body);
+    if (match) return `Your report for the period “${match[1]}” has not been accepted. Review the instructions or contact the administration about the next steps.`;
+  }
   const templates: Array<{
     titles: readonly string[];
     pattern: RegExp;

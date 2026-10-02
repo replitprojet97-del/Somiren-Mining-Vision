@@ -493,6 +493,8 @@ export interface Arrear {
   transferRequestedAt: string | null;
   /** @nullable */
   transferRequestStatus: ArrearTransferRequestStatus;
+  /** @nullable */
+  conditionsReportedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -640,6 +642,8 @@ export interface SalaryRecord {
   transferRequestedAt: string | null;
   /** @nullable */
   transferRequestStatus: SalaryRecordTransferRequestStatus;
+  /** @nullable */
+  conditionsReportedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

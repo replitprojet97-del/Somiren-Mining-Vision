@@ -9,6 +9,7 @@ import {
 import { desc, eq } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { requireAdminAccess } from "./adminWorkspace";
+import { conditionsReviewNotice } from "../lib/finance-conditions";
 import {
   canManageConfidentialFinance, canReceiveArrears, mergeArrearsVisibilityPermissions,
 } from "./adminCollaboratorPolicy";
@@ -125,6 +126,12 @@ router.patch("/admin/arrears/:id", async (req, res): Promise<void> => {
     const patch = { ...body.data, updatedAt: new Date() };
     const [updated] = await tx.update(arrearsTable).set(patch)
       .where(eq(arrearsTable.id, arrear.id)).returning();
+    if (body.data.transferRequestStatus && arrear.conditionsReportedAt) {
+      await tx.insert(notificationsTable).values({
+        collaboratorId: arrear.collaboratorId,
+        ...conditionsReviewNotice(body.data.transferRequestStatus, updated.periodLabel),
+      });
+    }
     await tx.insert(activityLogsTable).values({
       collaboratorId: current.id, entityType: "arrear", entityId: updated.id, action: "updated",
       details: { fields: Object.keys(body.data) },

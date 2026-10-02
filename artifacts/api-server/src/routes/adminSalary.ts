@@ -10,6 +10,7 @@ import {
 import { and, desc, eq, ne } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { requireAdminAccess } from "./adminWorkspace";
+import { conditionsReviewNotice } from "../lib/finance-conditions";
 import { canManageConfidentialFinance, canReceiveArrears } from "./adminCollaboratorPolicy";
 
 const router: IRouter = Router();
@@ -153,6 +154,12 @@ router.patch("/admin/salary-records/:id", async (req, res): Promise<void> => {
         : body.data.communicatedDelayReason?.trim() || null,
       updatedAt: new Date(),
     }).where(eq(financialRecordsTable.id, existing.id)).returning();
+    if (body.data.transferRequestStatus && existing.conditionsReportedAt) {
+      await tx.insert(notificationsTable).values({
+        collaboratorId: existing.collaboratorId,
+        ...conditionsReviewNotice(body.data.transferRequestStatus, salaryRecord.periodLabel),
+      });
+    }
     await tx.update(collaboratorsTable).set({
       permissions: [...new Set([...recipient.permissions, "VIEW_OWN_FINANCIAL_INFORMATION"])],
       updatedAt: new Date(),

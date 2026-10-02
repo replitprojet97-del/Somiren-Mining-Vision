@@ -1050,6 +1050,7 @@ export const ListCollaboratorArrearsResponse = zod.object({
   "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -1106,6 +1107,7 @@ export const CreateCollaboratorArrearResponse = zod.object({
   "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1137,6 +1139,7 @@ export const ListCollaboratorSalaryRecordsResponse = zod.object({
   "payrollServiceSignature": zod.string(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -1193,6 +1196,7 @@ export const AssignCollaboratorSalaryRecordResponse = zod.object({
   "payrollServiceSignature": zod.string(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1250,6 +1254,7 @@ export const UpdateSalaryRecordResponse = zod.object({
   "payrollServiceSignature": zod.string(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1277,6 +1282,7 @@ export const GetWorkspaceFinancialSummaryResponse = zod.object({
   "payrollServiceSignature": zod.string(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }),zod.null()])
@@ -1334,6 +1340,7 @@ export const UpdateArrearResponse = zod.object({
   "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1375,6 +1382,7 @@ export const RequestArrearTransferResponse = zod.object({
   "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1406,6 +1414,77 @@ export const RequestSalaryTransferResponse = zod.object({
   "payrollServiceSignature": zod.string(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * Explicitly report that the administrator's conditions have been met; this does not approve verification or initiate payment.
+ */
+
+
+
+export const ReportArrearConditionsParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const reportArrearConditionsResponseArrearAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const reportArrearConditionsResponseArrearCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const ReportArrearConditionsResponse = zod.object({
+  "arrear": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "periodLabel": zod.string(),
+  "amount": zod.string().regex(reportArrearConditionsResponseArrearAmountRegExp).nullable().describe('Decimal amount is transported as a string to preserve precision; null means legacy amount unknown.'),
+  "currency": zod.string().regex(reportArrearConditionsResponseArrearCurrencyRegExp).nullable(),
+  "status": zod.enum(['open', 'settled', 'archived']),
+  "communicatedReason": zod.string().nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string().optional(),
+  "payrollServiceSignature": zod.string().optional(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * Explicit condition-completion report, separate from legacy transfer requests; no banking operation.
+ */
+
+
+
+export const ReportSalaryConditionsParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const reportSalaryConditionsResponseSalaryRecordAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const reportSalaryConditionsResponseSalaryRecordCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const ReportSalaryConditionsResponse = zod.object({
+  "salaryRecord": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
+  "periodLabel": zod.string(),
+  "communicatedDelayReason": zod.string().nullable(),
+  "amount": zod.string().regex(reportSalaryConditionsResponseSalaryRecordAmountRegExp).nullable(),
+  "currency": zod.string().regex(reportSalaryConditionsResponseSalaryRecordCurrencyRegExp).nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string(),
+  "payrollServiceSignature": zod.string(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "conditionsReportedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })

@@ -324,10 +324,11 @@ export const useRequestArrearTransfer = () => {
   const api = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string | number) => api(`/workspace/me/arrears/${id}/transfer-request`, { method: "POST" }),
+    mutationFn: (id: string | number) => api(`/workspace/me/arrears/${id}/conditions-report`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace", "finance", "arrears"] });
       queryClient.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace", "notifications"] });
     },
   });
 };
@@ -461,10 +462,11 @@ export const useRequestSalaryTransfer = () => {
   const api = useApiClient();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string | number) => api(`/workspace/me/salary-records/${id}/transfer-request`, { method: "POST" }),
+    mutationFn: (id: string | number) => api(`/workspace/me/salary-records/${id}/conditions-report`, { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspace", "finance", "summary"] });
       qc.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+      qc.invalidateQueries({ queryKey: ["workspace", "notifications"] });
     },
   });
 };

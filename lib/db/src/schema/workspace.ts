@@ -185,6 +185,7 @@ export const financialRecordsTable = pgTable("workspace_financial_records", {
   payrollServiceSignature: text("payroll_service_signature").notNull().default("Somiren S.A. · Service paie"),
   transferRequestedAt: timestamp("transfer_requested_at", { withTimezone: true }),
   transferRequestStatus: text("transfer_request_status"),
+  conditionsReportedAt: timestamp("conditions_reported_at", { withTimezone: true }),
 });
 export const paymentsTable = pgTable("workspace_payments", {
   id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
@@ -200,6 +201,7 @@ export const arrearsTable = pgTable("workspace_arrears", {
   payrollServiceSignature: text("payroll_service_signature").notNull().default("Somiren S.A. · Service paie"),
   transferRequestedAt: timestamp("transfer_requested_at", { withTimezone: true }),
   transferRequestStatus: text("transfer_request_status"),
+  conditionsReportedAt: timestamp("conditions_reported_at", { withTimezone: true }),
 });
 export const paymentRequirementsTable = pgTable("workspace_payment_requirements", {
   id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),

@@ -4812,6 +4812,148 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getRequestSalaryTransferMutationOptions(options));
     }
 
+export const getReportArrearConditionsUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/me/arrears/${id}/conditions-report`
+}
+
+/**
+ * Explicitly report that the administrator's conditions have been met; this does not approve verification or initiate payment.
+ */
+export const reportArrearConditions = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ArrearResult> => {
+
+  return customFetch<ArrearResult>(getReportArrearConditionsUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReportArrearConditionsMutationKey = () => ['reportArrearConditions'] as const;
+
+export const getReportArrearConditionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportArrearConditions>>, TError,ReportArrearConditionsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportArrearConditions>>, TError,ReportArrearConditionsMutationVariables, TContext> => {
+
+const mutationKey = getReportArrearConditionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportArrearConditions>>, ReportArrearConditionsMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  reportArrearConditions(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportArrearConditionsMutationResult = NonNullable<Awaited<ReturnType<typeof reportArrearConditions>>>
+
+    export type ReportArrearConditionsMutationError = ErrorType<void>
+    export type ReportArrearConditionsMutationVariables = {id: number}
+
+    export const useReportArrearConditions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportArrearConditions>>, TError,ReportArrearConditionsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportArrearConditions>>,
+        TError,
+        ReportArrearConditionsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReportArrearConditionsMutationOptions(options));
+    }
+
+export const getReportSalaryConditionsUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/me/salary-records/${id}/conditions-report`
+}
+
+/**
+ * Explicit condition-completion report, separate from legacy transfer requests; no banking operation.
+ */
+export const reportSalaryConditions = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<SalaryRecordResult> => {
+
+  return customFetch<SalaryRecordResult>(getReportSalaryConditionsUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReportSalaryConditionsMutationKey = () => ['reportSalaryConditions'] as const;
+
+export const getReportSalaryConditionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportSalaryConditions>>, TError,ReportSalaryConditionsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportSalaryConditions>>, TError,ReportSalaryConditionsMutationVariables, TContext> => {
+
+const mutationKey = getReportSalaryConditionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportSalaryConditions>>, ReportSalaryConditionsMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  reportSalaryConditions(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportSalaryConditionsMutationResult = NonNullable<Awaited<ReturnType<typeof reportSalaryConditions>>>
+
+    export type ReportSalaryConditionsMutationError = ErrorType<void>
+    export type ReportSalaryConditionsMutationVariables = {id: number}
+
+    export const useReportSalaryConditions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportSalaryConditions>>, TError,ReportSalaryConditionsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportSalaryConditions>>,
+        TError,
+        ReportSalaryConditionsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReportSalaryConditionsMutationOptions(options));
+    }
+
 export const getListSenderServicesUrl = () => {
 
 

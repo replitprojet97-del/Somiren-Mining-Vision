@@ -13,6 +13,7 @@ import { getWorkspaceActor } from "./collaboratorAuth";
 import { cleanupReplacedProfilePhoto, consumeUpload, createDownloadUrl, getConsumedAsset } from "./privateMedia";
 import { isReferencePortraitEligible, isValidAudioMessage, videoSigningExpirySeconds } from "./privateMediaValidation";
 import { readableSessionDevice } from "../lib/session-device";
+import financeConditionsRouter from "./financeConditions";
 import {
   GetWorkspaceFinancialSummaryResponse, ListCollaboratorArrearsResponse,
   GetWorkspaceVideoAccessResponse, JoinWorkspaceVideoMeetingBody, JoinWorkspaceVideoMeetingResponse,
@@ -104,6 +105,7 @@ async function notifyActiveAdmins(title: string, body: string): Promise<void> {
 }
 
 router.use(requireWorkspaceAccess);
+router.use(financeConditionsRouter(requirePermission));
 
 router.get("/workspace/me", (_req, res): void => {
   const current = actor(res);

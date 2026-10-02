@@ -6,6 +6,8 @@ import type { Lang } from "@/i18n/translations";
  * so an already-held Error can be rendered again after the locale changes.
  */
 const messagePairs: ReadonlyArray<readonly [french: string, english: string]> = [
+  ["Cette situation est déjà réglée ou clôturée.", "This financial record has already been settled or closed."],
+  ["Les consignes n’ont pas encore été communiquées.", "The instructions have not been provided yet."],
   ["Une erreur est survenue.", "An error occurred."],
   ["Une erreur est survenue. Réessayez.", "An error occurred. Please try again."],
   ["Trop de requêtes. Veuillez patienter une minute avant de réessayer.", "Too many requests. Please wait one minute before trying again."],

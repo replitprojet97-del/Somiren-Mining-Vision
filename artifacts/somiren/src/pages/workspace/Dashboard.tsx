@@ -323,7 +323,7 @@ export default function Dashboard() {
                       : firstArrear.currency
                         ? formatMoney(Number(firstArrear.amount), firstArrear.currency)
                         : formatNumber(Number(firstArrear.amount))}</small>
-                    {firstArrear.transferRequestStatus && <small>{statusLabel(firstArrear.transferRequestStatus, lang)}</small>}
+                    {firstArrear.conditionsReportedAt && <small>{firstArrear.transferRequestStatus === "acknowledged" ? w("Signalement pris en compte", "Report acknowledged") : firstArrear.transferRequestStatus === "declined" ? w("Signalement non validé", "Report not accepted") : w("En cours de vérification", "Verification in progress")}</small>}
                   </>
                   : <b>{w("Aucun arriéré en attente", "No outstanding arrears")}</b>}
               </div>

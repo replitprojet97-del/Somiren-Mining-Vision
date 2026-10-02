@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Pencil, Plus, X } from "lucide-react";
 import { C, Pill, SectionCard } from "./shared";
 import { useAdminApi } from "./api";
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
+import { reportStatusLabel } from "../workspace/components/TransferModal";
 
 type SalaryStatus = "Non versé" | "Versé";
 type SalaryForm = {
@@ -67,6 +69,10 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
   onFinanceVisibilityGranted: () => void;
 }) {
   const api = useAdminApi();
+  const { w } = useWorkspaceLocale();
+  const statusLabel = (record: any) => record.conditionsReportedAt
+    ? reportStatusLabel(record.transferRequestStatus, w)
+    : requestLabel[record.transferRequestStatus] || record.transferRequestStatus;
   const [salaryRecords, setSalaryRecords] = useState<any[]>([]);
   const [form, setForm] = useState<SalaryForm>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -193,7 +199,7 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
                           {record.communicatedDelayReason || "Aucun motif communiqué."}
                         </p>
                         <p className="mt-1 text-sm font-medium" style={{ color: C.ink }}>{record.amount == null ? "Montant non communiqué" : `${record.amount} ${record.currency || "—"}`}</p>
-                        {record.transferRequestStatus && <p className="mt-1 text-xs font-medium" style={{ color: C.blue }}>Demande de transfert : {requestLabel[record.transferRequestStatus] || record.transferRequestStatus}</p>}
+                        {record.transferRequestStatus && <p className="mt-1 text-xs font-medium" style={{ color: C.blue }}>{record.conditionsReportedAt ? w("Signalement", "Report") : "Demande de transfert"} : {statusLabel(record)}</p>}
                         <p className="mt-1 text-xs" style={{ color: C.inkFaint }}>Mis à jour le {displayDate(record.updatedAt)}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -236,10 +242,10 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
                   <input maxLength={3} value={form.currency} onChange={e => setForm(c => ({ ...c, currency: e.target.value.toUpperCase() }))} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm uppercase" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-currency" />
                 </label>
                 {editingId !== null && (() => { const cur = salaryRecords.find(r => r.id === editingId); return cur?.transferRequestStatus === "pending" ? (
-                  <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Demande de transfert
+                  <label className="text-xs font-medium" style={{ color: C.inkSoft }}>{cur.conditionsReportedAt ? w("Signalement", "Report") : "Demande de transfert"}
                     <select value={form.requestStatus} onChange={e => setForm(c => ({ ...c, requestStatus: e.target.value }))} className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="select-salary-request-status">
-                      <option value="">Conserver ({requestLabel[cur.transferRequestStatus]})</option>
-                      <option value="acknowledged">Prise en compte</option><option value="declined">Refusée</option>
+                      <option value="">{w("Conserver", "Keep")} ({statusLabel(cur)})</option>
+                      <option value="acknowledged">{w("Prise en compte", "Acknowledged")}</option><option value="declined">{cur.conditionsReportedAt ? w("Non validé", "Not accepted") : "Refusée"}</option>
                     </select>
                   </label>) : null; })()}
               </div>

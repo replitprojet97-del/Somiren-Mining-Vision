@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { DollarSign, Upload, AlertCircle, FileText, Send } from "lucide-react";
+import { DollarSign, Upload, AlertCircle, FileText } from "lucide-react";
 import { C } from "@/lib/theme";
 import { Pill, Tabs, EmptyState } from "./components/UI";
 import { useFinanceSummary, usePayments, useArrears, usePaymentRequirements, useRequestArrearTransfer, useRequestSalaryTransfer } from "@/hooks/use-workspace";
 import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
-import TransferModal, { type TransferItem } from "./components/TransferModal";
+import TransferModal, { type TransferItem, reportStatusLabel } from "./components/TransferModal";
 import { format } from "date-fns";
 import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { localizeApiMessage } from "@/i18n/api-error-translations";
@@ -82,10 +82,7 @@ function arrearStatusLabel(status: string, w: (french: string, english: string) 
 }
 
 function requestStatusLabel(status: string | null | undefined, w: (french: string, english: string) => string) {
-  if (status === "pending") return w("Demande transmise à l’administration", "Request sent to the administration");
-  if (status === "acknowledged") return w("Demande prise en compte par l’administration", "Request acknowledged by the administration");
-  if (status === "declined") return w("Demande refusée par l’administration", "Request declined by the administration");
-  return null;
+  return reportStatusLabel(status, w);
 }
 
 export default function Finance() {
@@ -115,14 +112,29 @@ export default function Finance() {
   const [modal, setModal] = useState<{ kind: "arrear" | "salary"; item: TransferItem } | null>(null);
 
   const isLoading = isLoadingSummary || isLoadingPayments || isLoadingArrears || isLoadingRequirements;
-  const openModal = (kind: "arrear" | "salary", r: any, amountText: string) => setModal({
-    kind,
-    item: {
-      id: r.id, label: r.periodLabel || "", amountText,
-      instructions: r.transferInstructions, serviceName: r.payrollServiceName, signature: r.payrollServiceSignature,
-      alreadyRequested: !!(r.transferRequestedAt || r.transferRequestStatus),
-    },
-  });
+  const openModal = (kind: "arrear" | "salary", r: any, amountText: string) => {
+    const hasInstr = !!String(r.transferInstructions ?? "").trim();
+    const settled = kind === "arrear"
+      ? r.status !== "open"
+      : ["paid", "sent", "verse", "paye", "paid in full"].includes(String(r.salaryStatus ?? "").trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""));
+    setModal({
+      kind,
+      item: {
+        id: r.id, label: r.periodLabel || "", amountText,
+        instructions: r.transferInstructions,
+        reason: kind === "arrear" ? r.communicatedReason : r.communicatedDelayReason,
+        serviceName: r.payrollServiceName, signature: r.payrollServiceSignature,
+        alreadyReported: !!r.conditionsReportedAt,
+        requestStatus: r.conditionsReportedAt ? r.transferRequestStatus : null,
+        canReport: hasInstr && !settled && r.id != null,
+      },
+    });
+  };
+  const followUp = (r: any) => r.conditionsReportedAt ? (
+    <p className="text-xs font-medium" style={{ color: C.blue }}>
+      {requestStatusLabel(r.transferRequestStatus, w)} · {format(new Date(r.conditionsReportedAt), "dd MMM yyyy", { locale: dateLocale })}
+    </p>
+  ) : null;
   const numberFormatters = { formatNumber, formatMoney, locale };
   const totalArrears = knownArrearsTotals(arrears || [], w("Devise inconnue", "Unknown currency"), numberFormatters);
 
@@ -167,16 +179,13 @@ export default function Finance() {
                         : ["unpaid", "not_paid", "pending", "overdue", "non versé"].includes(summary.salaryStatus?.toLowerCase()) ? w("Non versé", "Unpaid")
                         : summary.salaryStatus || w("Non communiqué", "Not provided")}
                   </p>
-                    <p className="text-xs font-medium" style={{ color: C.amber }}>{summary.communicatedDelayReason || w("Aucun motif communiqué.", "No reason provided.")}</p>
                   <p className="text-sm font-semibold mt-2" style={{ color: C.ink }} data-testid="text-salary-amount">{summary.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(summary.amount, summary.currency || "", numberFormatters)}</p>
-                  {summary.id != null && (summary.transferRequestedAt || summary.transferRequestStatus) ? (
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs font-medium" style={{ color: C.blue }}>{requestStatusLabel(summary.transferRequestStatus, w) || w("Demande enregistrée", "Request recorded")}</p>
-                      <button type="button" onClick={() => openModal("salary", summary, summary.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(summary.amount, summary.currency || "", numberFormatters))} className="text-xs underline" style={{ color: C.navy }} data-testid="button-view-salary-instructions">{w("Voir les instructions", "View instructions")}</button>
-                    </div>
-                  ) : summary.id != null && summary.salaryStatus?.toLowerCase() !== "versé" && !["paid", "sent"].includes(summary.salaryStatus?.toLowerCase()) ? (
-                    <button type="button" onClick={() => openModal("salary", summary, summary.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(summary.amount, summary.currency || "", numberFormatters))} className="mt-2 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-white" style={{ background: C.navy }} data-testid="button-request-salary-transfer"><Send size={13} />{w("Demande de transfert", "Transfer request")}</button>
-                  ) : null}
+                  <div className="mt-2 space-y-1.5">
+                    {followUp(summary)}
+                    {summary.id != null && (
+                      <button type="button" onClick={() => openModal("salary", summary, summary.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(summary.amount, summary.currency || "", numberFormatters))} className="text-xs underline" style={{ color: C.navy }} data-testid="button-view-salary-instructions">{w("Consulter les détails", "View details")}</button>
+                    )}
+                  </div>
                 </div>
                 <div className="bg-white rounded-lg p-5" style={{ border: `1px solid ${C.line}` }}>
                     <p className="text-[13px] font-medium" style={{ color: C.inkSoft }}>{w("Total des arriérés ouverts connus", "Known total of open arrears")}</p>
@@ -296,35 +305,9 @@ export default function Finance() {
                   </div>
                     <Pill tone={a.status === "open" ? "haute" : a.status === "settled" ? "basse" : "neutral"}>{arrearStatusLabel(a.status, w)}</Pill>
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[12px] uppercase tracking-wider font-semibold mb-1" style={{ color: C.inkFaint }}>{w("Motif communiqué par l'administration", "Reason provided by the administration")}</p>
-                      <p className="text-sm p-3 bg-gray-50 rounded-md" style={{ color: C.inkSoft }}>{a.communicatedReason || w("Non spécifié.", "Not specified.")}</p>
-                  </div>
-                  <div>
-                      <p className="text-[12px] uppercase tracking-wider font-semibold mb-1" style={{ color: C.amber }}>{w("Instructions personnalisées de l’administration", "Personalized instructions from the administration")}</p>
-                     <p className="text-sm p-4 rounded-md whitespace-pre-wrap font-medium" style={{ background: C.amberBg, border: `1px solid ${C.line}`, color: C.ink }}>
-                        {a.transferInstructions || w("L’administration n’a pas encore communiqué d’instructions personnalisées.", "The administration has not provided personalized instructions yet.")}
-                     </p>
-                  </div>
-                   {a.transferRequestedAt && (
-                     <p className="text-sm font-medium" style={{ color: C.blue }}>
-                        {requestStatusLabel(a.transferRequestStatus, w) || w("Demande de régularisation enregistrée", "Adjustment request recorded")}
-                        {" · "}{format(new Date(a.transferRequestedAt), "dd MMM yyyy, HH:mm", { locale: dateLocale })}
-                     </p>
-                   )}
-                   {(a.transferRequestedAt || a.transferRequestStatus) && (
-                     <button type="button" onClick={() => openModal("arrear", a, a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || "", numberFormatters))} className="text-sm underline" style={{ color: C.navy }} data-testid={`button-view-arrear-instructions-${a.id}`}>{w("Voir les instructions", "View instructions")}</button>
-                   )}
-                   {a.status === "open" && !a.transferRequestedAt && !a.transferRequestStatus && (
-                     <div className="flex flex-col items-start gap-2 pt-1">
-                       <button type="button" onClick={() => openModal("arrear", a, a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || "", numberFormatters))} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50" style={{ background: C.navy }} data-testid={`button-request-arrear-transfer-${a.id}`}>
-                          <Send size={15} /> {w("Demande de transfert", "Transfer request")}
-                       </button>
-                        <p className="text-xs" style={{ color: C.inkSoft }}>{w("Cette action envoie uniquement une demande à l’administration. Aucun virement bancaire ni paiement n’est déclenché.", "This action only sends a request to the administration. No bank transfer or payment is initiated.")}</p>
-                     </div>
-                   )}
-                    {a.status !== "open" && <p className="text-sm font-medium" style={{ color: C.inkSoft }}>{w("Ce dossier est clôturé; aucune nouvelle demande ne peut être soumise.", "This case is closed; no new request can be submitted.")}</p>}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {followUp(a) || <span />}
+                  <button type="button" onClick={() => openModal("arrear", a, a.amount == null ? w("Montant non communiqué", "Amount not provided") : formatExactAmount(a.amount, a.currency || "", numberFormatters))} className="text-sm underline" style={{ color: C.navy }} data-testid={`button-view-arrear-instructions-${a.id}`}>{w("Consulter les détails", "View details")}</button>
                 </div>
               </div>
             ))

@@ -34,6 +34,8 @@ export interface Arrear {
   transferRequestedAt: Date | null;
   /** @nullable */
   transferRequestStatus: ArrearTransferRequestStatus;
+  /** @nullable */
+  conditionsReportedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

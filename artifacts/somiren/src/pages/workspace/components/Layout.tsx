@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   Home, Folder, CheckSquare, Calendar, Video, DollarSign,
   MessageSquare, FileText, Brain, Users, Bell, Shield,
-  Menu, X, Clock, ChevronDown, LogOut, UserRound,
+  Menu, X, Clock, ChevronDown, LogOut, UserRound, ArrowRight,
 } from "lucide-react";
 import { useWorkspaceAuth } from "@/contexts/WorkspaceAuthContext";
 import { useNotifications, useReceivedDocuments } from "@/hooks/use-workspace";
@@ -156,7 +156,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean; se
 export function Topbar({ onOpenMobile, mobileOpen }: { onOpenMobile: () => void; mobileOpen: boolean }) {
   const { w, lang, setLang, locale, timeZone, formatDate } = useWorkspaceLocale();
   const { profile } = useWorkspaceAuth();
-  const { data: notifications, isError: notificationsError } = useNotifications(profile?.permissions.includes("workspace:read") ?? false);
+  const { data: notifications, isError: notificationsError, isLoading: notificationsLoading } = useNotifications(profile?.permissions.includes("workspace:read") ?? false);
   const [location, setLocation] = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -184,16 +184,9 @@ export function Topbar({ onOpenMobile, mobileOpen }: { onOpenMobile: () => void;
   }, [mobileOpen]);
 
   useEffect(() => {
-    if (!profileOpen && !noticeOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setProfileOpen(false);
-        setNoticeOpen(false);
-      }
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [profileOpen, noticeOpen]);
+    setProfileOpen(false);
+    setNoticeOpen(false);
+  }, [location]);
 
   const initials = profile?.fullName?.trim().split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("").toLocaleUpperCase(locale) || "U";
   const profilePhoto = useProfilePhoto();
@@ -236,29 +229,47 @@ export function Topbar({ onOpenMobile, mobileOpen }: { onOpenMobile: () => void;
           </select>
         </label>
         <i aria-hidden="true" />
-        <div className="sr-relative">
+        <DropdownMenu modal={false} open={noticeOpen} onOpenChange={open => { setNoticeOpen(open); if (open) setProfileOpen(false); }}>
+          <DropdownMenuTrigger asChild>
           <button
             className="sr-icon-btn"
             type="button"
             aria-label={`Notifications${unread.length ? `, ${unread.length} ${w("non lue(s)", "unread")}` : ""}`}
             aria-expanded={noticeOpen}
-            onClick={() => { setNoticeOpen(!noticeOpen); setProfileOpen(false); }}
             data-testid="button-header-notifications"
           >
             <Bell size={18} aria-hidden="true" />
             {unread.length > 0 && <em aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</em>}
           </button>
-          {noticeOpen && (
-            <div className="sr-popover sr-notice-pop" role="region" aria-label={w("Notifications récentes", "Recent notifications")}>
-              <b>Notifications</b>
-              {notificationsError ? <span role="status">{w("Impossible de charger les notifications.", "Unable to load notifications.")}</span> : unread.length ? unread.slice(0, 3).map((item: any) => {
-                const copy = localizeWorkspaceNotification(item, lang);
-                return <span key={item.id}><b>{copy.title || "Notification"}</b>: {copy.body || w("Consultez le détail de cette notification.", "View this notification for details.")}</span>;
-              }) : <span>{w("Aucune notification non lue.", "No unread notifications.")}</span>}
-              <button type="button" onClick={() => { setNoticeOpen(false); setLocation("/espace-collaborateur/notifications"); }} data-testid="button-view-all-notifications">{w("Voir toutes les notifications", "View all notifications")}</button>
-            </div>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={12} collisionPadding={12} className="sr-profile-menu sr-notification-menu" aria-label={w("Notifications récentes", "Recent notifications")} data-testid="menu-header-notifications">
+            <DropdownMenuLabel className="sr-profile-identity">
+              <b>{w("Notifications", "Notifications")}</b>
+              <span>{notificationsLoading ? w("Chargement…", "Loading…") : w(`${unread.length} non lue${unread.length === 1 ? "" : "s"}`, `${unread.length} unread`)}</span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {notificationsLoading ? <DropdownMenuLabel className="sr-notice-state">{w("Chargement des notifications…", "Loading notifications…")}</DropdownMenuLabel>
+              : notificationsError ? <DropdownMenuLabel className="sr-notice-state">{w("Impossible de charger les notifications.", "Unable to load notifications.")}</DropdownMenuLabel>
+              : unread.length ? unread.slice(0, 3).map((item: any) => {
+                  const copy = localizeWorkspaceNotification({ title: item.title, body: item.message || item.body }, lang);
+                  return (
+                    <DropdownMenuItem key={item.id} className="sr-profile-action sr-notice-action" onSelect={() => { setNoticeOpen(false); setLocation("/espace-collaborateur/notifications"); }} data-testid={`menu-notification-${item.id}`}>
+                      <Bell aria-hidden="true" />
+                      <span className="sr-notice-copy">
+                        <b>{copy.title || w("Notification", "Notification")}</b>
+                        <small className="sr-notice-preview">{copy.body || w("Consultez le détail de cette notification.", "View this notification for details.")}</small>
+                        {item.createdAt && !Number.isNaN(Date.parse(item.createdAt)) && <span className="sr-notice-date">{formatDate(item.createdAt, { dateStyle: "medium", timeStyle: "short" })}</span>}
+                      </span>
+                      <span className="sr-notice-dot" aria-hidden="true" />
+                    </DropdownMenuItem>
+                  );
+                }) : <DropdownMenuLabel className="sr-notice-state">{w("Aucune notification non lue.", "No unread notifications.")}</DropdownMenuLabel>}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="sr-notice-all" onSelect={() => { setNoticeOpen(false); setLocation("/espace-collaborateur/notifications"); }} data-testid="button-view-all-notifications">
+              {w("Voir toutes les notifications", "View all notifications")}<ArrowRight size={15} aria-hidden="true" />
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu modal={false} open={profileOpen} onOpenChange={open => { setProfileOpen(open); if (open) setNoticeOpen(false); }}>
           <DropdownMenuTrigger asChild>
           <button

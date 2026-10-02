@@ -327,6 +327,8 @@ async function migrate() {
       ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS payroll_service_signature TEXT NOT NULL DEFAULT 'Somiren S.A. · Service paie';
       ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS transfer_requested_at TIMESTAMPTZ;
       ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS transfer_request_status TEXT;
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS conditions_reported_at TIMESTAMPTZ;
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS conditions_reported_at TIMESTAMPTZ;
       UPDATE workspace_arrears SET status = CASE
         WHEN lower(status) IN ('settled', 'paid', 'completed') THEN 'settled'
         WHEN lower(status) = 'archived' THEN 'archived'

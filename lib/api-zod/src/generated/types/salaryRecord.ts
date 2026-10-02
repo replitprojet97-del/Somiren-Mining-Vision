@@ -33,6 +33,8 @@ export interface SalaryRecord {
   transferRequestedAt: Date | null;
   /** @nullable */
   transferRequestStatus: SalaryRecordTransferRequestStatus;
+  /** @nullable */
+  conditionsReportedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
