@@ -127,7 +127,7 @@ export async function getConsumedAsset(assetId: string, purpose: string): Promis
   return asset;
 }
 
-export async function createDownloadUrl(asset: UploadAsset, expiresIn = 300): Promise<string | undefined> {
+export async function createDownloadUrl(asset: UploadAsset, expiresIn = 300, downloadName?: string): Promise<string | undefined> {
   const config = storageConfig();
   if (!config) return undefined;
   try {
@@ -139,9 +139,10 @@ export async function createDownloadUrl(asset: UploadAsset, expiresIn = 300): Pr
     if (!response.ok) return undefined;
     const payload = await response.json() as { signedURL?: string };
     if (!payload.signedURL) return undefined;
-    if (/^https?:\/\//i.test(payload.signedURL)) return payload.signedURL;
     const suffix = payload.signedURL.startsWith("/") ? payload.signedURL : `/${payload.signedURL}`;
-    return `${config.baseUrl}/storage/v1${suffix}`;
+    const url = new URL(/^https?:\/\//i.test(payload.signedURL) ? payload.signedURL : `${config.baseUrl}/storage/v1${suffix}`);
+    if (downloadName) url.searchParams.set("download", downloadName);
+    return url.toString();
   } catch {
     return undefined;
   }

@@ -28,6 +28,8 @@ export interface Arrear {
   communicatedReason: string | null;
   /** @nullable */
   transferInstructions: string | null;
+  payrollServiceName?: string;
+  payrollServiceSignature?: string;
   /** @nullable */
   transferRequestedAt: Date | null;
   /** @nullable */

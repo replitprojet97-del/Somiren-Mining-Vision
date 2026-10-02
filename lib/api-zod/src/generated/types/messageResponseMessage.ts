@@ -12,6 +12,10 @@ export type MessageResponseMessage = {
   id?: number;
   conversationId?: number;
   senderId?: number;
+  /** @nullable */
+  senderServiceName?: string | null;
+  /** @nullable */
+  senderServiceSignature?: string | null;
   body?: string;
   /** @nullable */
   audioAssetId?: string | null;

@@ -8,6 +8,7 @@ import {
 import { and, asc, desc, eq, gt, gte, lte, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
+import { serviceAudioDownloadName } from "../lib/sender-service";
 import { getWorkspaceActor } from "./collaboratorAuth";
 import { cleanupReplacedProfilePhoto, consumeUpload, createDownloadUrl, getConsumedAsset } from "./privateMedia";
 import { isReferencePortraitEligible, isValidAudioMessage, videoSigningExpirySeconds } from "./privateMediaValidation";
@@ -16,6 +17,7 @@ import {
   GetWorkspaceFinancialSummaryResponse, ListCollaboratorArrearsResponse,
   GetWorkspaceVideoAccessResponse, JoinWorkspaceVideoMeetingBody, JoinWorkspaceVideoMeetingResponse,
   ListWorkspaceSessionsResponse, RequestArrearTransferParams, RequestArrearTransferResponse,
+  RequestSalaryTransferParams, RequestSalaryTransferResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -92,7 +94,7 @@ const threadMessageSchema = z.object({
 }).strict().superRefine((value, ctx) => {
   const hasAudioFields = Boolean(value.audioAssetId || value.transcript || value.translation || value.sourceLanguage || value.targetLanguage);
   if (hasAudioFields && !isValidAudioMessage(value)) {
-    ctx.addIssue({ code: "custom", message: "Audio messages require an audio file, readable transcript and translation, and distinct French/Spanish languages" });
+    ctx.addIssue({ code: "custom", message: "Audio metadata requires an audio file and distinct French/Spanish languages when texts are provided" });
   }
   if (!value.body && !value.audioAssetId) ctx.addIssue({ code: "custom", message: "Message body or audio is required" });
 });
@@ -441,7 +443,7 @@ router.get("/workspace/conversations/:id/messages", requirePermission("USE_INTER
   const rows = await db.select({ message: messagesTable, audio: { fileName: privateUploadsTable.fileName, contentType: privateUploadsTable.contentType } })
     .from(messagesTable).leftJoin(privateUploadsTable, eq(messagesTable.audioAssetId, privateUploadsTable.id))
     .where(eq(messagesTable.conversationId, id.data)).orderBy(asc(messagesTable.createdAt));
-  res.json({ messages: rows.map(row => ({ ...row.message, audioFileName: row.audio?.fileName ?? null, audioContentType: row.audio?.contentType ?? null })) });
+  res.json({ messages: rows.map(row => ({ ...row.message, audioFileName: row.audio ? (row.message.senderId === current.id ? row.audio.fileName : row.message.senderServiceName || "La direction") : null, audioContentType: row.audio?.contentType ?? null })) });
 });
 router.post("/workspace/conversations/:id/messages", requirePermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => {
   const id = idSchema.safeParse(req.params.id), body = threadMessageSchema.safeParse(req.body);
@@ -485,9 +487,11 @@ router.get("/workspace/conversations/:id/messages/:messageId/file", requirePermi
   if (!row?.message.audioAssetId) { res.status(404).json({ error: "Audio message not found" }); return; }
   const asset = await getConsumedAsset(row.message.audioAssetId, "message-audio");
   if (!asset) { res.status(404).json({ error: "Audio message not found" }); return; }
-  const url = await createDownloadUrl(asset);
+  const receivedFromDirection = row.message.senderId !== current.id;
+  const serviceName = row.message.senderServiceName || "La direction";
+  const url = await createDownloadUrl(asset, 300, receivedFromDirection ? serviceAudioDownloadName(serviceName, asset.fileName) : undefined);
   if (!url) { req.log.warn("Private message audio signing failed"); res.status(502).json({ error: "Could not create a file download URL" }); return; }
-  res.json({ url, fileName: asset.fileName, contentType: asset.contentType, expiresIn: 300 });
+  res.json({ url, fileName: receivedFromDirection ? serviceName : asset.fileName, contentType: asset.contentType, expiresIn: 300 });
 });
 router.get("/workspace/notes", async (_req, res): Promise<void> => { const current = actor(res); res.json({ notes: await db.select().from(strategicNotesTable).where(or(eq(strategicNotesTable.collaboratorId, current.id), eq(strategicNotesTable.isShared, true))).orderBy(desc(strategicNotesTable.updatedAt)) }); });
 router.post("/workspace/notes", requireWorkspaceWrite, async (req, res): Promise<void> => { const body = noteSchema.safeParse(req.body); if (!body.success) { res.status(400).json({ error: "Invalid note" }); return; } const current = actor(res); const [note] = await db.insert(strategicNotesTable).values({ ...body.data, collaboratorId: current.id }).returning(); res.status(201).json({ note }); });
@@ -501,6 +505,38 @@ router.get("/workspace/me/arrears", requirePermission("VIEW_OWN_ARREARS"), async
     .where(eq(arrearsTable.collaboratorId, current.id)).orderBy(desc(arrearsTable.createdAt));
   res.json(ListCollaboratorArrearsResponse.parse({ arrears }));
 });
+router.post("/workspace/me/salary-records/:id/transfer-request", requirePermission("VIEW_OWN_FINANCIAL_INFORMATION"), async (req, res): Promise<void> => {
+  const params = RequestSalaryTransferParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid salary record id" }); return; }
+  const current = actor(res);
+  const result = await db.transaction(async tx => {
+    const [record] = await tx.select().from(financialRecordsTable).where(and(
+      eq(financialRecordsTable.id, params.data.id), eq(financialRecordsTable.collaboratorId, current.id),
+    )).for("update").limit(1);
+    if (!record) return { error: "Salary record not found", status: 404 };
+    // Retry-safe: a timeout must not create a second request or duplicate notifications.
+    if (record.transferRequestedAt || record.transferRequestStatus) return { salaryRecord: record, existing: true };
+    if (["paid", "sent", "versé"].includes(record.salaryStatus.trim().toLowerCase())) {
+      return { error: "A paid salary cannot receive a transfer request", status: 409 };
+    }
+    const [salaryRecord] = await tx.update(financialRecordsTable).set({
+      transferRequestedAt: new Date(), transferRequestStatus: "pending", updatedAt: new Date(),
+    }).where(eq(financialRecordsTable.id, record.id)).returning();
+    const admins = await tx.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.role, "ADMIN"), eq(collaboratorsTable.isActive, true)));
+    if (admins.length) await tx.insert(notificationsTable).values(admins.map(admin => ({
+      collaboratorId: admin.id, title: "Demande de transfert de salaire reçue",
+      body: `${current.fullName} a demandé une procédure pour ${record.periodLabel}. Aucun paiement n’a été déclenché.`,
+    })));
+    await tx.insert(activityLogsTable).values({
+      collaboratorId: current.id, entityType: "salary-record", entityId: record.id,
+      action: "transfer_requested", details: { periodLabel: record.periodLabel },
+    });
+    return { salaryRecord, existing: false };
+  });
+  if ("error" in result) { res.status(result.status ?? 400).json({ error: result.error }); return; }
+  res.status(result.existing ? 200 : 201).json(RequestSalaryTransferResponse.parse({ salaryRecord: result.salaryRecord }));
+});
 router.post("/workspace/me/arrears/:id/transfer-request", requirePermission("VIEW_OWN_ARREARS"), async (req, res): Promise<void> => {
   const params = RequestArrearTransferParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid arrear id" }); return; }
@@ -511,11 +547,11 @@ router.post("/workspace/me/arrears/:id/transfer-request", requirePermission("VIE
       eq(arrearsTable.collaboratorId, current.id),
     )).for("update").limit(1);
     if (!arrear) return { error: "Arrear not found", status: 404 };
+    if (arrear.transferRequestedAt || arrear.transferRequestStatus) {
+      return { arrear, existing: true };
+    }
     if (arrear.status === "settled" || arrear.status === "archived") {
       return { error: "A resolved arrear cannot receive a transfer request", status: 409 };
-    }
-    if (arrear.transferRequestedAt || arrear.transferRequestStatus) {
-      return { error: "A transfer request already exists for this arrear", status: 409 };
     }
     const now = new Date();
     const [updated] = await tx.update(arrearsTable).set({
@@ -542,10 +578,10 @@ router.post("/workspace/me/arrears/:id/transfer-request", requirePermission("VIE
       action: "transfer_requested",
       details: { periodLabel: arrear.periodLabel },
     });
-    return { arrear: updated };
+    return { arrear: updated, existing: false };
   });
   if ("error" in result) { res.status(result.status ?? 400).json({ error: result.error }); return; }
-  res.status(201).json(RequestArrearTransferResponse.parse({ arrear: result.arrear }));
+  res.status(result.existing ? 200 : 201).json(RequestArrearTransferResponse.parse({ arrear: result.arrear }));
 });
 const requirementSchema = z.object({ title: textSchema.max(300), details: z.string().max(5000).optional(), status: z.enum(["pending", "submitted", "accepted", "rejected"]).optional() });
 router.get("/workspace/me/payment-requirements", requirePermission("VIEW_OWN_PAYMENT_REQUIREMENTS"), async (_req, res): Promise<void> => { const current = actor(res); res.json({ requirements: await db.select().from(paymentRequirementsTable).where(eq(paymentRequirementsTable.collaboratorId, current.id)).orderBy(desc(paymentRequirementsTable.updatedAt)) }); });

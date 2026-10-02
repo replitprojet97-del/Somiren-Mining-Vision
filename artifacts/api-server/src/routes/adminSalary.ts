@@ -1,5 +1,5 @@
 import {
-  activityLogsTable, collaboratorsTable, db, financialRecordsTable,
+  activityLogsTable, collaboratorsTable, db, financialRecordsTable, notificationsTable,
 } from "@workspace/db";
 import {
   AssignCollaboratorSalaryRecordBody, AssignCollaboratorSalaryRecordParams,
@@ -76,11 +76,20 @@ router.post("/admin/collaborators/:collaboratorId/salary-records", async (req, r
       periodLabel: body.data.periodLabel,
       salaryStatus: body.data.salaryStatus,
       communicatedDelayReason: body.data.communicatedDelayReason?.trim() || null,
+      amount: body.data.amount,
+      currency: body.data.currency,
+      transferInstructions: body.data.transferInstructions?.trim() || null,
+      payrollServiceName: body.data.payrollServiceName?.trim() || "Service paie",
+      payrollServiceSignature: body.data.payrollServiceSignature?.trim(),
     }).returning();
     await tx.update(collaboratorsTable).set({
       permissions: [...new Set([...recipient.permissions, "VIEW_OWN_FINANCIAL_INFORMATION"])],
       updatedAt: new Date(),
     }).where(eq(collaboratorsTable.id, recipient.id));
+    await tx.insert(notificationsTable).values({
+      collaboratorId: recipient.id, title: "Situation salariale communiquée",
+      body: `${salaryRecord.payrollServiceName} : votre situation pour ${salaryRecord.periodLabel} est disponible dans votre espace financier.`,
+    });
     await tx.insert(activityLogsTable).values({
       collaboratorId: current.id,
       entityType: "salary-record",
@@ -109,6 +118,17 @@ router.patch("/admin/salary-records/:id", async (req, res): Promise<void> => {
     const [existing] = await tx.select().from(financialRecordsTable)
       .where(eq(financialRecordsTable.id, params.data.id)).for("update").limit(1);
     if (!existing) return { error: "Salary record not found", status: 404 };
+    if (body.data.transferRequestStatus && existing.transferRequestStatus !== "pending") {
+      return { error: "Only a pending transfer request can be reviewed", status: 409 };
+    }
+    const nextAmount = body.data.amount === undefined ? existing.amount : body.data.amount;
+    const nextCurrency = body.data.currency === undefined ? existing.currency : body.data.currency;
+    if ((nextAmount === null) !== (nextCurrency === null)) {
+      return { error: "Salary amount and currency must be specified or cleared together", status: 400 };
+    }
+    if (body.data.payrollServiceName !== undefined && !body.data.payrollServiceName.trim()) {
+      return { error: "Payroll service name is required", status: 400 };
+    }
     const [recipient] = await tx.select().from(collaboratorsTable)
       .where(eq(collaboratorsTable.id, existing.collaboratorId)).for("update").limit(1);
     if (!recipient || !canReceiveArrears(recipient.role)) {

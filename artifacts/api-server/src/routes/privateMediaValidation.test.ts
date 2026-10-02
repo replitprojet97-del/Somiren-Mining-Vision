@@ -83,15 +83,19 @@ test("a completed asset can only be consumed by its uploader and declared kind",
   assert.equal(isConsumableUpload({ ...asset, status: "consumed" }, 8, "document"), false);
 });
 
-test("audio messages require both readable texts, an owned-asset id, and distinct supported languages", () => {
+test("audio messages allow the file alone and optional legacy texts", () => {
+  assert.equal(isValidAudioMessage({ audioAssetId: "asset-id" }), true);
+  assert.equal(isValidAudioMessage({}), false);
+  assert.equal(isValidAudioMessage({ transcript: "Bonjour", sourceLanguage: "fr", targetLanguage: "es" }), false);
+  assert.equal(isValidAudioMessage({ audioAssetId: "asset-id", transcript: "Bonjour" }), false);
   assert.equal(isValidAudioMessage({
     audioAssetId: "asset-id", transcript: "Bonjour", translation: "Hello",
     sourceLanguage: "fr", targetLanguage: "es",
   }), true);
   assert.equal(isValidAudioMessage({
-    audioAssetId: "asset-id", transcript: "Bonjour", translation: "",
+    audioAssetId: "asset-id", transcript: "Bonjour",
     sourceLanguage: "fr", targetLanguage: "es",
-  }), false);
+  }), true);
   assert.equal(isValidAudioMessage({
     audioAssetId: "asset-id", transcript: "Bonjour", translation: "Hola",
     sourceLanguage: "fr", targetLanguage: "fr",

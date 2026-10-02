@@ -30,5 +30,12 @@ export interface ArrearInput {
      * @maxLength 5000
      */
   transferInstructions: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
   status?: ArrearInputStatus;
 }

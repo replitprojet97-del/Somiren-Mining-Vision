@@ -3,9 +3,10 @@ import { Plus, MessageSquare } from "lucide-react";
 import { C, SectionCard, PrimaryBtn, Field, Input, Select, Textarea, Feedback } from "./shared";
 import { useAdminApi } from "./api";
 import { useEffect } from "react";
+import ServicesPanel from "./ServicesPanel";
 import MessageThread from "../shared/MessageThread";
 import { errMsg } from "../shared/signed";
-import { useAdminConversations, useAdminCreateConversation, useAdminMessages, useAdminSendMessage } from "@/hooks/use-workspace";
+import { useAdminConversations, useAdminCreateConversation, useAdminMessages, useAdminSendMessage, useAdminSenderServices } from "@/hooks/use-workspace";
 
 export default function CommunicationsView() {
   const api = useAdminApi();
@@ -14,7 +15,9 @@ export default function CommunicationsView() {
   const [users, setUsers] = useState<any[]>([]);
   const [sel, setSel] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [f, setF] = useState({ collaboratorId: "", subject: "", initialMessage: "" });
+  const [f, setF] = useState({ collaboratorId: "", subject: "", initialMessage: "", senderServiceId: "" });
+  const svc = useAdminSenderServices();
+  const activeServices = (svc.data || []).filter(x => x.isActive);
   const [error, setError] = useState<string | null>(null);
   const msgs = useAdminMessages(sel);
   const send = useAdminSendMessage(sel);
@@ -25,8 +28,8 @@ export default function CommunicationsView() {
   const submit = async () => {
     setError(null);
     try {
-      const r = await create.mutateAsync({ collaboratorId: f.collaboratorId, subject: f.subject.trim(), initialMessage: f.initialMessage.trim() || undefined });
-      setSel(r.conversation.id); setShowNew(false); setF({ collaboratorId: "", subject: "", initialMessage: "" });
+      const r = await create.mutateAsync({ collaboratorId: f.collaboratorId, subject: f.subject.trim(), initialMessage: f.initialMessage.trim() || undefined, ...(f.senderServiceId ? { senderServiceId: Number(f.senderServiceId) } : {}) });
+      setSel(r.conversation.id); setShowNew(false); setF({ collaboratorId: "", subject: "", initialMessage: "", senderServiceId: "" });
     } catch (e) { setError(errMsg(e, "Création impossible.")); }
   };
 
@@ -44,6 +47,12 @@ export default function CommunicationsView() {
                 </Select>
               </Field>
               <Field label="Sujet *"><Input maxLength={300} value={f.subject} onChange={(e: any) => setF(s => ({ ...s, subject: e.target.value }))} /></Field>
+              <Field label="Envoyer au nom de">
+                <Select value={f.senderServiceId} onChange={(e: any) => setF(s => ({ ...s, senderServiceId: e.target.value }))} data-testid="select-new-service">
+                  <option value="">La direction (par défaut)</option>
+                  {activeServices.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </Select>
+              </Field>
               <Field label="Premier message" full><Textarea rows={3} maxLength={10000} value={f.initialMessage} onChange={(e: any) => setF(s => ({ ...s, initialMessage: e.target.value }))} /></Field>
             </div>
             <div className="flex justify-end"><PrimaryBtn icon={Plus} onClick={submit} disabled={create.isPending || !f.collaboratorId || !f.subject.trim()}>{create.isPending ? "Création..." : "Créer"}</PrimaryBtn></div>
@@ -69,13 +78,14 @@ export default function CommunicationsView() {
                   <p className="text-sm font-semibold" style={{ color: C.ink }}>{current?.conversation.subject}</p>
                   <p className="text-xs" style={{ color: C.inkSoft }}>{current?.collaborator?.fullName} · {current?.collaborator?.email}</p>
                 </div>
-                <MessageThread key={`admin:${sel}`} prefix="admin" conversationId={sel} mode="upload" messages={msgs.data || []} loading={msgs.isLoading} error={msgs.isError ? "Messages indisponibles." : null}
+                <MessageThread key={`admin:${sel}`} prefix="admin" conversationId={sel} mode="upload" services={activeServices} messages={msgs.data || []} loading={msgs.isLoading} error={msgs.isError ? "Messages indisponibles." : null}
                   isMine={m => m.senderId !== current?.collaborator?.id} onSend={p => send.mutateAsync(p)} />
               </>
             )}
           </div>
         </div>
       </SectionCard>
+      <ServicesPanel />
     </div>
   );
 }

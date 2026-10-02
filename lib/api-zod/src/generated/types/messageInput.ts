@@ -8,9 +8,17 @@
 import type { MessageInputSourceLanguage } from './messageInputSourceLanguage';
 import type { MessageInputTargetLanguage } from './messageInputTargetLanguage';
 
+/**
+ * A message may contain text, a private audio asset, or both. Transcription and translation are optional; an audio file alone can be sent.
+ */
 export interface MessageInput {
   /** @maxLength 10000 */
   body?: string;
+  /**
+     * Admin-only configured service identity
+     * @minimum 1
+     */
+  senderServiceId?: number;
   audioAssetId?: string;
   /**
      * @minLength 1

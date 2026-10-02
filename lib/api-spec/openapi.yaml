@@ -924,9 +924,84 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ArrearResult" }
         "403": { description: Own arrears permission required }
+        "200":
+          description: Previously recorded request returned without duplication
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArrearResult" }
         "400": { description: Invalid arrear id }
         "404": { description: Arrear not found for this collaborator }
-        "409": { description: A request already exists or this arrear is resolved }
+        "409": { description: This arrear is resolved }
+  /workspace/me/salary-records/{id}/transfer-request:
+    post:
+      operationId: requestSalaryTransfer
+      tags: [workspace-finance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: Request recorded without a banking operation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordResult" }
+        "200":
+          description: Previously recorded request returned without duplication
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalaryRecordResult" }
+        "403": { description: Own financial information permission required }
+        "404": { description: Salary not found for this collaborator }
+        "409": { description: Salary already paid }
+  /admin/sender-services:
+    get:
+      operationId: listSenderServices
+      tags: [admin]
+      responses:
+        "200":
+          description: Configured sender identities
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SenderServicesList" }
+    post:
+      operationId: createSenderService
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SenderServiceInput" }
+      responses:
+        "201":
+          description: Service created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SenderServiceResult" }
+        "409": { description: Name already used }
+  /admin/sender-services/{id}:
+    patch:
+      operationId: updateSenderService
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SenderServiceUpdate" }
+      responses:
+        "200":
+          description: Service updated, historical message identities unchanged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SenderServiceResult" }
+        "404": { description: Service not found }
+        "409": { description: Name already used }
 components:
   schemas:
     CollaboratorLoginInput:
@@ -1127,6 +1202,8 @@ components:
         status: { type: string, enum: [open, settled, archived] }
         communicatedReason: { type: ["string", "null"] }
         transferInstructions: { type: ["string", "null"] }
+        payrollServiceName: { type: string }
+        payrollServiceSignature: { type: string }
         transferRequestedAt: { type: ["string", "null"], format: date-time }
         transferRequestStatus: { type: ["string", "null"], enum: [pending, acknowledged, declined, null] }
         createdAt: { type: string, format: date-time }
@@ -1156,6 +1233,8 @@ components:
         currency: { type: string, pattern: "^[A-Z]{3}$" }
         communicatedReason: { type: string, minLength: 1, maxLength: 5000 }
         transferInstructions: { type: string, minLength: 1, maxLength: 5000 }
+        payrollServiceName: { type: string, minLength: 1, maxLength: 120 }
+        payrollServiceSignature: { type: string, maxLength: 500 }
         status: { type: string, enum: [open, settled, archived] }
     ArrearUpdate:
       type: object
@@ -1170,11 +1249,13 @@ components:
         currency: { type: ["string", "null"], pattern: "^[A-Z]{3}$" }
         communicatedReason: { type: ["string", "null"], maxLength: 5000 }
         transferInstructions: { type: ["string", "null"], maxLength: 5000 }
+        payrollServiceName: { type: string, minLength: 1, maxLength: 120 }
+        payrollServiceSignature: { type: string, maxLength: 500 }
         status: { type: string, enum: [open, settled, archived] }
         transferRequestStatus: { type: string, enum: [acknowledged, declined] }
     SalaryRecord:
       type: object
-      required: [id, collaboratorId, salaryStatus, periodLabel, communicatedDelayReason, createdAt, updatedAt]
+      required: [id, collaboratorId, salaryStatus, periodLabel, communicatedDelayReason, amount, currency, transferInstructions, payrollServiceName, payrollServiceSignature, transferRequestedAt, transferRequestStatus, createdAt, updatedAt]
       properties:
         id: { type: integer }
         collaboratorId: { type: integer }
@@ -1183,6 +1264,13 @@ components:
           description: Status as communicated by the administrator
         periodLabel: { type: string }
         communicatedDelayReason: { type: ["string", "null"] }
+        amount: { type: ["string", "null"], pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$' }
+        currency: { type: ["string", "null"], pattern: "^[A-Z]{3}$" }
+        transferInstructions: { type: ["string", "null"] }
+        payrollServiceName: { type: string }
+        payrollServiceSignature: { type: string }
+        transferRequestedAt: { type: ["string", "null"], format: date-time }
+        transferRequestStatus: { type: ["string", "null"], enum: [pending, acknowledged, declined, null] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     SalaryRecordsList:
@@ -1200,11 +1288,16 @@ components:
     SalaryRecordInput:
       type: object
       additionalProperties: false
-      required: [periodLabel, salaryStatus]
+      required: [periodLabel, salaryStatus, amount, currency]
       properties:
         periodLabel: { type: string, minLength: 1, maxLength: 120 }
         salaryStatus: { type: string, enum: ["Non versé", "Versé"] }
         communicatedDelayReason: { type: ["string", "null"], maxLength: 5000 }
+        amount: { type: string, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$' }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        transferInstructions: { type: ["string", "null"], maxLength: 5000 }
+        payrollServiceName: { type: string, minLength: 1, maxLength: 120 }
+        payrollServiceSignature: { type: string, maxLength: 500 }
     SalaryRecordUpdate:
       type: object
       additionalProperties: false
@@ -1213,6 +1306,12 @@ components:
         periodLabel: { type: string, minLength: 1, maxLength: 120 }
         salaryStatus: { type: string, enum: ["Non versé", "Versé"] }
         communicatedDelayReason: { type: ["string", "null"], maxLength: 5000 }
+        amount: { type: ["string", "null"], pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$' }
+        currency: { type: ["string", "null"], pattern: "^[A-Z]{3}$" }
+        transferInstructions: { type: ["string", "null"], maxLength: 5000 }
+        payrollServiceName: { type: string, minLength: 1, maxLength: 120 }
+        payrollServiceSignature: { type: string, maxLength: 500 }
+        transferRequestStatus: { type: string, enum: [acknowledged, declined] }
     FinancialSummaryResponse:
       type: object
       required: [summary]
@@ -1374,6 +1473,7 @@ components:
         collaboratorId: { type: integer }
         subject: { type: string, minLength: 1, maxLength: 300 }
         initialMessage: { type: string, maxLength: 10000 }
+        senderServiceId: { type: integer, minimum: 1 }
     WorkspaceConversationInput:
       type: object
       additionalProperties: false
@@ -1405,9 +1505,11 @@ components:
                   email: { type: string, format: email }
     MessageInput:
       type: object
+      description: A message may contain text, a private audio asset, or both. Transcription and translation are optional; an audio file alone can be sent.
       additionalProperties: false
       properties:
         body: { type: string, maxLength: 10000 }
+        senderServiceId: { type: integer, minimum: 1, description: Admin-only configured service identity }
         audioAssetId: { type: string, format: uuid }
         transcript: { type: string, minLength: 1, maxLength: 10000 }
         translation: { type: string, minLength: 1, maxLength: 10000 }
@@ -1423,6 +1525,8 @@ components:
             id: { type: integer }
             conversationId: { type: integer }
             senderId: { type: integer }
+            senderServiceName: { type: ["string", "null"] }
+            senderServiceSignature: { type: ["string", "null"] }
             body: { type: string }
             audioAssetId: { type: ["string", "null"], format: uuid }
             transcript: { type: ["string", "null"] }
@@ -1437,6 +1541,41 @@ components:
         messages:
           type: array
           items: { type: object }
+    SenderService:
+      type: object
+      required: [id, name, signature, isActive]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        signature: { type: string }
+        isActive: { type: boolean }
+    SenderServicesList:
+      type: object
+      required: [services]
+      properties:
+        services:
+          type: array
+          items: { $ref: "#/components/schemas/SenderService" }
+    SenderServiceResult:
+      type: object
+      required: [service]
+      properties:
+        service: { $ref: "#/components/schemas/SenderService" }
+    SenderServiceInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        signature: { type: string, maxLength: 500 }
+    SenderServiceUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        signature: { type: string, maxLength: 500 }
+        isActive: { type: boolean }
     NotificationList:
       type: object
       properties:

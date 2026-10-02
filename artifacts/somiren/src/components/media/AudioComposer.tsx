@@ -14,6 +14,7 @@ type AudioComposerProps = {
   onChange: (value: AudioDraft | null) => void;
   mode: "upload" | "record";
   disabled?: boolean;
+  transcriptionEnabled?: boolean;
 };
 
 const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
@@ -27,7 +28,7 @@ function formatSize(bytes: number, unit: string): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} ${unit}`;
 }
 
-export function AudioComposer({ onChange, mode, disabled = false }: AudioComposerProps) {
+export function AudioComposer({ onChange, mode, disabled = false, transcriptionEnabled = false }: AudioComposerProps) {
   const { w, lang } = useWorkspaceLocale();
   const [draft, setDraft] = useState<AudioDraft | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState<AudioLanguage>("fr");
@@ -52,7 +53,7 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
     return () => {
       mountedRef.current = false;
        processingAbortRef.current?.abort(new Error("Audio composer closed."));
-      cancelAudioProcessing();
+      if (processingAbortRef.current) cancelAudioProcessing();
       if (recordingTimerRef.current !== null) window.clearTimeout(recordingTimerRef.current);
       const recorder = recorderRef.current;
       if (recorder && recorder.state !== "inactive") {
@@ -150,7 +151,7 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
     publish(null);
     setProgress(null);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-       setError(w("L’enregistrement audio n’est pas pris en charge par ce navigateur. Vous pouvez choisir un autre navigateur ou saisir les textes manuellement après avoir sélectionné un fichier.", "Audio recording is not supported by this browser. Try another browser or select a file and enter the text manually."));
+       setError(w("L’enregistrement n’est pas disponible dans ce navigateur. Utilisez un autre navigateur ou joignez un fichier audio.", "Recording is unavailable in this browser. Use another browser or attach an audio file."));
       return;
     }
     setIsStartingRecording(true);
@@ -192,7 +193,7 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
       recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
       recordingStreamRef.current = null;
       const message = recordingError instanceof Error && recordingError.name === "NotAllowedError"
-         ? w("L’accès au microphone a été refusé. Autorisez le microphone puis réessayez, ou saisissez les textes manuellement.", "Microphone access was denied. Allow microphone access and try again, or enter the text manually.")
+         ? w("L’accès au microphone a été refusé. Autorisez le microphone puis réessayez.", "Microphone access was denied. Allow microphone access and try again.")
          : w("Impossible de démarrer le microphone. Vérifiez les autorisations du navigateur puis réessayez, ou saisissez les textes manuellement.", "Unable to start the microphone. Check your browser permissions and try again, or enter the text manually.");
       if (mountedRef.current) setError(message);
     } finally {
@@ -258,9 +259,6 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
     <section className="space-y-4 rounded-lg bg-white p-4" style={{ border: `1px solid ${C.line}` }}>
       <div>
          <h3 className="text-sm font-semibold" style={{ color: C.ink }}>{w("Message audio", "Audio message")}</h3>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: C.inkSoft }}>
-           {w("Le traitement reste sur cet appareil. Au premier usage, les modèles ONNX publics sont téléchargés dans le navigateur et peuvent demander de la bande passante. Aucun audio ni texte n’est envoyé à un service d’inférence.", "Processing stays on this device. The first time you use it, public ONNX models are downloaded in your browser and may use significant bandwidth. No audio or text is sent to an inference service.")}
-        </p>
       </div>
 
       {mode === "upload" ? (
@@ -301,13 +299,13 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
                {w("Arrêter l’enregistrement", "Stop recording")}
             </button>
           )}
-          <span className="text-xs" style={{ color: isRecording ? C.red : C.inkSoft }} aria-live="polite">
-             {isRecording ? w(`Enregistrement en cours : ${recordingSeconds} s sur 120 s maximum`, `Recording: ${recordingSeconds} s of 120 s maximum`) : w("Microphone utilisé uniquement pour enregistrer ce message.", "The microphone is used only to record this message.")}
-          </span>
+          {isRecording && <span className="text-xs" style={{ color: C.red }} aria-live="polite">
+             {w(`Enregistrement en cours : ${recordingSeconds} s sur 120 s maximum`, `Recording: ${recordingSeconds} s of 120 s maximum`)}
+          </span>}
         </div>
       )}
 
-      <div className="space-y-2">
+      {transcriptionEnabled && <div className="space-y-2">
         <label htmlFor="somiren-audio-language" className="block text-sm font-medium" style={{ color: C.ink }}>
            {w("Langue parlée", "Spoken language")}
         </label>
@@ -322,7 +320,7 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
            <option value="fr">{w("Français — traduction vers l’espagnol", "French — translated into Spanish")}</option>
            <option value="es">{w("Espagnol — traduction vers le français", "Spanish — translated into French")}</option>
         </select>
-      </div>
+      </div>}
 
       {draft && (
         <>
@@ -347,7 +345,7 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
             </div>
              {previewUrl && <audio controls preload="metadata" src={previewUrl} className="w-full" aria-label={w("Aperçu audio", "Audio preview")} />}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {transcriptionEnabled && <><div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void transcribeAndTranslate()}
@@ -408,16 +406,14 @@ export function AudioComposer({ onChange, mode, disabled = false }: AudioCompose
                  placeholder={w("La traduction apparaît ici et reste modifiable.", "The translation appears here and can be edited.")}
               />
             </div>
-          </div>
+          </div></>}
         </>
       )}
 
       {error && <p role="alert" className="text-sm leading-relaxed" style={{ color: C.red }}>{localizeAudioMessage(error, lang)}</p>}
-      {!draft && (
+      {!draft && mode === "record" && (
         <p className="text-xs" style={{ color: C.inkSoft }}>
-          {mode === "upload"
-             ? w("Après sélection, les deux champs de texte restent modifiables, même si le traitement local n’est pas disponible.", "After selecting a file, both text fields remain editable even if local processing is unavailable.")
-             : w("Les enregistrements sont limités à 120 secondes. En cas d’échec du microphone ou des modèles, utilisez la saisie manuelle.", "Recordings are limited to 120 seconds. If the microphone or models fail, enter the text manually.")}
+          {w("Durée maximale : 120 secondes.", "Maximum duration: 120 seconds.")}
         </p>
       )}
     </section>

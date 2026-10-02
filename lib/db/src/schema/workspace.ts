@@ -164,6 +164,8 @@ export const messagesTable = pgTable("workspace_messages", {
   audioAssetId: uuid("audio_asset_id").references(() => privateUploadsTable.id, { onDelete: "restrict" }),
   transcript: text("transcript"), translation: text("translation"),
   sourceLanguage: text("source_language"), targetLanguage: text("target_language"),
+  senderServiceName: text("sender_service_name"),
+  senderServiceSignature: text("sender_service_signature"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 export const strategicNotesTable = pgTable("workspace_strategic_notes", {
@@ -176,6 +178,13 @@ export const contactsTable = pgTable("workspace_contacts", {
 export const financialRecordsTable = pgTable("workspace_financial_records", {
   id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   salaryStatus: text("salary_status").notNull(), periodLabel: text("period_label").notNull(), communicatedDelayReason: text("communicated_delay_reason"), ...timestamps,
+  amount: numeric("amount", { precision: 14, scale: 2 }),
+  currency: text("currency"),
+  transferInstructions: text("transfer_instructions"),
+  payrollServiceName: text("payroll_service_name").notNull().default("Service paie"),
+  payrollServiceSignature: text("payroll_service_signature").notNull().default("Somiren S.A. · Service paie"),
+  transferRequestedAt: timestamp("transfer_requested_at", { withTimezone: true }),
+  transferRequestStatus: text("transfer_request_status"),
 });
 export const paymentsTable = pgTable("workspace_payments", {
   id: serial("id").primaryKey(), collaboratorId: integer("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
@@ -187,6 +196,8 @@ export const arrearsTable = pgTable("workspace_arrears", {
   amount: numeric("amount", { precision: 14, scale: 2 }),
   currency: text("currency"),
   transferInstructions: text("transfer_instructions"),
+  payrollServiceName: text("payroll_service_name").notNull().default("Service paie"),
+  payrollServiceSignature: text("payroll_service_signature").notNull().default("Somiren S.A. · Service paie"),
   transferRequestedAt: timestamp("transfer_requested_at", { withTimezone: true }),
   transferRequestStatus: text("transfer_request_status"),
 });

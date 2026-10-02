@@ -66,6 +66,8 @@ router.post("/admin/collaborators/:collaboratorId/arrears", async (req, res): Pr
       currency: body.data.currency,
       communicatedReason: body.data.communicatedReason,
       transferInstructions: body.data.transferInstructions,
+      payrollServiceName: body.data.payrollServiceName?.trim() || "Service paie",
+      payrollServiceSignature: body.data.payrollServiceSignature?.trim(),
       status: body.data.status ?? "open",
     }).returning();
     await tx.update(collaboratorsTable).set({
@@ -102,6 +104,9 @@ router.patch("/admin/arrears/:id", async (req, res): Promise<void> => {
     const [arrear] = await tx.select().from(arrearsTable)
       .where(eq(arrearsTable.id, params.data.id)).for("update").limit(1);
     if (!arrear) return { error: "Arrear not found", status: 404 };
+    if (body.data.payrollServiceName !== undefined && !body.data.payrollServiceName.trim()) {
+      return { error: "Payroll service name is required", status: 400 };
+    }
     if (body.data.transferRequestStatus && arrear.transferRequestStatus !== "pending") {
       return { error: "Only a pending transfer request can be reviewed", status: 409 };
     }

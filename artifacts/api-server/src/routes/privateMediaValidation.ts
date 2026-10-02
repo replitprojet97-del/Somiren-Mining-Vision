@@ -103,10 +103,10 @@ export function isConsumableUpload(
 }
 
 export function isValidAudioMessage(value: AudioMessageMetadata): boolean {
-  return Boolean(
-    value.audioAssetId && value.transcript?.trim() && value.translation?.trim()
-      && value.sourceLanguage && value.targetLanguage && value.sourceLanguage !== value.targetLanguage,
-  );
+  // Texts are optional. Keep support for legacy messages with bilingual texts.
+  if (!value.audioAssetId) return false;
+  if (value.sourceLanguage && value.targetLanguage && value.sourceLanguage === value.targetLanguage) return false;
+  return !((value.transcript || value.translation) && (!value.sourceLanguage || !value.targetLanguage));
 }
 
 export function normalizeStorageObjectUrl(baseUrl: string, path: string | undefined): string | undefined {

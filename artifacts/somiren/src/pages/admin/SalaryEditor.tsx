@@ -10,11 +10,15 @@ type SalaryForm = {
   salaryStatus: SalaryStatus | "";
   communicatedDelayReason: string;
   preservedPeriodLabel: string | null;
+  amount: string; currency: string; transferInstructions: string;
+  payrollServiceName: string; payrollServiceSignature: string; requestStatus: string;
 };
 
 const MONTHS = Array.from({ length: 12 }, (_, index) =>
   new Intl.DateTimeFormat("fr-FR", { month: "long", timeZone: "UTC" })
     .format(new Date(Date.UTC(2026, index, 1))));
+
+const requestLabel: Record<string, string> = { pending: "Demande à traiter", acknowledged: "Demande prise en compte", declined: "Demande refusée" };
 
 function emptyForm(): SalaryForm {
   const today = new Date();
@@ -24,6 +28,8 @@ function emptyForm(): SalaryForm {
     salaryStatus: "Non versé",
     communicatedDelayReason: "",
     preservedPeriodLabel: null,
+    amount: "", currency: "EUR", transferInstructions: "",
+    payrollServiceName: "Service paie", payrollServiceSignature: "Somiren S.A. · Service paie", requestStatus: "",
   };
 }
 
@@ -100,6 +106,11 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
         : "",
       communicatedDelayReason: record.communicatedDelayReason ?? "",
       preservedPeriodLabel: parsedPeriod ? null : record.periodLabel,
+      amount: record.amount ?? "", currency: record.currency ?? "",
+      transferInstructions: record.transferInstructions ?? "",
+      payrollServiceName: record.payrollServiceName ?? defaults.payrollServiceName,
+      payrollServiceSignature: record.payrollServiceSignature ?? defaults.payrollServiceSignature,
+      requestStatus: "",
     });
     setError(null);
     setSuccess(null);
@@ -125,7 +136,17 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
       setError("Choisissez un statut de rémunération.");
       return;
     }
+    const amount = form.amount.trim();
+    const currency = form.currency.trim().toUpperCase();
+    if (amount && !/^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$/.test(amount)) { setError("Saisissez un montant décimal valide (deux décimales maximum)."); return; }
+    if (!editingId && !amount) { setError("Un montant explicite est requis pour créer une rémunération."); return; }
+    if ((amount || !editingId) && !/^[A-Z]{3}$/.test(currency)) { setError("La devise doit être un code de trois lettres majuscules (ex. EUR)."); return; }
     const payload = {
+      ...(amount ? { amount, currency } : editingId !== null ? { amount: null, currency: null } : {}),
+      transferInstructions: form.transferInstructions.trim() || null,
+      payrollServiceName: form.payrollServiceName.trim() || "Service paie",
+      payrollServiceSignature: form.payrollServiceSignature.trim() || "Somiren S.A. · Service paie",
+      ...(editingId !== null && form.requestStatus ? { transferRequestStatus: form.requestStatus } : {}),
       periodLabel: form.preservedPeriodLabel ?? periodLabel(form.month, year),
       ...(form.salaryStatus ? { salaryStatus: form.salaryStatus } : {}),
       communicatedDelayReason: form.communicatedDelayReason.trim() || null,
@@ -171,6 +192,8 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
                         <p className="mt-1 text-sm" style={{ color: C.inkSoft }}>
                           {record.communicatedDelayReason || "Aucun motif communiqué."}
                         </p>
+                        <p className="mt-1 text-sm font-medium" style={{ color: C.ink }}>{record.amount == null ? "Montant non communiqué" : `${record.amount} ${record.currency || "—"}`}</p>
+                        {record.transferRequestStatus && <p className="mt-1 text-xs font-medium" style={{ color: C.blue }}>Demande de transfert : {requestLabel[record.transferRequestStatus] || record.transferRequestStatus}</p>}
                         <p className="mt-1 text-xs" style={{ color: C.inkFaint }}>Mis à jour le {displayDate(record.updatedAt)}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -205,6 +228,34 @@ export default function SalaryEditor({ user, onFinanceVisibilityGranted }: {
                 </label>
               </div>
               {form.preservedPeriodLabel && <p className="text-xs" style={{ color: C.inkSoft }}>Période historique conservée : {form.preservedPeriodLabel}. Choisissez un mois ou une année pour la remplacer.</p>}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Montant
+                  <input inputMode="decimal" value={form.amount} onChange={e => setForm(c => ({ ...c, amount: e.target.value }))} placeholder="Ex. 2450.00" className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-amount" />
+                </label>
+                <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Devise
+                  <input maxLength={3} value={form.currency} onChange={e => setForm(c => ({ ...c, currency: e.target.value.toUpperCase() }))} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm uppercase" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-currency" />
+                </label>
+                {editingId !== null && (() => { const cur = salaryRecords.find(r => r.id === editingId); return cur?.transferRequestStatus === "pending" ? (
+                  <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Demande de transfert
+                    <select value={form.requestStatus} onChange={e => setForm(c => ({ ...c, requestStatus: e.target.value }))} className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="select-salary-request-status">
+                      <option value="">Conserver ({requestLabel[cur.transferRequestStatus]})</option>
+                      <option value="acknowledged">Prise en compte</option><option value="declined">Refusée</option>
+                    </select>
+                  </label>) : null; })()}
+              </div>
+              {editingId !== null && <p className="text-xs" style={{ color: C.inkSoft }}>Laisser le montant vide indique un montant non communiqué.</p>}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Service émetteur
+                  <input maxLength={120} value={form.payrollServiceName} onChange={e => setForm(c => ({ ...c, payrollServiceName: e.target.value }))} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-service-name" />
+                </label>
+                <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Signature
+                  <input maxLength={500} value={form.payrollServiceSignature} onChange={e => setForm(c => ({ ...c, payrollServiceSignature: e.target.value }))} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-service-signature" />
+                </label>
+              </div>
+              <label className="block text-xs font-medium" style={{ color: C.inkSoft }}>
+                Instructions de transfert (affichées au collaborateur)
+                <textarea maxLength={5000} value={form.transferInstructions} onChange={e => setForm(c => ({ ...c, transferInstructions: e.target.value }))} rows={3} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-instructions" />
+              </label>
               <label className="block text-xs font-medium" style={{ color: C.inkSoft }}>
                 Motif communiqué (facultatif)
                 <textarea maxLength={5000} value={form.communicatedDelayReason} onChange={event => setForm(current => ({ ...current, communicatedDelayReason: event.target.value }))} rows={2} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-salary-reason" />

@@ -453,3 +453,37 @@ export const useAdminMarkAllNotificationsRead = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "notifications"] }),
   });
 };
+
+export const useRequestSalaryTransfer = () => {
+  const api = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => api(`/workspace/me/salary-records/${id}/transfer-request`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspace", "finance", "summary"] });
+      qc.invalidateQueries({ queryKey: ["workspace", "dashboard"] });
+    },
+  });
+};
+
+export type SenderService = { id: number; name: string; signature: string | null; isActive: boolean };
+
+export const useAdminSenderServices = () =>
+  useQuery({
+    queryKey: ["admin", "sender-services"],
+    queryFn: async () => (await mediaRequest<any>("/admin/sender-services")).services as SenderService[],
+    refetchInterval: POLL,
+  });
+
+export const useAdminSaveSenderService = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: number; data: any }) =>
+      mediaRequest<any>(id ? `/admin/sender-services/${id}` : "/admin/sender-services", {
+        method: id ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "sender-services"] }),
+  });
+};

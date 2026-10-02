@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { SalaryRecordUpdateSalaryStatus } from './salaryRecordUpdateSalaryStatus';
+import type { SalaryRecordUpdateTransferRequestStatus } from './salaryRecordUpdateTransferRequestStatus';
 
 export interface SalaryRecordUpdate {
   /**
@@ -19,4 +20,27 @@ export interface SalaryRecordUpdate {
      * @nullable
      */
   communicatedDelayReason?: string | null;
+  /**
+     * @nullable
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount?: string | null;
+  /**
+     * @nullable
+     * @pattern ^[A-Z]{3}$
+     */
+  currency?: string | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  transferInstructions?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
+  transferRequestStatus?: SalaryRecordUpdateTransferRequestStatus;
 }

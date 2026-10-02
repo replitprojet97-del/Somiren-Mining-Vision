@@ -360,10 +360,12 @@ export const createAdminConversationBodyInitialMessageMax = 10000;
 
 
 
+
 export const CreateAdminConversationBody = zod.object({
   "collaboratorId": zod.number().int(),
   "subject": zod.string().min(1).max(createAdminConversationBodySubjectMax),
-  "initialMessage": zod.string().max(createAdminConversationBodyInitialMessageMax).optional()
+  "initialMessage": zod.string().max(createAdminConversationBodyInitialMessageMax).optional(),
+  "senderServiceId": zod.number().int().min(1).optional()
 })
 
 export const CreateAdminConversationResponse = zod.object({
@@ -393,10 +395,12 @@ export const createConversationBodyInitialMessageMax = 10000;
 
 
 
+
 export const CreateConversationBody = zod.object({
   "collaboratorId": zod.number().int(),
   "subject": zod.string().min(1).max(createConversationBodySubjectMax),
-  "initialMessage": zod.string().max(createConversationBodyInitialMessageMax).optional()
+  "initialMessage": zod.string().max(createConversationBodyInitialMessageMax).optional(),
+  "senderServiceId": zod.number().int().min(1).optional()
 })
 
 export const CreateConversationResponse = zod.object({
@@ -423,6 +427,7 @@ export const SendAdminConversationMessageParams = zod.object({
 
 export const sendAdminConversationMessageBodyBodyMax = 10000;
 
+
 export const sendAdminConversationMessageBodyTranscriptMax = 10000;
 
 export const sendAdminConversationMessageBodyTranslationMax = 10000;
@@ -431,18 +436,21 @@ export const sendAdminConversationMessageBodyTranslationMax = 10000;
 
 export const SendAdminConversationMessageBody = zod.object({
   "body": zod.string().max(sendAdminConversationMessageBodyBodyMax).optional(),
+  "senderServiceId": zod.number().int().min(1).optional().describe('Admin-only configured service identity'),
   "audioAssetId": zod.string().uuid().optional(),
   "transcript": zod.string().min(1).max(sendAdminConversationMessageBodyTranscriptMax).optional(),
   "translation": zod.string().min(1).max(sendAdminConversationMessageBodyTranslationMax).optional(),
   "sourceLanguage": zod.enum(['fr', 'es']).optional(),
   "targetLanguage": zod.enum(['fr', 'es']).optional()
-})
+}).describe('A message may contain text, a private audio asset, or both. Transcription and translation are optional; an audio file alone can be sent.')
 
 export const SendAdminConversationMessageResponse = zod.object({
   "message": zod.object({
   "id": zod.number().int().optional(),
   "conversationId": zod.number().int().optional(),
   "senderId": zod.number().int().optional(),
+  "senderServiceName": zod.string().nullish(),
+  "senderServiceSignature": zod.string().nullish(),
   "body": zod.string().optional(),
   "audioAssetId": zod.string().uuid().nullish(),
   "transcript": zod.string().nullish(),
@@ -510,6 +518,7 @@ export const SendWorkspaceConversationMessageParams = zod.object({
 
 export const sendWorkspaceConversationMessageBodyBodyMax = 10000;
 
+
 export const sendWorkspaceConversationMessageBodyTranscriptMax = 10000;
 
 export const sendWorkspaceConversationMessageBodyTranslationMax = 10000;
@@ -518,18 +527,21 @@ export const sendWorkspaceConversationMessageBodyTranslationMax = 10000;
 
 export const SendWorkspaceConversationMessageBody = zod.object({
   "body": zod.string().max(sendWorkspaceConversationMessageBodyBodyMax).optional(),
+  "senderServiceId": zod.number().int().min(1).optional().describe('Admin-only configured service identity'),
   "audioAssetId": zod.string().uuid().optional(),
   "transcript": zod.string().min(1).max(sendWorkspaceConversationMessageBodyTranscriptMax).optional(),
   "translation": zod.string().min(1).max(sendWorkspaceConversationMessageBodyTranslationMax).optional(),
   "sourceLanguage": zod.enum(['fr', 'es']).optional(),
   "targetLanguage": zod.enum(['fr', 'es']).optional()
-})
+}).describe('A message may contain text, a private audio asset, or both. Transcription and translation are optional; an audio file alone can be sent.')
 
 export const SendWorkspaceConversationMessageResponse = zod.object({
   "message": zod.object({
   "id": zod.number().int().optional(),
   "conversationId": zod.number().int().optional(),
   "senderId": zod.number().int().optional(),
+  "senderServiceName": zod.string().nullish(),
+  "senderServiceSignature": zod.string().nullish(),
   "body": zod.string().optional(),
   "audioAssetId": zod.string().uuid().nullish(),
   "transcript": zod.string().nullish(),
@@ -796,6 +808,8 @@ export const ListCollaboratorArrearsResponse = zod.object({
   "status": zod.enum(['open', 'settled', 'archived']),
   "communicatedReason": zod.string().nullable(),
   "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string().optional(),
+  "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
@@ -819,6 +833,10 @@ export const createCollaboratorArrearBodyCommunicatedReasonMax = 5000;
 
 export const createCollaboratorArrearBodyTransferInstructionsMax = 5000;
 
+export const createCollaboratorArrearBodyPayrollServiceNameMax = 120;
+
+export const createCollaboratorArrearBodyPayrollServiceSignatureMax = 500;
+
 
 
 export const CreateCollaboratorArrearBody = zod.object({
@@ -827,6 +845,8 @@ export const CreateCollaboratorArrearBody = zod.object({
   "currency": zod.string().regex(createCollaboratorArrearBodyCurrencyRegExp),
   "communicatedReason": zod.string().min(1).max(createCollaboratorArrearBodyCommunicatedReasonMax),
   "transferInstructions": zod.string().min(1).max(createCollaboratorArrearBodyTransferInstructionsMax),
+  "payrollServiceName": zod.string().min(1).max(createCollaboratorArrearBodyPayrollServiceNameMax).optional(),
+  "payrollServiceSignature": zod.string().max(createCollaboratorArrearBodyPayrollServiceSignatureMax).optional(),
   "status": zod.enum(['open', 'settled', 'archived']).optional()
 })
 
@@ -844,6 +864,8 @@ export const CreateCollaboratorArrearResponse = zod.object({
   "status": zod.enum(['open', 'settled', 'archived']),
   "communicatedReason": zod.string().nullable(),
   "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string().optional(),
+  "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
@@ -859,6 +881,10 @@ export const ListCollaboratorSalaryRecordsParams = zod.object({
   "collaboratorId": zod.coerce.number().int().min(1)
 })
 
+export const listCollaboratorSalaryRecordsResponseSalaryRecordsItemAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const listCollaboratorSalaryRecordsResponseSalaryRecordsItemCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
 export const ListCollaboratorSalaryRecordsResponse = zod.object({
   "salaryRecords": zod.array(zod.object({
   "id": zod.number().int(),
@@ -866,6 +892,13 @@ export const ListCollaboratorSalaryRecordsResponse = zod.object({
   "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
   "periodLabel": zod.string(),
   "communicatedDelayReason": zod.string().nullable(),
+  "amount": zod.string().regex(listCollaboratorSalaryRecordsResponseSalaryRecordsItemAmountRegExp).nullable(),
+  "currency": zod.string().regex(listCollaboratorSalaryRecordsResponseSalaryRecordsItemCurrencyRegExp).nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string(),
+  "payrollServiceSignature": zod.string(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -883,13 +916,30 @@ export const assignCollaboratorSalaryRecordBodyPeriodLabelMax = 120;
 
 export const assignCollaboratorSalaryRecordBodyCommunicatedDelayReasonMax = 5000;
 
+export const assignCollaboratorSalaryRecordBodyAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const assignCollaboratorSalaryRecordBodyCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+export const assignCollaboratorSalaryRecordBodyTransferInstructionsMax = 5000;
+
+export const assignCollaboratorSalaryRecordBodyPayrollServiceNameMax = 120;
+
+export const assignCollaboratorSalaryRecordBodyPayrollServiceSignatureMax = 500;
+
 
 
 export const AssignCollaboratorSalaryRecordBody = zod.object({
   "periodLabel": zod.string().min(1).max(assignCollaboratorSalaryRecordBodyPeriodLabelMax),
   "salaryStatus": zod.enum(['Non versé', 'Versé']),
-  "communicatedDelayReason": zod.string().max(assignCollaboratorSalaryRecordBodyCommunicatedDelayReasonMax).nullish()
+  "communicatedDelayReason": zod.string().max(assignCollaboratorSalaryRecordBodyCommunicatedDelayReasonMax).nullish(),
+  "amount": zod.string().regex(assignCollaboratorSalaryRecordBodyAmountRegExp),
+  "currency": zod.string().regex(assignCollaboratorSalaryRecordBodyCurrencyRegExp),
+  "transferInstructions": zod.string().max(assignCollaboratorSalaryRecordBodyTransferInstructionsMax).nullish(),
+  "payrollServiceName": zod.string().min(1).max(assignCollaboratorSalaryRecordBodyPayrollServiceNameMax).optional(),
+  "payrollServiceSignature": zod.string().max(assignCollaboratorSalaryRecordBodyPayrollServiceSignatureMax).optional()
 })
+
+export const assignCollaboratorSalaryRecordResponseSalaryRecordAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const assignCollaboratorSalaryRecordResponseSalaryRecordCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
 
 export const AssignCollaboratorSalaryRecordResponse = zod.object({
   "salaryRecord": zod.object({
@@ -898,6 +948,13 @@ export const AssignCollaboratorSalaryRecordResponse = zod.object({
   "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
   "periodLabel": zod.string(),
   "communicatedDelayReason": zod.string().nullable(),
+  "amount": zod.string().regex(assignCollaboratorSalaryRecordResponseSalaryRecordAmountRegExp).nullable(),
+  "currency": zod.string().regex(assignCollaboratorSalaryRecordResponseSalaryRecordCurrencyRegExp).nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string(),
+  "payrollServiceSignature": zod.string(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -915,13 +972,31 @@ export const updateSalaryRecordBodyPeriodLabelMax = 120;
 
 export const updateSalaryRecordBodyCommunicatedDelayReasonMax = 5000;
 
+export const updateSalaryRecordBodyAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const updateSalaryRecordBodyCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+export const updateSalaryRecordBodyTransferInstructionsMax = 5000;
+
+export const updateSalaryRecordBodyPayrollServiceNameMax = 120;
+
+export const updateSalaryRecordBodyPayrollServiceSignatureMax = 500;
+
 
 
 export const UpdateSalaryRecordBody = zod.object({
   "periodLabel": zod.string().min(1).max(updateSalaryRecordBodyPeriodLabelMax).optional(),
   "salaryStatus": zod.enum(['Non versé', 'Versé']).optional(),
-  "communicatedDelayReason": zod.string().max(updateSalaryRecordBodyCommunicatedDelayReasonMax).nullish()
+  "communicatedDelayReason": zod.string().max(updateSalaryRecordBodyCommunicatedDelayReasonMax).nullish(),
+  "amount": zod.string().regex(updateSalaryRecordBodyAmountRegExp).nullish(),
+  "currency": zod.string().regex(updateSalaryRecordBodyCurrencyRegExp).nullish(),
+  "transferInstructions": zod.string().max(updateSalaryRecordBodyTransferInstructionsMax).nullish(),
+  "payrollServiceName": zod.string().min(1).max(updateSalaryRecordBodyPayrollServiceNameMax).optional(),
+  "payrollServiceSignature": zod.string().max(updateSalaryRecordBodyPayrollServiceSignatureMax).optional(),
+  "transferRequestStatus": zod.enum(['acknowledged', 'declined']).optional()
 })
+
+export const updateSalaryRecordResponseSalaryRecordAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const updateSalaryRecordResponseSalaryRecordCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
 
 export const UpdateSalaryRecordResponse = zod.object({
   "salaryRecord": zod.object({
@@ -930,6 +1005,13 @@ export const UpdateSalaryRecordResponse = zod.object({
   "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
   "periodLabel": zod.string(),
   "communicatedDelayReason": zod.string().nullable(),
+  "amount": zod.string().regex(updateSalaryRecordResponseSalaryRecordAmountRegExp).nullable(),
+  "currency": zod.string().regex(updateSalaryRecordResponseSalaryRecordCurrencyRegExp).nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string(),
+  "payrollServiceSignature": zod.string(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -939,6 +1021,10 @@ export const UpdateSalaryRecordResponse = zod.object({
 /**
  * @summary Get the current collaborator's latest salary record
  */
+export const getWorkspaceFinancialSummaryResponseSummaryOneAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const getWorkspaceFinancialSummaryResponseSummaryOneCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
 export const GetWorkspaceFinancialSummaryResponse = zod.object({
   "summary": zod.union([zod.object({
   "id": zod.number().int(),
@@ -946,6 +1032,13 @@ export const GetWorkspaceFinancialSummaryResponse = zod.object({
   "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
   "periodLabel": zod.string(),
   "communicatedDelayReason": zod.string().nullable(),
+  "amount": zod.string().regex(getWorkspaceFinancialSummaryResponseSummaryOneAmountRegExp).nullable(),
+  "currency": zod.string().regex(getWorkspaceFinancialSummaryResponseSummaryOneCurrencyRegExp).nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string(),
+  "payrollServiceSignature": zod.string(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }),zod.null()])
@@ -967,6 +1060,10 @@ export const updateArrearBodyCommunicatedReasonMax = 5000;
 
 export const updateArrearBodyTransferInstructionsMax = 5000;
 
+export const updateArrearBodyPayrollServiceNameMax = 120;
+
+export const updateArrearBodyPayrollServiceSignatureMax = 500;
+
 
 
 export const UpdateArrearBody = zod.object({
@@ -975,6 +1072,8 @@ export const UpdateArrearBody = zod.object({
   "currency": zod.string().regex(updateArrearBodyCurrencyRegExp).nullish(),
   "communicatedReason": zod.string().max(updateArrearBodyCommunicatedReasonMax).nullish(),
   "transferInstructions": zod.string().max(updateArrearBodyTransferInstructionsMax).nullish(),
+  "payrollServiceName": zod.string().min(1).max(updateArrearBodyPayrollServiceNameMax).optional(),
+  "payrollServiceSignature": zod.string().max(updateArrearBodyPayrollServiceSignatureMax).optional(),
   "status": zod.enum(['open', 'settled', 'archived']).optional(),
   "transferRequestStatus": zod.enum(['acknowledged', 'declined']).optional()
 })
@@ -993,6 +1092,8 @@ export const UpdateArrearResponse = zod.object({
   "status": zod.enum(['open', 'settled', 'archived']),
   "communicatedReason": zod.string().nullable(),
   "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string().optional(),
+  "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
@@ -1032,10 +1133,103 @@ export const RequestArrearTransferResponse = zod.object({
   "status": zod.enum(['open', 'settled', 'archived']),
   "communicatedReason": zod.string().nullable(),
   "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string().optional(),
+  "payrollServiceSignature": zod.string().optional(),
   "transferRequestedAt": zod.coerce.date().nullable(),
   "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
+})
+})
+
+
+
+
+
+export const RequestSalaryTransferParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const requestSalaryTransferResponseSalaryRecordAmountRegExp = new RegExp('^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,2})?$');
+export const requestSalaryTransferResponseSalaryRecordCurrencyRegExp = new RegExp('^[A-Z]{3}$');
+
+
+export const RequestSalaryTransferResponse = zod.object({
+  "salaryRecord": zod.object({
+  "id": zod.number().int(),
+  "collaboratorId": zod.number().int(),
+  "salaryStatus": zod.string().describe('Status as communicated by the administrator'),
+  "periodLabel": zod.string(),
+  "communicatedDelayReason": zod.string().nullable(),
+  "amount": zod.string().regex(requestSalaryTransferResponseSalaryRecordAmountRegExp).nullable(),
+  "currency": zod.string().regex(requestSalaryTransferResponseSalaryRecordCurrencyRegExp).nullable(),
+  "transferInstructions": zod.string().nullable(),
+  "payrollServiceName": zod.string(),
+  "payrollServiceSignature": zod.string(),
+  "transferRequestedAt": zod.coerce.date().nullable(),
+  "transferRequestStatus": zod.union([zod.literal('pending'),zod.literal('acknowledged'),zod.literal('declined'),zod.literal(null)]).nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+export const ListSenderServicesResponse = zod.object({
+  "services": zod.array(zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "signature": zod.string(),
+  "isActive": zod.boolean()
+}))
+})
+
+
+export const createSenderServiceBodyNameMax = 120;
+
+export const createSenderServiceBodySignatureMax = 500;
+
+
+
+export const CreateSenderServiceBody = zod.object({
+  "name": zod.string().min(1).max(createSenderServiceBodyNameMax),
+  "signature": zod.string().max(createSenderServiceBodySignatureMax).optional()
+})
+
+export const CreateSenderServiceResponse = zod.object({
+  "service": zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "signature": zod.string(),
+  "isActive": zod.boolean()
+})
+})
+
+
+
+
+
+export const UpdateSenderServiceParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateSenderServiceBodyNameMax = 120;
+
+export const updateSenderServiceBodySignatureMax = 500;
+
+
+
+export const UpdateSenderServiceBody = zod.object({
+  "name": zod.string().min(1).max(updateSenderServiceBodyNameMax).optional(),
+  "signature": zod.string().max(updateSenderServiceBodySignatureMax).optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateSenderServiceResponse = zod.object({
+  "service": zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "signature": zod.string(),
+  "isActive": zod.boolean()
 })
 })
 

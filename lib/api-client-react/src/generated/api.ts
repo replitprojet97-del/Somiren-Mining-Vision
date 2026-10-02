@@ -59,6 +59,10 @@ import type {
   SalaryRecordResult,
   SalaryRecordUpdate,
   SalaryRecordsList,
+  SenderServiceInput,
+  SenderServiceResult,
+  SenderServiceUpdate,
+  SenderServicesList,
   SetWorkspaceProfilePhoto200,
   SetWorkspaceProfilePhotoInput,
   TwoFactorCodeInput,
@@ -4154,5 +4158,293 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getRequestArrearTransferMutationOptions(options));
+    }
+
+export const getRequestSalaryTransferUrl = (id: number,) => {
+
+
+
+
+  return `/api/workspace/me/salary-records/${id}/transfer-request`
+}
+
+export const requestSalaryTransfer = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<SalaryRecordResult> => {
+
+  return customFetch<SalaryRecordResult>(getRequestSalaryTransferUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestSalaryTransferMutationKey = () => ['requestSalaryTransfer'] as const;
+
+export const getRequestSalaryTransferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestSalaryTransfer>>, TError,RequestSalaryTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestSalaryTransfer>>, TError,RequestSalaryTransferMutationVariables, TContext> => {
+
+const mutationKey = getRequestSalaryTransferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestSalaryTransfer>>, RequestSalaryTransferMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  requestSalaryTransfer(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestSalaryTransferMutationResult = NonNullable<Awaited<ReturnType<typeof requestSalaryTransfer>>>
+
+    export type RequestSalaryTransferMutationError = ErrorType<void>
+    export type RequestSalaryTransferMutationVariables = {id: number}
+
+    export const useRequestSalaryTransfer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestSalaryTransfer>>, TError,RequestSalaryTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestSalaryTransfer>>,
+        TError,
+        RequestSalaryTransferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestSalaryTransferMutationOptions(options));
+    }
+
+export const getListSenderServicesUrl = () => {
+
+
+
+
+  return `/api/admin/sender-services`
+}
+
+export const listSenderServices = async ( options?: Parameters<typeof customFetch>[1]): Promise<SenderServicesList> => {
+
+  return customFetch<SenderServicesList>(getListSenderServicesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSenderServicesQueryKey = () => {
+    return [
+    `/api/admin/sender-services`
+    ] as const;
+    }
+
+
+export const getListSenderServicesQueryOptions = <TData = Awaited<ReturnType<typeof listSenderServices>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSenderServices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSenderServicesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSenderServices>>> = ({ signal }) => listSenderServices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSenderServices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSenderServicesQueryResult = NonNullable<Awaited<ReturnType<typeof listSenderServices>>>
+export type ListSenderServicesQueryError = ErrorType<unknown>
+
+
+
+export function useListSenderServices<TData = Awaited<ReturnType<typeof listSenderServices>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSenderServices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSenderServicesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateSenderServiceUrl = () => {
+
+
+
+
+  return `/api/admin/sender-services`
+}
+
+export const createSenderService = async (senderServiceInput: SenderServiceInput, options?: Parameters<typeof customFetch>[1]): Promise<SenderServiceResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<SenderServiceResult>(getCreateSenderServiceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(senderServiceInput)
+  }
+);}
+
+
+
+
+
+export const getCreateSenderServiceMutationKey = () => ['createSenderService'] as const;
+
+export const getCreateSenderServiceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSenderService>>, TError,CreateSenderServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSenderService>>, TError,CreateSenderServiceMutationVariables, TContext> => {
+
+const mutationKey = getCreateSenderServiceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSenderService>>, CreateSenderServiceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSenderService(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSenderServiceMutationResult = NonNullable<Awaited<ReturnType<typeof createSenderService>>>
+    export type CreateSenderServiceMutationBody = BodyType<SenderServiceInput>
+    export type CreateSenderServiceMutationError = ErrorType<void>
+    export type CreateSenderServiceMutationVariables = {data: BodyType<SenderServiceInput>}
+
+    export const useCreateSenderService = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSenderService>>, TError,CreateSenderServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSenderService>>,
+        TError,
+        CreateSenderServiceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateSenderServiceMutationOptions(options));
+    }
+
+export const getUpdateSenderServiceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/sender-services/${id}`
+}
+
+export const updateSenderService = async (id: number,
+    senderServiceUpdate: SenderServiceUpdate, options?: Parameters<typeof customFetch>[1]): Promise<SenderServiceResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<SenderServiceResult>(getUpdateSenderServiceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(senderServiceUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateSenderServiceMutationKey = () => ['updateSenderService'] as const;
+
+export const getUpdateSenderServiceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSenderService>>, TError,UpdateSenderServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSenderService>>, TError,UpdateSenderServiceMutationVariables, TContext> => {
+
+const mutationKey = getUpdateSenderServiceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSenderService>>, UpdateSenderServiceMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSenderService(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSenderServiceMutationResult = NonNullable<Awaited<ReturnType<typeof updateSenderService>>>
+    export type UpdateSenderServiceMutationBody = BodyType<SenderServiceUpdate>
+    export type UpdateSenderServiceMutationError = ErrorType<void>
+    export type UpdateSenderServiceMutationVariables = {id: number;data: BodyType<SenderServiceUpdate>}
+
+    export const useUpdateSenderService = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSenderService>>, TError,UpdateSenderServiceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSenderService>>,
+        TError,
+        UpdateSenderServiceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateSenderServiceMutationOptions(options));
     }
 

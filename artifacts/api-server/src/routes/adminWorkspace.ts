@@ -14,6 +14,7 @@ import {
 import { and, asc, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
+import { resolveSenderService } from "../lib/sender-service";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { createCollaboratorSession, getWorkspaceActor, hashCollaboratorPassword } from "./collaboratorAuth";
@@ -603,9 +604,11 @@ const conversationCreateSchema = z.object({
   collaboratorId: idSchema,
   subject: z.string().trim().min(1).max(300),
   initialMessage: z.string().trim().min(1).max(10000).optional(),
+  senderServiceId: z.number().int().positive().optional(),
 }).strict();
 const threadMessageSchema = z.object({
   body: z.string().trim().min(1).max(10000).optional(),
+  senderServiceId: z.number().int().positive().optional(),
   audioAssetId: z.string().uuid().optional(),
   transcript: z.string().trim().min(1).max(10000).optional(),
   translation: z.string().trim().min(1).max(10000).optional(),
@@ -613,7 +616,7 @@ const threadMessageSchema = z.object({
   targetLanguage: z.enum(["fr", "es"]).optional(),
 }).strict().superRefine((value, ctx) => {
   const audioFieldsPresent = Boolean(value.audioAssetId || value.transcript || value.translation || value.sourceLanguage || value.targetLanguage);
-  if (audioFieldsPresent && !isValidAudioMessage(value)) ctx.addIssue({ code: "custom", message: "Audio messages require audio, transcript, translation, and distinct French/Spanish languages" });
+  if (audioFieldsPresent && !isValidAudioMessage(value)) ctx.addIssue({ code: "custom", message: "Audio metadata requires an audio file and distinct French/Spanish languages when texts are provided" });
   if (!value.body && !value.audioAssetId) ctx.addIssue({ code: "custom", message: "Message body or audio is required" });
 });
 router.get("/admin/conversations", requireConfidentialAdmin, requireAdminPermission("USE_INTERNAL_MESSAGING"), async (_req, res): Promise<void> => {
@@ -627,6 +630,8 @@ router.get("/admin/conversations", requireConfidentialAdmin, requireAdminPermiss
 router.post("/admin/conversations", requireConfidentialAdmin, requireAdminPermission("USE_INTERNAL_MESSAGING"), async (req, res): Promise<void> => {
   const body = conversationCreateSchema.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid conversation" }); return; }
+  const serviceIdentity = await resolveSenderService(body.data.senderServiceId);
+  if (!serviceIdentity) { res.status(400).json({ error: "Sender service must exist and be active" }); return; }
   const current = actor(res);
   const [recipient] = await db.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
     .where(and(eq(collaboratorsTable.id, body.data.collaboratorId), eq(collaboratorsTable.isActive, true))).limit(1);
@@ -636,7 +641,7 @@ router.post("/admin/conversations", requireConfidentialAdmin, requireAdminPermis
       subject: body.data.subject, collaboratorId: body.data.collaboratorId,
     }).returning();
     if (body.data.initialMessage) {
-      await tx.insert(messagesTable).values({ conversationId: created.id, senderId: current.id, body: body.data.initialMessage });
+      await tx.insert(messagesTable).values({ conversationId: created.id, senderId: current.id, body: body.data.initialMessage, ...serviceIdentity });
     }
     await tx.insert(notificationsTable).values({
       collaboratorId: body.data.collaboratorId, title: "New message",
@@ -660,6 +665,8 @@ router.post("/admin/conversations/:id/messages", requireConfidentialAdmin, requi
   const id = validId(req.params.id);
   const body = threadMessageSchema.safeParse(req.body);
   if (!id.success || !body.success) { res.status(400).json({ error: "Invalid message" }); return; }
+  const serviceIdentity = await resolveSenderService(body.data.senderServiceId);
+  if (!serviceIdentity) { res.status(400).json({ error: "Sender service must exist and be active" }); return; }
   const current = actor(res);
   const result = await db.transaction(async tx => {
     const [conversation] = await tx.select().from(conversationsTable)
@@ -672,6 +679,7 @@ router.post("/admin/conversations/:id/messages", requireConfidentialAdmin, requi
     }
     const [message] = await tx.insert(messagesTable).values({
       conversationId: id.data, senderId: current.id, body: body.data.body ?? "",
+      ...serviceIdentity,
       audioAssetId: audio?.id ?? null, transcript: body.data.transcript ?? null,
       translation: body.data.translation ?? null, sourceLanguage: body.data.sourceLanguage ?? null,
       targetLanguage: body.data.targetLanguage ?? null,

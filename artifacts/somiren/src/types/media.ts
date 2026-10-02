@@ -12,6 +12,9 @@ export interface PrivateMessage {
   translation?: string | null;
   sourceLanguage?: Lang | null;
   targetLanguage?: Lang | null;
+  senderServiceId?: number | null;
+  senderServiceName?: string | null;
+  senderServiceSignature?: string | null;
   createdAt: string;
 }
 

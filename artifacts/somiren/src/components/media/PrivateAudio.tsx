@@ -5,9 +5,10 @@ import { useWorkspaceLocale } from "@/lib/workspace-locale";
 
 type PrivateAudioProps = {
   fileEndpoint: string;
+  displayName?: string;
 };
 
-export function PrivateAudio({ fileEndpoint }: PrivateAudioProps) {
+export function PrivateAudio({ fileEndpoint, displayName }: PrivateAudioProps) {
   const { w, lang } = useWorkspaceLocale();
   const [source, setSource] = useState("");
   const [fileName, setFileName] = useState("");
@@ -21,7 +22,7 @@ export function PrivateAudio({ fileEndpoint }: PrivateAudioProps) {
     try {
       const link = await fetchPrivateMediaLink(fileEndpoint);
       setSource(link.url);
-      setFileName(link.fileName);
+      setFileName(displayName ?? link.fileName);
     } catch (requestError) {
       setError(requestError instanceof TypeError
         ? w("Impossible de récupérer le lien audio privé. Réessayez.", "Unable to retrieve the private audio link. Please try again.")
@@ -71,9 +72,6 @@ export function PrivateAudio({ fileEndpoint }: PrivateAudioProps) {
         </>
       )}
       {error && <p role="alert" className="text-sm" style={{ color: C.red }}>{localizePrivateMediaMessage(error, lang)}</p>}
-      <p className="text-xs" style={{ color: C.inkFaint }}>
-         {w("Le lien privé n’est demandé au serveur que lorsque vous lancez l’écoute et expire après quelques minutes.", "The private link is only requested from the server when you start playback and expires after a few minutes.")}
-      </p>
     </div>
   );
 }

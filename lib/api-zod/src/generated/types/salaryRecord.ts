@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SalaryRecordTransferRequestStatus } from './salaryRecordTransferRequestStatus';
 
 export interface SalaryRecord {
   id: number;
@@ -14,6 +15,24 @@ export interface SalaryRecord {
   periodLabel: string;
   /** @nullable */
   communicatedDelayReason: string | null;
+  /**
+     * @nullable
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount: string | null;
+  /**
+     * @nullable
+     * @pattern ^[A-Z]{3}$
+     */
+  currency: string | null;
+  /** @nullable */
+  transferInstructions: string | null;
+  payrollServiceName: string;
+  payrollServiceSignature: string;
+  /** @nullable */
+  transferRequestedAt: Date | null;
+  /** @nullable */
+  transferRequestStatus: SalaryRecordTransferRequestStatus;
   createdAt: Date;
   updatedAt: Date;
 }

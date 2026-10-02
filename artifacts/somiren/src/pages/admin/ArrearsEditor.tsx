@@ -10,6 +10,8 @@ type ArrearForm = {
   communicatedReason: string;
   transferInstructions: string;
   status: "open" | "settled" | "archived";
+  payrollServiceName: string;
+  payrollServiceSignature: string;
 };
 
 const EMPTY_FORM: ArrearForm = {
@@ -19,6 +21,8 @@ const EMPTY_FORM: ArrearForm = {
   communicatedReason: "",
   transferInstructions: "",
   status: "open",
+  payrollServiceName: "Service paie",
+  payrollServiceSignature: "Somiren S.A. · Service paie",
 };
 
 const requestLabel: Record<string, string> = {
@@ -67,6 +71,8 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
       communicatedReason: arrear.communicatedReason ?? "",
       transferInstructions: arrear.transferInstructions ?? "",
       status: arrear.status,
+      payrollServiceName: arrear.payrollServiceName ?? EMPTY_FORM.payrollServiceName,
+      payrollServiceSignature: arrear.payrollServiceSignature ?? EMPTY_FORM.payrollServiceSignature,
     });
     setError(null);
     setSuccess(null);
@@ -100,6 +106,8 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
       communicatedReason: form.communicatedReason.trim(),
       transferInstructions: form.transferInstructions.trim(),
       status: form.status,
+      payrollServiceName: form.payrollServiceName.trim() || "Service paie",
+      payrollServiceSignature: form.payrollServiceSignature.trim() || "Somiren S.A. · Service paie",
     };
     setSaving(true);
     setError(null);
@@ -230,6 +238,14 @@ export default function ArrearsEditor({ user, onPermissionsGranted }: {
                 Instructions personnalisées au collaborateur
                 <textarea required maxLength={5000} value={form.transferInstructions} onChange={e => updateForm("transferInstructions", e.target.value)} rows={3} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-arrear-instructions" />
               </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Service émetteur
+                  <input maxLength={120} value={form.payrollServiceName} onChange={e => updateForm("payrollServiceName", e.target.value)} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-arrear-service-name" />
+                </label>
+                <label className="text-xs font-medium" style={{ color: C.inkSoft }}>Signature
+                  <input maxLength={500} value={form.payrollServiceSignature} onChange={e => updateForm("payrollServiceSignature", e.target.value)} className="mt-1 w-full rounded-md bg-white px-3 py-2 text-sm" style={{ border: `1px solid ${C.line}` }} data-testid="input-arrear-service-signature" />
+                </label>
+              </div>
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <label className="text-xs font-medium" style={{ color: C.inkSoft }}>
                   Statut

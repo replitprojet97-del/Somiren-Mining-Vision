@@ -264,6 +264,20 @@ async function migrate() {
       ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS translation TEXT;
       ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS source_language TEXT;
       ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS target_language TEXT;
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS sender_service_name TEXT;
+      ALTER TABLE workspace_messages ADD COLUMN IF NOT EXISTS sender_service_signature TEXT;
+      CREATE TABLE IF NOT EXISTS workspace_sender_services (
+        id SERIAL PRIMARY KEY, system_key TEXT UNIQUE, name TEXT NOT NULL UNIQUE, signature TEXT NOT NULL DEFAULT '',
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      ALTER TABLE workspace_sender_services ADD COLUMN IF NOT EXISTS system_key TEXT UNIQUE;
+      INSERT INTO workspace_sender_services (system_key, name, signature) VALUES
+        ('direction', 'La direction', 'Somiren S.A. · Direction générale'),
+        ('payroll', 'Service paie', 'Somiren S.A. · Service paie'),
+        ('accounting', 'Service comptabilité', 'Somiren S.A. · Service comptabilité'),
+        ('hr', 'Service RH', 'Somiren S.A. · Service RH')
+      ON CONFLICT DO NOTHING;
       CREATE TABLE IF NOT EXISTS workspace_message_read_cursors (
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES workspace_conversations(id) ON DELETE CASCADE,
@@ -304,6 +318,15 @@ async function migrate() {
       ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS transfer_instructions TEXT;
       ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS transfer_requested_at TIMESTAMPTZ;
       ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS transfer_request_status TEXT;
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS payroll_service_name TEXT NOT NULL DEFAULT 'Service paie';
+      ALTER TABLE workspace_arrears ADD COLUMN IF NOT EXISTS payroll_service_signature TEXT NOT NULL DEFAULT 'Somiren S.A. · Service paie';
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS amount NUMERIC(14, 2);
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS currency TEXT;
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS transfer_instructions TEXT;
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS payroll_service_name TEXT NOT NULL DEFAULT 'Service paie';
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS payroll_service_signature TEXT NOT NULL DEFAULT 'Somiren S.A. · Service paie';
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS transfer_requested_at TIMESTAMPTZ;
+      ALTER TABLE workspace_financial_records ADD COLUMN IF NOT EXISTS transfer_request_status TEXT;
       UPDATE workspace_arrears SET status = CASE
         WHEN lower(status) IN ('settled', 'paid', 'completed') THEN 'settled'
         WHEN lower(status) = 'archived' THEN 'archived'

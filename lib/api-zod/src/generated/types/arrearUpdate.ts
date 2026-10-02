@@ -35,6 +35,13 @@ export interface ArrearUpdate {
      * @nullable
      */
   transferInstructions?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
   status?: ArrearUpdateStatus;
   transferRequestStatus?: ArrearUpdateTransferRequestStatus;
 }

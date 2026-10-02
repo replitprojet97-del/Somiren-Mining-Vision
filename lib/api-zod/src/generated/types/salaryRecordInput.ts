@@ -19,4 +19,20 @@ export interface SalaryRecordInput {
      * @nullable
      */
   communicatedDelayReason?: string | null;
+  /** @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$ */
+  amount: string;
+  /** @pattern ^[A-Z]{3}$ */
+  currency: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  transferInstructions?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
 }

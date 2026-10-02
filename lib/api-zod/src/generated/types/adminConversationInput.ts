@@ -15,4 +15,6 @@ export interface AdminConversationInput {
   subject: string;
   /** @maxLength 10000 */
   initialMessage?: string;
+  /** @minimum 1 */
+  senderServiceId?: number;
 }

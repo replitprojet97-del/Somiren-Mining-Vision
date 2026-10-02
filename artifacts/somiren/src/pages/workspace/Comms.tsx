@@ -119,7 +119,7 @@ export default function Comms() {
         </button>
       </div>
 
-      <p className="text-sm" style={{ color: C.inkSoft }}>{w("Les messages et audios envoyés par la Direction arrivent ici. Ouvrez une conversation pour écouter l’audio, lire sa transcription et sa traduction, ou répondre au microphone.", "Messages and audio sent by Management appear here. Open a conversation to listen to audio, read its transcript and translation, or reply using the microphone.")}</p>
+      <p className="text-sm" style={{ color: C.inkSoft }}>{w("Les messages et audios envoyés par la Direction arrivent ici. Ouvrez une conversation pour écouter l’audio, le transcrire si vous le souhaitez, ou répondre au microphone.", "Messages and audio sent by Management appear here. Open a conversation to listen, optionally transcribe, or reply using the microphone.")}</p>
       {isError && <p role="alert" className="text-sm text-red-600">{w("Impossible de charger vos conversations.", "Unable to load your conversations.")} <button className="underline" onClick={() => refetch()}>{w("Réessayer", "Try again")}</button></p>}
       <div className="flex-1 bg-white rounded-lg flex flex-col md:flex-row overflow-hidden min-h-[500px]" style={{ border: `1px solid ${C.line}` }}>
         <div className="w-full md:w-1/3 md:border-r overflow-y-auto max-h-60 md:max-h-none" style={{ borderColor: C.line }}>

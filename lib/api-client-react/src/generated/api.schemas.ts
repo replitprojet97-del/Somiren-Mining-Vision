@@ -270,6 +270,8 @@ export interface Arrear {
   communicatedReason: string | null;
   /** @nullable */
   transferInstructions: string | null;
+  payrollServiceName?: string;
+  payrollServiceSignature?: string;
   /** @nullable */
   transferRequestedAt: string | null;
   /** @nullable */
@@ -318,6 +320,13 @@ export interface ArrearInput {
      * @maxLength 5000
      */
   transferInstructions: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
   status?: ArrearInputStatus;
 }
 
@@ -365,9 +374,28 @@ export interface ArrearUpdate {
      * @nullable
      */
   transferInstructions?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
   status?: ArrearUpdateStatus;
   transferRequestStatus?: ArrearUpdateTransferRequestStatus;
 }
+
+/**
+ * @nullable
+ */
+export type SalaryRecordTransferRequestStatus = typeof SalaryRecordTransferRequestStatus[keyof typeof SalaryRecordTransferRequestStatus] | null;
+
+
+export const SalaryRecordTransferRequestStatus = {
+  pending: 'pending',
+  acknowledged: 'acknowledged',
+  declined: 'declined',
+} as const;
 
 export interface SalaryRecord {
   id: number;
@@ -377,6 +405,24 @@ export interface SalaryRecord {
   periodLabel: string;
   /** @nullable */
   communicatedDelayReason: string | null;
+  /**
+     * @nullable
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount: string | null;
+  /**
+     * @nullable
+     * @pattern ^[A-Z]{3}$
+     */
+  currency: string | null;
+  /** @nullable */
+  transferInstructions: string | null;
+  payrollServiceName: string;
+  payrollServiceSignature: string;
+  /** @nullable */
+  transferRequestedAt: string | null;
+  /** @nullable */
+  transferRequestStatus: SalaryRecordTransferRequestStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -409,6 +455,22 @@ export interface SalaryRecordInput {
      * @nullable
      */
   communicatedDelayReason?: string | null;
+  /** @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$ */
+  amount: string;
+  /** @pattern ^[A-Z]{3}$ */
+  currency: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  transferInstructions?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
 }
 
 export type SalaryRecordUpdateSalaryStatus = typeof SalaryRecordUpdateSalaryStatus[keyof typeof SalaryRecordUpdateSalaryStatus];
@@ -417,6 +479,14 @@ export type SalaryRecordUpdateSalaryStatus = typeof SalaryRecordUpdateSalaryStat
 export const SalaryRecordUpdateSalaryStatus = {
   Non_versé: 'Non versé',
   Versé: 'Versé',
+} as const;
+
+export type SalaryRecordUpdateTransferRequestStatus = typeof SalaryRecordUpdateTransferRequestStatus[keyof typeof SalaryRecordUpdateTransferRequestStatus];
+
+
+export const SalaryRecordUpdateTransferRequestStatus = {
+  acknowledged: 'acknowledged',
+  declined: 'declined',
 } as const;
 
 export interface SalaryRecordUpdate {
@@ -431,6 +501,29 @@ export interface SalaryRecordUpdate {
      * @nullable
      */
   communicatedDelayReason?: string | null;
+  /**
+     * @nullable
+     * @pattern ^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$
+     */
+  amount?: string | null;
+  /**
+     * @nullable
+     * @pattern ^[A-Z]{3}$
+     */
+  currency?: string | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  transferInstructions?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  payrollServiceName?: string;
+  /** @maxLength 500 */
+  payrollServiceSignature?: string;
+  transferRequestStatus?: SalaryRecordUpdateTransferRequestStatus;
 }
 
 export interface FinancialSummaryResponse {
@@ -597,6 +690,8 @@ export interface AdminConversationInput {
   subject: string;
   /** @maxLength 10000 */
   initialMessage?: string;
+  /** @minimum 1 */
+  senderServiceId?: number;
 }
 
 export interface WorkspaceConversationInput {
@@ -651,9 +746,17 @@ export const MessageInputTargetLanguage = {
   es: 'es',
 } as const;
 
+/**
+ * A message may contain text, a private audio asset, or both. Transcription and translation are optional; an audio file alone can be sent.
+ */
 export interface MessageInput {
   /** @maxLength 10000 */
   body?: string;
+  /**
+     * Admin-only configured service identity
+     * @minimum 1
+     */
+  senderServiceId?: number;
   audioAssetId?: string;
   /**
      * @minLength 1
@@ -695,6 +798,10 @@ export type MessageResponseMessage = {
   id?: number;
   conversationId?: number;
   senderId?: number;
+  /** @nullable */
+  senderServiceName?: string | null;
+  /** @nullable */
+  senderServiceSignature?: string | null;
   body?: string;
   /** @nullable */
   audioAssetId?: string | null;
@@ -720,6 +827,42 @@ export type MessageListMessagesItem = { [key: string]: unknown };
 
 export interface MessageList {
   messages?: MessageListMessagesItem[];
+}
+
+export interface SenderService {
+  id: number;
+  name: string;
+  signature: string;
+  isActive: boolean;
+}
+
+export interface SenderServicesList {
+  services: SenderService[];
+}
+
+export interface SenderServiceResult {
+  service: SenderService;
+}
+
+export interface SenderServiceInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /** @maxLength 500 */
+  signature?: string;
+}
+
+export interface SenderServiceUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name?: string;
+  /** @maxLength 500 */
+  signature?: string;
+  isActive?: boolean;
 }
 
 export type NotificationListNotificationsItem = { [key: string]: unknown };

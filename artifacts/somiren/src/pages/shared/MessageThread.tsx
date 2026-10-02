@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Mic, X } from "lucide-react";
 import { AudioComposer } from "@/components/media/AudioComposer";
 import { PrivateAudio } from "@/components/media/PrivateAudio";
+import { ReceivedAudioTranscript } from "@/components/media/ReceivedAudioTranscript";
 import { localizePrivateMediaMessage, uploadPrivateFile } from "@/lib/private-media";
 import { type AudioDraft, type PrivateMessage } from "@/types/media";
 import { errMsg } from "./signed";
@@ -10,7 +11,8 @@ import { localizeApiMessage } from "@/i18n/api-error-translations";
 
 const INK = "#1f2937", SOFT = "#6b7280", LINE = "#e5e7eb", COPPER = "#b4682f";
 
-export default function MessageThread({ messages, isMine, onSend, mode, loading, error: loadError, prefix, conversationId }: {
+export default function MessageThread({ messages, isMine, onSend, mode, loading, error: loadError, prefix, conversationId, services }: {
+  services?: { id: number; name: string }[];
   prefix: "admin" | "workspace"; conversationId: string;
   messages: PrivateMessage[]; isMine: (m: PrivateMessage) => boolean;
   onSend: (payload: any) => Promise<any>; mode: "upload" | "record"; loading?: boolean; error?: string | null;
@@ -22,20 +24,21 @@ export default function MessageThread({ messages, isMine, onSend, mode, loading,
   const [composerKey, setComposerKey] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serviceId, setServiceId] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [messages?.length]);
 
-  const audioReady = !draft || (draft.transcript.trim() && draft.translation.trim() && draft.sourceLanguage !== draft.targetLanguage);
-  const canSend = !sending && (draft ? !!audioReady : !!body.trim());
+  const canSend = !sending && (!!draft || !!body.trim());
 
   const send = async () => {
     if (!canSend) return;
     setSending(true); setError(null);
     try {
       let payload: any = { body: body.trim() || undefined };
+      if (services && serviceId) payload.senderServiceId = Number(serviceId);
       if (draft) {
         const audioAssetId = await uploadPrivateFile(draft.file, "audio", draft.fileName);
-        payload = { ...payload, audioAssetId, transcript: draft.transcript.trim(), translation: draft.translation.trim(), sourceLanguage: draft.sourceLanguage, targetLanguage: draft.targetLanguage };
+        payload = { ...payload, audioAssetId };
       }
       await onSend(payload);
       setBody(""); setDraft(null); setAudioOpen(false); setComposerKey(k => k + 1);
@@ -56,12 +59,18 @@ export default function MessageThread({ messages, isMine, onSend, mode, loading,
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`} data-testid={`message-${m.id}`}>
                 <div className="max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm" style={{ background: mine ? "#fbeee3" : "#f3f4f6", color: INK, border: `1px solid ${LINE}` }}>
+                  {(m.senderServiceName || (prefix === "workspace" && !mine) || (prefix === "admin" && mine)) && (
+                    <p className="text-[11px] font-semibold mb-1" style={{ color: COPPER }} data-testid={`text-sender-service-${m.id}`}>
+                      {m.senderServiceName || "La direction"}
+                    </p>
+                  )}
                   {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                   {m.audioAssetId && (
                     <div className="mt-1 space-y-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: COPPER }}><Mic size={12} /> {w("Message vocal", "Voice message")}{m.audioFileName ? ` · ${m.audioFileName}` : ""}</p>
-                      <PrivateAudio fileEndpoint={`/${prefix}/conversations/${conversationId}/messages/${m.id}/file`} />
-                      {[{ lang: m.sourceLanguage, text: m.transcript, k: w("Transcription", "Transcript") }, { lang: m.targetLanguage, text: m.translation, k: w("Traduction", "Translation") }].map((x, i) => (
+                      <p className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: COPPER }}><Mic size={12} /> {w("Message vocal", "Voice message")}{prefix === "workspace" && !mine ? ` · ${m.senderServiceName || "La direction"}` : m.audioFileName ? ` · ${m.audioFileName}` : ""}</p>
+                      <PrivateAudio fileEndpoint={`/${prefix}/conversations/${conversationId}/messages/${m.id}/file`} displayName={prefix === "workspace" && !mine ? (m.senderServiceName || "La direction") : undefined} />
+                      {!mine && <ReceivedAudioTranscript fileEndpoint={`/${prefix}/conversations/${conversationId}/messages/${m.id}/file`} sourceLanguage={m.sourceLanguage ?? "fr"} />}
+                      {[{ lang: m.sourceLanguage, text: m.transcript, k: w("Transcription", "Transcript") }, { lang: m.targetLanguage, text: m.translation, k: w("Traduction", "Translation") }].filter(x => x.text).map((x, i) => (
                         <div key={i} className="rounded bg-white/70 p-2" style={{ border: `1px solid ${LINE}` }}>
                           <p className="text-[11px] font-medium" style={{ color: SOFT }}>{x.k} · {x.lang ? (x.lang === "fr" ? w("français", "French") : x.lang === "es" ? w("espagnol", "Spanish") : x.lang) : "—"}</p>
                           <p className="whitespace-pre-wrap break-words">{x.text || w("Texte indisponible", "Text unavailable")}</p>
@@ -69,6 +78,7 @@ export default function MessageThread({ messages, isMine, onSend, mode, loading,
                       ))}
                     </div>
                   )}
+                  {m.senderServiceSignature && <p className="text-xs italic mt-1.5 whitespace-pre-wrap" style={{ color: SOFT }} data-testid={`text-signature-${m.id}`}>{m.senderServiceSignature}</p>}
                   <p className="text-[10.5px] mt-1.5" style={{ color: SOFT }}>{formatDateTime(m.createdAt)}</p>
                 </div>
               </div>
@@ -81,9 +91,16 @@ export default function MessageThread({ messages, isMine, onSend, mode, loading,
         {audioOpen && (
           <div className="rounded-md p-3" style={{ border: `1px solid ${LINE}` }}>
             <AudioComposer key={composerKey} mode={mode} disabled={sending} onChange={setDraft} />
-            {draft && !audioReady && <p className="text-xs mt-2 text-red-600">{w("Saisissez la transcription et la traduction, dans deux langues différentes (FR / ES), pour envoyer l'audio.", "Enter the transcript and translation in two different languages (FR / ES) to send the audio.")}</p>}
             <p className="text-[11px] mt-2" style={{ color: SOFT }}>{w("Audio limité à 20 Mo.", "Audio limited to 20 MB.")}</p>
           </div>
+        )}
+        {services && (
+          <label className="flex items-center gap-2 text-xs" style={{ color: SOFT }}>Envoyer au nom de
+            <select value={serviceId} onChange={e => setServiceId(e.target.value)} className="rounded-md px-2 py-1 text-sm bg-white" style={{ border: `1px solid ${LINE}` }} data-testid="select-send-service">
+              <option value="">La direction (par défaut)</option>
+              {services.map(sv => <option key={sv.id} value={sv.id}>{sv.name}</option>)}
+            </select>
+          </label>
         )}
         <textarea aria-label={w("Message", "Message")} value={body} maxLength={10000} rows={2} onChange={e => setBody(e.target.value)}
           placeholder={w("Votre message…", "Your message…")} className="w-full px-3 py-2 text-sm rounded-md resize-none" style={{ border: `1px solid ${LINE}` }} data-testid="input-message" />
