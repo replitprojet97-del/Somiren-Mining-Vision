@@ -28,6 +28,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 - Restore imported dependencies with `pnpm install --frozen-lockfile` from the workspace root.
 - Start the managed `artifacts/api-server: API Server` and `artifacts/somiren: web` workflows.
+- The imported artifact manifests provide the managed workflows and preview routing; keep their service definitions rather than creating duplicate workflows. The Canvas preview is optional and is not needed to run the website.
+- The Replit workspace currently runs Node.js 20.20, which passes the full project typecheck and starts both services. The external deployment's Node.js 24 stack is unchanged.
+- The development database starts empty after import. API startup initializes its schema using the existing migration; importing the repository does not copy production accounts or records.
 - The public website and API can start without email or account-provisioning credentials. Collaborator sign-in requires `NURIA_INITIAL_PASSWORD` (at least 12 characters) for the configured `NURIA_EMAIL`; administrator sign-in requires `ADMIN_PASSWORD`. Contact-form delivery uses the connected Resend integration on Replit, or `RESEND_API_KEY` on external hosts. Set `RESEND_FROM_EMAIL` to an address on a verified Resend domain and `CONTACT_EMAIL` to the receiving mailbox. The default `onboarding@resend.dev` sender is for Resend sandbox testing only.
 - Verify startup with `pnpm run typecheck` and `GET /api/healthz` through the shared preview proxy.
 - API startup runs the idempotent `@workspace/db` migration before accepting requests, including in published environments.

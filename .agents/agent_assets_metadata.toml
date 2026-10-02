@@ -107,33 +107,39 @@ id = "aw6HGrZtZQskYQM0IDU5P"
 uri = "file://artifacts/somiren/src/assets/team-rock-benon.jpg"
 type = "image"
 title = "African man wearing a white hard hat and safety vest at an industrial mining site"
+logical_id = "462191bc-5e29-4325-94a1-9319cbe2896a"
 
 [[outputs]]
 id = "jiM7SqyxT0HTOSYcp_avM"
 uri = "file://artifacts/somiren/src/assets/team-nuria.jpg"
 type = "image"
 title = "Professional Latina woman in business attire in a modern office"
+logical_id = "dfcc5dc8-6294-4ac0-9251-c4eb22f98ec0"
 
 [[outputs]]
 id = "dmKWzXngd7lb5pB87nvFR"
 uri = "file://artifacts/somiren/src/assets/team-ibrahim.jpg"
 type = "image"
 title = "Professional African man wearing a business suit and tie in a corporate office"
+logical_id = "aa882d39-0008-40f5-a8ba-6c41c7cd62da"
 
 [[outputs]]
 id = "nUp2A2Fy8QJKcBZv8WhKl"
 uri = "file://artifacts/somiren/src/assets/team-abdoulaye.jpg"
 type = "image"
 title = "African man wearing a white hard hat and high-visibility safety vest, serious expression"
+logical_id = "cfc22c0a-b574-4351-8fd3-b8065f18368a"
 
 [[outputs]]
 id = "slQWuZAfnAlzBxep6I-Ao"
 uri = "file://artifacts/somiren/src/assets/team-aissa.jpg"
 type = "image"
 title = "Professional African woman in elegant business attire, modern office environment"
+logical_id = "74fe89b8-f15f-424d-8c0b-4f27cc75c300"
 
 [[outputs]]
 id = "J7LBjopsDnthsZRyGRAq-"
 uri = "file://artifacts/somiren/src/assets/team-moussa.jpg"
 type = "image"
 title = "African man wearing a white hard hat and safety vest industrial background"
+logical_id = "3a9f84a2-b07a-493e-900e-3796ed86d46f"
