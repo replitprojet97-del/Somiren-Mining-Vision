@@ -14,3 +14,9 @@ The arrears card in the financial overview must open the existing financial-deta
 **Why:** The user corrected an overly broad interpretation: “Afficher ce modal pour les arrieres. Nul besoin de passer par ‘arrierés et regularisation’. C'est tout ce que je demandais.”
 
 **How to apply:** Reuse the existing details interaction from the overview. Keep financial data and instructions from the administration; screenshot examples are not live-data replacements.
+
+The supplied financial-modal screenshots show production test records filled in through the admin interface. Their “Motif” and “Consignes” content must not be copied into code, defaults, or seed data.
+
+**Why:** The user explicitly clarified that these texts were entered côté admin and that the screenshots are a visual reference only.
+
+**How to apply:** Render the selected record’s administrator-supplied content dynamically; change the modal’s access or presentation without changing its data.
